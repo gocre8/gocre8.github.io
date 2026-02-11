@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAB Color Mixer</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0b0d;
+            --bg-card: #15171c;
+            --bg-input: #1e2028;
+            --border: #2a2d38;
+            --text-primary: #e8e9ed;
+            --text-secondary: #9da0ae;
+            --text-tertiary: #6b6e7d;
+            --accent: #00ff88;
+            --accent-dim: #00ff8822;
+            --grid-line: #252830;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Manrope', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 100, 200, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            margin-bottom: 60px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 3.5rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+        }
+
+        .section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-tertiary);
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .color-input-group {
+            margin-bottom: 32px;
+        }
+
+        .color-input-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid var(--border);
+            transition: transform 0.2s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .slider-group {
+            margin: 32px 0;
+            padding: 24px;
+            background: var(--bg-input);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .slider-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 255, 136, 0.3);
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 255, 136, 0.3);
+        }
+
+        .result-display {
+            margin-top: 32px;
+            padding: 24px;
+            background: var(--bg-input);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .result-color {
+            width: 100%;
+            height: 120px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            border: 2px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-color::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 100%);
+            pointer-events: none;
+        }
+
+        .result-values {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .result-values strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .lab-visualization {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: var(--bg-input);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .legend {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--bg-input);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-marker {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+        }
+
+        .marker-filled {
+            background: currentColor;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* Mix method toggle */
+        .mix-method-toggle {
+            margin-bottom: 20px;
+            padding: 6px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            position: relative;
+        }
+
+        .mix-method-toggle .sliding-bg {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            height: calc(100% - 12px);
+            width: calc(50% - 6px);
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 12px var(--accent-dim);
+        }
+
+        .mix-method-toggle .sliding-bg.right {
+            transform: translateX(calc(100% + 0px));
+        }
+
+        .mix-method-btn {
+            flex: 1;
+            padding: 10px 12px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            transition: color 0.3s;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .mix-method-btn.active {
+            color: var(--accent);
+        }
+
+        .mode-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .mode-btn.active {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>LAB Color Mixer</h1>
+            <p class="subtitle">Perceptually Uniform Color Space Visualization</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2 class="section-title">Color Inputs</h2>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="margin-bottom: 10px; display:block;">Mixing Method</label>
+                    <div class="mix-method-toggle">
+                        <div class="sliding-bg" id="slidingBg"></div>
+                        <button class="mix-method-btn active" id="btnLab" onclick="setMixMethod('lab')">
+                            LAB Space<br><span style="font-size:0.65rem; opacity:0.7;">Perceptual</span>
+                        </button>
+                        <button class="mix-method-btn" id="btnKM" onclick="setMixMethod('km')">
+                            Kubelka-Munk<br><span style="font-size:0.65rem; opacity:0.7;">Paint Physics</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="color-input-group">
+                    <div class="color-input-label">
+                        <div class="color-swatch" id="swatch1"></div>
+                        <span>Color 1</span>
+                    </div>
+                    <div class="input-row">
+                        <div>
+                            <label>Hex</label>
+                            <input type="text" id="hex1" value="#0033ff" placeholder="#0033ff">
+                        </div>
+                        <div>
+                            <label>L</label>
+                            <input type="number" id="l1" step="1" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <div>
+                            <label>a*</label>
+                            <input type="number" id="a1" step="1" min="-128" max="127">
+                        </div>
+                        <div>
+                            <label>b*</label>
+                            <input type="number" id="b1" step="1" min="-128" max="127">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-input-group">
+                    <div class="color-input-label">
+                        <div class="color-swatch" id="swatch2"></div>
+                        <span>Color 2</span>
+                    </div>
+                    <div class="input-row">
+                        <div>
+                            <label>Hex</label>
+                            <input type="text" id="hex2" value="#ffcc00" placeholder="#ffcc00">
+                        </div>
+                        <div>
+                            <label>L</label>
+                            <input type="number" id="l2" step="1" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <div>
+                            <label>a*</label>
+                            <input type="number" id="a2" step="1" min="-128" max="127">
+                        </div>
+                        <div>
+                            <label>b*</label>
+                            <input type="number" id="b2" step="1" min="-128" max="127">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <label>Mix Ratio</label>
+                        <span class="slider-value" id="ratioValue">50%</span>
+                    </div>
+                    <input type="range" id="mixRatio" min="0" max="100" value="50">
+                </div>
+
+                <div class="result-display">
+                    <h3 class="section-title">Mixed Color</h3>
+                    <div class="result-color" id="resultColor"></div>
+                    <div class="result-values" id="resultValues"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="mode-toggle">
+                    <button class="mode-btn active" data-mode="ab">a* vs b*</button>
+                    <button class="mode-btn" data-mode="lb">b* vs L</button>
+                    <button class="mode-btn" data-mode="la">a* vs L</button>
+                </div>
+                
+                <div class="lab-visualization">
+                    <canvas id="labCanvas"></canvas>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-marker marker-filled" id="legend1" style="background:#0033ff; border-color:#0033ff;"></div>
+                        <span>Color 1</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-marker marker-filled" id="legend2" style="background:#ffcc00; border-color:#ffcc00;"></div>
+                        <span>Color 2</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-marker marker-filled" id="legendMix" style="background:#888; border-color:#888;"></div>
+                        <span>Mixed Result</span>
+                    </div>
+                    <div class="legend-item" style="color: #6b6e7d;">
+                        <div class="legend-marker"></div>
+                        <span>Mixing Path</span>
+                    </div>
+                    <div class="legend-item" style="color: #ffaa00;">
+                        <div class="legend-marker" style="border-style: dashed;"></div>
+                        <span>Out of sRGB gamut (approx.)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Subtractive color mixing (paint-like)
+        // Uses CMY color space for realistic pigment blending
+        const SubtractiveMix = {
+            rgbToCmy(r, g, b) {
+                return {
+                    c: 1 - (r / 255),
+                    m: 1 - (g / 255),
+                    y: 1 - (b / 255)
+                };
+            },
+            
+            cmyToRgb(c, m, y) {
+                return {
+                    r: Math.round((1 - c) * 255),
+                    g: Math.round((1 - m) * 255),
+                    b: Math.round((1 - y) * 255)
+                };
+            },
+            
+            mix(rgb1, rgb2, t) {
+                // Clamp t to [0,1]
+                t = Math.max(0, Math.min(1, t));
+                
+                // Edge cases: return exact color at endpoints
+                if (t === 0) return { r: rgb1.r, g: rgb1.g, b: rgb1.b };
+                if (t === 1) return { r: rgb2.r, g: rgb2.g, b: rgb2.b };
+                
+                // Convert both colors to CMY
+                const cmy1 = this.rgbToCmy(rgb1.r, rgb1.g, rgb1.b);
+                const cmy2 = this.rgbToCmy(rgb2.r, rgb2.g, rgb2.b);
+                
+                // Square-root mixing in CMY space (Kubelka-Munk approximation)
+                const mixed = {
+                    c: Math.sqrt(cmy1.c * cmy1.c * (1 - t) + cmy2.c * cmy2.c * t),
+                    m: Math.sqrt(cmy1.m * cmy1.m * (1 - t) + cmy2.m * cmy2.m * t),
+                    y: Math.sqrt(cmy1.y * cmy1.y * (1 - t) + cmy2.y * cmy2.y * t)
+                };
+                
+                return this.cmyToRgb(mixed.c, mixed.m, mixed.y);
+            }
+        };
+
+        // Color conversion functions
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        function rgbToLab(r, g, b) {
+            // Normalize RGB to 0-1
+            let R = r / 255;
+            let G = g / 255;
+            let B = b / 255;
+
+            // Convert to linear RGB
+            R = R > 0.04045 ? Math.pow((R + 0.055) / 1.055, 2.4) : R / 12.92;
+            G = G > 0.04045 ? Math.pow((G + 0.055) / 1.055, 2.4) : G / 12.92;
+            B = B > 0.04045 ? Math.pow((B + 0.055) / 1.055, 2.4) : B / 12.92;
+
+            // Convert to XYZ (D65 illuminant)
+            let X = R * 0.4124564 + G * 0.3575761 + B * 0.1804375;
+            let Y = R * 0.2126729 + G * 0.7151522 + B * 0.0721750;
+            let Z = R * 0.0193339 + G * 0.1191920 + B * 0.9503041;
+
+            // Normalize for D65 white point
+            X = X / 0.95047;
+            Y = Y / 1.00000;
+            Z = Z / 1.08883;
+
+            // XYZ to LAB
+            const epsilon = 0.008856;
+            const kappa = 903.3;
+
+            const fx = X > epsilon ? Math.pow(X, 1/3) : (kappa * X + 16) / 116;
+            const fy = Y > epsilon ? Math.pow(Y, 1/3) : (kappa * Y + 16) / 116;
+            const fz = Z > epsilon ? Math.pow(Z, 1/3) : (kappa * Z + 16) / 116;
+
+            const L = 116 * fy - 16;
+            const a = 500 * (fx - fy);
+            const bStar = 200 * (fy - fz);
+
+            return { L, a, b: bStar };
+        }
+
+        // Returns raw linear RGB (may be outside 0-1) for gamut checking
+        function labToRgbRaw(L, a, b) {
+            const fy = (L + 16) / 116;
+            const xr = Math.pow(a / 500 + fy, 3);
+            const yr = L > 7.9996 ? Math.pow((L + 16) / 116, 3) : L / 903.3;
+            const zr = Math.pow(fy - b / 200, 3);
+            const X = xr * 0.95047, Y = yr, Z = zr * 1.08883;
+            return {
+                r: X *  3.2404542 + Y * -1.5371385 + Z * -0.4985314,
+                g: X * -0.9692660 + Y *  1.8760108 + Z *  0.0415560,
+                b: X *  0.0556434 + Y * -0.2040259 + Z *  1.0572252
+            };
+        }
+
+        function labToRgb(L, a, b) {
+            // LAB to XYZ
+            const fy = (L + 16) / 116;
+            const fx = a / 500 + fy;
+            const fz = fy - b / 200;
+
+            const epsilon = 0.008856;
+            const kappa = 903.3;
+
+            const xr = Math.pow(fx, 3) > epsilon ? Math.pow(fx, 3) : (116 * fx - 16) / kappa;
+            const yr = L > kappa * epsilon ? Math.pow((L + 16) / 116, 3) : L / kappa;
+            const zr = Math.pow(fz, 3) > epsilon ? Math.pow(fz, 3) : (116 * fz - 16) / kappa;
+
+            const X = xr * 0.95047;
+            const Y = yr * 1.00000;
+            const Z = zr * 1.08883;
+
+            // XYZ to linear RGB
+            let R = X *  3.2404542 + Y * -1.5371385 + Z * -0.4985314;
+            let G = X * -0.9692660 + Y *  1.8760108 + Z *  0.0415560;
+            let B = X *  0.0556434 + Y * -0.2040259 + Z *  1.0572252;
+
+            // Gamut mapping: if out of [0,1], compress chroma toward neutral grey
+            // rather than hard-clipping, preserving hue and lightness
+            if (R < 0 || R > 1 || G < 0 || G > 1 || B < 0 || B > 1) {
+                // Find the neutral grey of same luminance (a=0, b=0)
+                const Yn = yr; // neutral luminance in linear
+                const Rn = Yn * 3.2404542 + Yn * -1.5371385 + Yn * -0.4985314;
+                const Gn = Yn * -0.9692660 + Yn *  1.8760108 + Yn *  0.0415560;
+                const Bn = Yn *  0.0556434 + Yn * -0.2040259 + Yn *  1.0572252;
+
+                // Binary search for the maximum t where gamut holds
+                let lo = 0, hi = 1;
+                for (let i = 0; i < 16; i++) {
+                    const mid = (lo + hi) / 2;
+                    const Rm = Rn + (R - Rn) * mid;
+                    const Gm = Gn + (G - Gn) * mid;
+                    const Bm = Bn + (B - Bn) * mid;
+                    if (Rm >= 0 && Rm <= 1 && Gm >= 0 && Gm <= 1 && Bm >= 0 && Bm <= 1) lo = mid;
+                    else hi = mid;
+                }
+                R = Rn + (R - Rn) * lo;
+                G = Gn + (G - Gn) * lo;
+                B = Bn + (B - Bn) * lo;
+            }
+
+            // Apply sRGB gamma
+            const toSrgb = c => c > 0.0031308 ? 1.055 * Math.pow(c, 1/2.4) - 0.055 : 12.92 * c;
+            return {
+                r: Math.max(0, Math.min(255, Math.round(toSrgb(R) * 255))),
+                g: Math.max(0, Math.min(255, Math.round(toSrgb(G) * 255))),
+                b: Math.max(0, Math.min(255, Math.round(toSrgb(B) * 255)))
+            };
+        }
+
+        // Global state
+        let color1 = { hex: '#0033ff', lab: null };
+        let color2 = { hex: '#ffcc00', lab: null };
+        let mixRatio = 0.5;
+        let visualizationMode = 'ab';
+        let mixMethod = 'lab'; // 'lab' or 'km'
+
+        function setMixMethod(method) {
+            mixMethod = method;
+            document.getElementById('btnLab').classList.toggle('active', method === 'lab');
+            document.getElementById('btnKM').classList.toggle('active', method === 'km');
+            document.getElementById('slidingBg').classList.toggle('right', method === 'km');
+            mixColors();
+        }
+
+        // Compute where a mix point sits in LAB space for path drawing.
+        // Keeps endpoints pinned to the *typed* LAB values so the path always
+        // connects to the dots, even when colors are outside sRGB.
+        function getPathLab(t) {
+            if (t === 0) return color1.lab;
+            if (t === 1) return color2.lab;
+
+            if (mixMethod === 'lab') {
+                // Pure linear interpolation in LAB
+                return {
+                    L: color1.lab.L * (1 - t) + color2.lab.L * t,
+                    a: color1.lab.a * (1 - t) + color2.lab.a * t,
+                    b: color1.lab.b * (1 - t) + color2.lab.b * t
+                };
+            } else {
+                // KM: mix in CMY/RGB space, get LAB position of intermediate color
+                const rgb1 = hexToRgb(color1.hex);
+                const rgb2 = hexToRgb(color2.hex);
+                const mixed = SubtractiveMix.mix(rgb1, rgb2, t);
+                const midLab = rgbToLab(mixed.r, mixed.g, mixed.b);
+
+                // Affine endpoint correction:
+                // The RGB round-trip puts t=0 at rgb1's LAB and t=1 at rgb2's LAB,
+                // which may differ from the typed color1.lab / color2.lab (out-of-gamut).
+                // Add a linear drift term so the path starts and ends at the exact dots
+                // without any kinks or blend windows.
+                const lab0 = rgbToLab(rgb1.r, rgb1.g, rgb1.b);
+                const lab1 = rgbToLab(rgb2.r, rgb2.g, rgb2.b);
+                return {
+                    L: midLab.L + (1 - t) * (color1.lab.L - lab0.L) + t * (color2.lab.L - lab1.L),
+                    a: midLab.a + (1 - t) * (color1.lab.a - lab0.a) + t * (color2.lab.a - lab1.a),
+                    b: midLab.b + (1 - t) * (color1.lab.b - lab0.b) + t * (color2.lab.b - lab1.b)
+                };
+            }
+        }
+
+        function computeMix(rgb1, rgb2, t) {
+            if (mixMethod === 'km') {
+                return SubtractiveMix.mix(rgb1, rgb2, t);
+            } else {
+                // LAB space mixing
+                const lab1 = rgbToLab(rgb1.r, rgb1.g, rgb1.b);
+                const lab2 = rgbToLab(rgb2.r, rgb2.g, rgb2.b);
+                const mixedLab = {
+                    L: lab1.L * (1 - t) + lab2.L * t,
+                    a: lab1.a * (1 - t) + lab2.a * t,
+                    b: lab1.b * (1 - t) + lab2.b * t
+                };
+                return labToRgb(mixedLab.L, mixedLab.a, mixedLab.b);
+            }
+        }
+
+        // Initialize
+        function init() {
+            updateColor1FromHex();
+            updateColor2FromHex();
+            mixColors();
+            drawLabSpace();
+
+            // Event listeners
+            document.getElementById('hex1').addEventListener('input', updateColor1FromHex);
+            document.getElementById('hex2').addEventListener('input', updateColor2FromHex);
+            
+            ['l1', 'a1', 'b1'].forEach(id => {
+                document.getElementById(id).addEventListener('input', () => updateColor1FromLab());
+                document.getElementById(id).addEventListener('change', () => updateColor1FromLab());
+                document.getElementById(id).addEventListener('keyup', (e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') updateColor1FromLab();
+                });
+            });
+            
+            ['l2', 'a2', 'b2'].forEach(id => {
+                document.getElementById(id).addEventListener('input', () => updateColor2FromLab());
+                document.getElementById(id).addEventListener('change', () => updateColor2FromLab());
+                document.getElementById(id).addEventListener('keyup', (e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') updateColor2FromLab();
+                });
+            });
+            
+            document.getElementById('mixRatio').addEventListener('input', (e) => {
+                mixRatio = e.target.value / 100;
+                document.getElementById('ratioValue').textContent = e.target.value + '%';
+                mixColors();
+            });
+
+            // Mode toggle
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    visualizationMode = btn.dataset.mode;
+                    drawLabSpace();
+                });
+            });
+        }
+
+        function updateColor1FromHex() {
+            const hex = document.getElementById('hex1').value;
+            const rgb = hexToRgb(hex);
+            if (rgb) {
+                color1.hex = hex;
+                color1.lab = rgbToLab(rgb.r, rgb.g, rgb.b); // in-gamut, exact
+                updateLabInputs(1, color1.lab);
+                updateSwatch(1, hex);
+                mixColors();
+            }
+        }
+
+        function updateColor2FromHex() {
+            const hex = document.getElementById('hex2').value;
+            const rgb = hexToRgb(hex);
+            if (rgb) {
+                color2.hex = hex;
+                color2.lab = rgbToLab(rgb.r, rgb.g, rgb.b);
+                updateLabInputs(2, color2.lab);
+                updateSwatch(2, hex);
+                mixColors();
+            }
+        }
+
+        function updateColor1FromLab(snapFields = false) {
+            const L = parseFloat(document.getElementById('l1').value) || 0;
+            const a = parseFloat(document.getElementById('a1').value) || 0;
+            const b = parseFloat(document.getElementById('b1').value) || 0;
+
+            // Store the typed LAB directly — used for plotting true position on graph
+            color1.lab = { L, a, b };
+
+            // Convert to best sRGB approximation for display & mixing
+            const rgb = labToRgb(L, a, b);
+            color1.hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+
+            document.getElementById('hex1').value = color1.hex;
+            updateSwatch(1, color1.hex);
+            mixColors();
+        }
+
+        function updateColor2FromLab(snapFields = false) {
+            const L = parseFloat(document.getElementById('l2').value) || 0;
+            const a = parseFloat(document.getElementById('a2').value) || 0;
+            const b = parseFloat(document.getElementById('b2').value) || 0;
+
+            // Store the typed LAB directly — used for plotting true position on graph
+            color2.lab = { L, a, b };
+
+            // Convert to best sRGB approximation for display & mixing
+            const rgb = labToRgb(L, a, b);
+            color2.hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+
+            document.getElementById('hex2').value = color2.hex;
+            updateSwatch(2, color2.hex);
+            mixColors();
+        }
+
+        function updateLabInputs(colorNum, lab) {
+            document.getElementById(`l${colorNum}`).value = Math.round(lab.L);
+            document.getElementById(`a${colorNum}`).value = Math.round(lab.a);
+            document.getElementById(`b${colorNum}`).value = Math.round(lab.b);
+        }
+
+        function updateSwatch(num, hex) {
+            document.getElementById(`swatch${num}`).style.backgroundColor = hex;
+        }
+
+        function mixColors() {
+            if (!color1.lab || !color2.lab) return;
+
+            const rgb1 = hexToRgb(color1.hex);
+            const rgb2 = hexToRgb(color2.hex);
+            const mixed = computeMix(rgb1, rgb2, mixRatio);
+            const mixedHex = rgbToHex(mixed.r, mixed.g, mixed.b);
+            const mixedLab = getPathLab(mixRatio); // true LAB position, not round-tripped
+
+            document.getElementById('resultColor').style.backgroundColor = mixedHex;
+            document.getElementById('resultValues').innerHTML = `
+                <strong>HEX:</strong> ${mixedHex}<br>
+                <strong>RGB:</strong> ${mixed.r}, ${mixed.g}, ${mixed.b}<br>
+                <strong>LAB:</strong> L=${Math.round(mixedLab.L)}, a=${Math.round(mixedLab.a)}, b=${Math.round(mixedLab.b)}
+            `;
+
+            // Update legend dots with actual colors
+            document.getElementById('legend1').style.background = color1.hex;
+            document.getElementById('legend1').style.borderColor = color1.hex;
+            document.getElementById('legend2').style.background = color2.hex;
+            document.getElementById('legend2').style.borderColor = color2.hex;
+            document.getElementById('legendMix').style.background = mixedHex;
+            document.getElementById('legendMix').style.borderColor = mixedHex;
+
+            drawLabSpace();
+        }
+
+        function drawLabSpace() {
+            if (!color1.lab || !color2.lab) return;
+
+            const canvas = document.getElementById('labCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            const width = rect.width;
+            const height = rect.height;
+
+            ctx.fillStyle = '#1e2028';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw grid
+            ctx.strokeStyle = '#252830';
+            ctx.lineWidth = 1;
+            const gridSize = 20;
+            for (let i = 0; i <= width; i += gridSize) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke();
+            }
+            for (let i = 0; i <= height; i += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke();
+            }
+
+            // Axis ranges
+            let xMin, xMax, yMin, yMax, xLabel, yLabel, getX, getY;
+
+            if (visualizationMode === 'ab') {
+                xMin = -128; xMax = 127; yMin = -128; yMax = 127;
+                xLabel = 'a* (green ← → red)';
+                yLabel = 'b* (blue ← → yellow)';
+                getX = (lab) => lab.a;
+                getY = (lab) => lab.b;
+            } else if (visualizationMode === 'lb') {
+                xMin = -128; xMax = 127; yMin = 0; yMax = 100;
+                xLabel = 'b* (blue ← → yellow)';
+                yLabel = 'L (lightness)';
+                getX = (lab) => lab.b;
+                getY = (lab) => lab.L;
+            } else {
+                xMin = -128; xMax = 127; yMin = 0; yMax = 100;
+                xLabel = 'a* (green ← → red)';
+                yLabel = 'L (lightness)';
+                getX = (lab) => lab.a;
+                getY = (lab) => lab.L;
+            }
+
+            // Draw axes
+            ctx.strokeStyle = '#3a3d48';
+            ctx.lineWidth = 2;
+            const centerX = width * (-xMin) / (xMax - xMin);
+            const centerY = height * (yMax) / (yMax - yMin);
+            ctx.beginPath(); ctx.moveTo(0, centerY); ctx.lineTo(width, centerY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(centerX, 0); ctx.lineTo(centerX, height); ctx.stroke();
+
+            // Axis labels
+            ctx.fillStyle = '#6b6e7d';
+            ctx.font = '11px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText(xLabel, width / 2, height - 8);
+            ctx.save();
+            ctx.translate(14, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(yLabel, 0, 0);
+            ctx.restore();
+
+            function mapToCanvas(x, y) {
+                return {
+                    x: ((x - xMin) / (xMax - xMin)) * width,
+                    y: height - ((y - yMin) / (yMax - yMin)) * height
+                };
+            }
+
+            // Compute mixed LAB at 0% and 100% to verify edge cases
+            const rgb1 = hexToRgb(color1.hex);
+            const rgb2 = hexToRgb(color2.hex);
+
+            // Draw the mixing path using LAB-space positions (no RGB round-trip drift)
+            const pathSteps = 80;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#555870';
+            ctx.beginPath();
+            for (let s = 0; s <= pathSteps; s++) {
+                const t = s / pathSteps;
+                const sLab = getPathLab(t);
+                const pos = mapToCanvas(getX(sLab), getY(sLab));
+                s === 0 ? ctx.moveTo(pos.x, pos.y) : ctx.lineTo(pos.x, pos.y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Mixed result: LAB position from path, display color from computeMix
+            const mixedRGB = computeMix(rgb1, rgb2, mixRatio);
+            const mixedLab = getPathLab(mixRatio); // LAB position on the path
+            const mixedHex = rgbToHex(mixedRGB.r, mixedRGB.g, mixedRGB.b);
+
+            const pos1 = mapToCanvas(getX(color1.lab), getY(color1.lab));
+            const pos2 = mapToCanvas(getX(color2.lab), getY(color2.lab));
+            const posM = mapToCanvas(getX(mixedLab), getY(mixedLab));
+
+            // Draw points using actual colors
+            // Dashed outer ring = out of sRGB gamut (approximated)
+            function isOutOfGamut(lab) {
+                const rgb = labToRgbRaw(lab.L, lab.a, lab.b);
+                return rgb.r < 0 || rgb.r > 1 || rgb.g < 0 || rgb.g > 1 || rgb.b < 0 || rgb.b > 1;
+            }
+
+            function drawPoint(pos, hexColor, size = 9, outOfGamut = false) {
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, size, 0, 2 * Math.PI);
+                ctx.fillStyle = hexColor;
+                ctx.fill();
+                ctx.strokeStyle = '#15171c';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([]);
+                ctx.stroke();
+                // Out-of-gamut: add outer dashed warning ring
+                if (outOfGamut) {
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, size + 5, 0, 2 * Math.PI);
+                    ctx.strokeStyle = '#ffaa00';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([3, 3]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            drawPoint(pos1, color1.hex, 9,  isOutOfGamut(color1.lab));
+            drawPoint(pos2, color2.hex, 9,  isOutOfGamut(color2.lab));
+            drawPoint(posM, mixedHex,   10, false);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            init();
+        });
+        window.addEventListener('resize', drawLabSpace);
+    </script>
+</body>
+</html>
