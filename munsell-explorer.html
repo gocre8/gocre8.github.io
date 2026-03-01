@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Munsell Color Tree</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f0e8; --surface: #faf7f2; --border: #d6cbb8;
+  --text: #231c12; --muted: #8a7a65; --accent: #8b3020; --mid: #e8e0d0;
+}
+body { background:var(--bg); color:var(--text); font-family:'IBM Plex Mono',monospace; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+header { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface); }
+.title-group h1 { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; letter-spacing:-0.3px; }
+.title-group p { font-size:9px; color:var(--muted); margin-top:1px; letter-spacing:0.8px; text-transform:uppercase; }
+.main { display:flex; flex:1; overflow:hidden; }
+#canvas-container { flex:1; position:relative; cursor:grab; }
+#canvas-container:active { cursor:grabbing; }
+#canvas-container canvas { display:block; }
+.label-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+.hue-label {
+  position:absolute; transform:translate(-50%,-50%);
+  font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:500;
+  color:var(--text); background:rgba(245,240,232,0.9); padding:1px 5px;
+  border-radius:3px; border:1px solid var(--border); white-space:nowrap; pointer-events:none;
+}
+.sidebar { width:264px; border-left:2px solid var(--border); background:var(--surface); overflow-y:auto; padding:14px; flex-shrink:0; display:flex; flex-direction:column; gap:13px; }
+.panel-section h3 { font-size:9px; letter-spacing:1.8px; text-transform:uppercase; color:var(--muted); margin-bottom:9px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+.info-card { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:11px; }
+.info-card .space-name { font-family:'Playfair Display',serif; font-size:19px; font-weight:700; margin-bottom:4px; color:var(--accent); }
+.info-card .space-desc { font-size:9px; line-height:1.75; color:var(--muted); }
+
+.branch-presets { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:9px; }
+.preset-btn { font-family:'IBM Plex Mono',monospace; font-size:9px; padding:3px 9px; border:1px solid var(--border); background:var(--bg); color:var(--muted); cursor:pointer; border-radius:4px; transition:all 0.15s; }
+.preset-btn:hover { color:var(--text); border-color:var(--text); }
+.preset-btn.active { background:var(--text); color:var(--bg); border-color:var(--text); }
+
+.hue-grid-pairs { display:flex; flex-direction:column; gap:2px; }
+.hue-pair-row { display:flex; gap:2px; }
+.hue-checkbox {
+  flex:1; display:flex; align-items:center; gap:5px; cursor:pointer;
+  padding:3px 5px; border-radius:3px; border:1px solid var(--border);
+  background:var(--bg); transition:all 0.12s; user-select:none; min-width:0;
+}
+.hue-checkbox:hover { background:var(--mid); }
+.hue-checkbox.active { background:var(--mid); border-color:var(--text); box-shadow:inset 0 0 0 1px var(--text); }
+.hue-swatch { width:8px; height:8px; border-radius:2px; flex-shrink:0; border:1px solid rgba(0,0,0,0.12); }
+.hue-checkbox span { font-size:8.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pair-divider { width:1px; background:var(--border); flex-shrink:0; }
+
+.slider-group { display:flex; flex-direction:column; gap:9px; }
+.slider-row { display:flex; flex-direction:column; gap:3px; }
+.slider-row label { font-size:9px; color:var(--muted); letter-spacing:0.8px; text-transform:uppercase; display:flex; justify-content:space-between; }
+.slider-row label strong { color:var(--text); font-size:10px; }
+input[type=range] { width:100%; accent-color:var(--accent); cursor:pointer; }
+
+.toggle-row { display:flex; align-items:center; gap:7px; margin-bottom:7px; }
+.toggle-btn { font-family:'IBM Plex Mono',monospace; font-size:9px; padding:3px 10px; border:1px solid var(--border); background:transparent; color:var(--muted); border-radius:3px; cursor:pointer; transition:all 0.15s; }
+.toggle-btn.active { background:var(--accent); color:white; border-color:var(--accent); }
+.toggle-label { font-size:9px; color:var(--muted); }
+.divider { height:1px; background:var(--border); }
+.dim { opacity:0.3; pointer-events:none; }
+
+.legend-list { display:flex; flex-direction:column; gap:5px; }
+.legend-item { display:flex; align-items:center; gap:8px; }
+.legend-line { width:14px; height:2px; flex-shrink:0; }
+.legend-item span { font-size:9px; color:var(--muted); }
+.legend-item strong { color:var(--text); }
+
+footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--surface); font-size:9px; color:var(--muted); display:flex; justify-content:space-between; flex-shrink:0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title-group">
+    <h1>Munsell Color Tree</h1>
+    <p>Hue · Value · Chroma — Drag to orbit · Scroll to zoom</p>
+  </div>
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);text-align:right;line-height:1.7">
+    A.H. Munsell, 1905<br><span style="color:var(--accent)">H V/C</span>
+  </div>
+</header>
+<div class="main">
+  <div id="canvas-container">
+    <div class="label-overlay" id="label-overlay"></div>
+  </div>
+  <div class="sidebar">
+
+    <div class="panel-section">
+      <h3>About</h3>
+      <div class="info-card">
+        <div class="space-name">Munsell</div>
+        <div class="space-desc">The tree is <em>deliberately irregular</em> — branches extend only as far as real pigments allow. 20 hue pages, values 0–10, chroma 0–16+. Opposite pairs cancel to neutral grey.</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Hue Branches &nbsp;<span style="color:var(--muted);font-weight:400;font-size:8px">← opposite →</span></h3>
+      <div class="branch-presets">
+        <button class="preset-btn" data-preset="all">All 20</button>
+        <button class="preset-btn active" data-preset="10">Main 10</button>
+        <button class="preset-btn" data-preset="5">5 Hues</button>
+        <button class="preset-btn" data-preset="pair">1 Pair</button>
+        <button class="preset-btn" data-preset="custom">Custom</button>
+      </div>
+      <div class="hue-grid-pairs" id="hue-grid"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-section">
+      <h3>Value Slice (Horizontal)</h3>
+      <div class="toggle-row">
+        <button class="toggle-btn" id="vslice-toggle">Enable</button>
+        <span class="toggle-label">Isolate one value level</span>
+      </div>
+      <div id="vslice-controls" class="slider-row dim">
+        <label>Value <strong id="vslice-val">5</strong></label>
+        <input type="range" id="vslice-slider" min="0" max="10" value="5" step="1">
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Hue Page (Vertical Fan)</h3>
+      <div class="toggle-row">
+        <button class="toggle-btn" id="hslice-toggle">Enable</button>
+        <span class="toggle-label">Isolate one hue's page</span>
+      </div>
+      <div id="hslice-controls" class="slider-row dim">
+        <label>Hue <strong id="hslice-val">5R</strong></label>
+        <input type="range" id="hslice-slider" min="0" max="19" value="0" step="1">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-section">
+      <h3>Settings</h3>
+      <div class="slider-group">
+        <div class="slider-row">
+          <label>Max Chroma <strong id="chroma-val">16</strong></label>
+          <input type="range" id="chroma-slider" min="0" max="18" value="16" step="1">
+        </div>
+        <div class="slider-row">
+          <label>Point Size <strong id="size-val">2.0×</strong></label>
+          <input type="range" id="size-slider" min="1" max="40" value="20">
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-section">
+      <h3>Axes</h3>
+      <div class="legend-list">
+        <div class="legend-item"><div class="legend-line" style="background:#8b3020"></div><span><strong>Hue</strong> — angle (20 pages)</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#888"></div><span><strong>Value</strong> — vertical 0–10</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#4a7a4a"></div><span><strong>Chroma</strong> — radius, irregular</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<footer>
+  <span>Munsell Color Tree · Teaching Tool</span>
+  <span id="point-info">Loading…</span>
+</footer>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const container = document.getElementById('canvas-container');
+let W = container.clientWidth, H = container.clientHeight;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0xf5f0e8);
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, W/H, 0.01, 100);
+camera.position.set(2.2, 1.4, 2.2);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.07;
+controls.minDistance = 0.4; controls.maxDistance = 9;
+
+// ── 20 Munsell hue pages ──────────────────────────────────────────
+const HUE_NAMES = [
+  '5R','10R','5YR','10YR','5Y','10Y','5GY','10GY','5G','10G',
+  '5BG','10BG','5B','10B','5PB','10PB','5P','10P','5RP','10RP'
+];
+const HUE_SWATCHES = [
+  '#c0392b','#c94b2a','#e07030','#d4903a','#d4b800',
+  '#a8c020','#7fa830','#5c9830','#2e8b57','#20906a',
+  '#00897b','#00888a','#1565c0','#2855b8','#5c35a0',
+  '#7040b0','#8e44ad','#a03898','#c0186e','#c02050'
+];
+const HSL_HUE = [
+  4, 14, 22, 38, 55, 72, 90, 110, 148, 166,
+  184, 196, 220, 236, 254, 266, 278, 292, 326, 344
+];
+
+// Max chroma per hue × value (index 0=V0 … 10=V10)
+//          V0  V1  V2  V3  V4  V5  V6  V7  V8  V9 V10
+const MAX_CHROMA = [
+  [0,  4,  6,  8, 10, 14, 14, 12, 10,  8,  4], // 5R
+  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  4], // 10R
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  6,  4], // 5YR
+  [0,  2,  4,  6,  8, 10, 10, 10,  8,  6,  2], // 10YR
+  [0,  2,  4,  6,  8, 12, 14, 14, 12,  8,  4], // 5Y
+  [0,  2,  4,  6,  8, 10, 12, 12, 10,  6,  2], // 10Y
+  [0,  2,  4,  6,  8, 10, 10,  8,  6,  4,  2], // 5GY
+  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  2], // 10GY
+  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  2], // 5G
+  [0,  2,  2,  4,  6,  6,  8,  6,  4,  2,  2], // 10G
+  [0,  2,  2,  4,  6,  6,  8,  6,  4,  2,  2], // 5BG
+  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  2], // 10BG
+  [0,  2,  4,  4,  6,  8,  8,  8,  6,  4,  2], // 5B
+  [0,  2,  4,  6,  8, 10, 10, 10,  8,  6,  2], // 10B
+  [0,  2,  4,  6,  8, 10, 12, 12, 10,  6,  4], // 5PB
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  4], // 10PB
+  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  4], // 5P
+  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  4], // 10P
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  4], // 5RP
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  4], // 10RP
+];
+
+// ── Color helpers ─────────────────────────────────────────────────
+function hslToRgb(h, s, l) {
+  if (s === 0) return [l, l, l];
+  const q = l < 0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+  const f = t => { t=((t%1)+1)%1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+  return [f(h+1/3), f(h), f(h-1/3)];
+}
+
+// Interpolate max chroma at fractional value (linear between integer steps)
+function maxChromaAt(hi, v) {
+  const lo = Math.floor(v), hi2 = Math.min(Math.ceil(v), 10);
+  if (lo === hi2) return MAX_CHROMA[hi][lo];
+  const t = v - lo;
+  return MAX_CHROMA[hi][lo] * (1-t) + MAX_CHROMA[hi][hi2] * t;
+}
+
+function munsellToRgb(hi, value, chroma) {
+  if (value <= 0) return [0, 0, 0];
+  if (chroma === 0) { const g = Math.pow(value/10, 0.9); return [g,g,g]; }
+  const l = Math.pow(value/10, 0.9);
+  const maxC = Math.max(...MAX_CHROMA[hi]);
+  const sat = (chroma/maxC) * (1 - Math.abs(l*2-1) * 0.22);
+  return hslToRgb(HSL_HUE[hi]/360, Math.min(sat, 1), Math.max(0.04, Math.min(l, 0.96)));
+}
+
+// ── Scene constants ───────────────────────────────────────────────
+// V steps at 0.5 intervals so no vertical gaps
+const V_SUBSTEP = 0.5;
+const SCALE_C   = 0.048;
+const SCALE_V   = 0.17;  // V5 = y=0 centre
+
+// ── State ─────────────────────────────────────────────────────────
+let activeHues    = new Set([0,2,4,6,8,10,12,14,16,18]);
+let pairMode      = false; // true when "1 Pair" preset is active
+let vSliceOn      = false, vSliceVal = 5;
+let hSliceOn      = false, hSliceIdx = 0;
+let maxChromaClip = 16;
+let pointSizeMult = 2.0;  // start at 2× so points touch
+let pointsObj = null, axisObj = null;
+
+const BASE_SIZE = 0.052; // world-unit base; at 2× = 0.104, V_SUBSTEP*SCALE_V=0.085 → overlap ✓
+
+// ── Build points ──────────────────────────────────────────────────
+function buildPoints() {
+  const pos = [], col = [];
+
+  // Neutral axis — dense enough to look solid
+  for (let v = 0; v <= 10; v += V_SUBSTEP) {
+    const g = Math.pow(v/10, 0.9);
+    for (let r = 0; r < 4; r++) { pos.push(0, (v-5)*SCALE_V, 0); col.push(g,g,g); }
+  }
+
+  activeHues.forEach(hi => {
+    if (hSliceOn && hi !== hSliceIdx) return;
+    const a   = (hi / 20) * Math.PI * 2;
+    const ca  = Math.cos(a), sa = Math.sin(a);
+
+    // Iterate value in sub-steps so no vertical gaps
+    for (let v = 0; v <= 10; v += V_SUBSTEP) {
+      if (vSliceOn) {
+        // In slice mode, show a band ±0.5 around the chosen value
+        if (Math.abs(v - vSliceVal) > 0.5) continue;
+      }
+      const maxCfloat = maxChromaAt(hi, v);
+      const maxC = Math.min(Math.floor(maxCfloat), maxChromaClip);
+      if (maxC < 0) continue;
+      const y = (v - 5) * SCALE_V;
+      for (let c = 0; c <= maxC; c++) {
+        const r = c * SCALE_C;
+        pos.push(ca*r, y, sa*r);
+        const [rr,gg,bb] = munsellToRgb(hi, v, c);
+        col.push(rr, gg, bb);
+      }
+    }
+  });
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color',    new THREE.Float32BufferAttribute(col, 3));
+  return new THREE.Points(geo, new THREE.PointsMaterial({
+    size: BASE_SIZE * pointSizeMult, vertexColors: true, sizeAttenuation: true
+  }));
+}
+
+// ── Axes ──────────────────────────────────────────────────────────
+function buildAxes() {
+  const grp = new THREE.Group();
+  const lm = (c,o=1) => new THREE.LineBasicMaterial({color:c,transparent:o<1,opacity:o});
+  const ln = (a,b,m) => { const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]); return new THREE.Line(g,m); };
+  grp.add(ln([0,-5.2*SCALE_V,0],[0,5.4*SCALE_V,0], lm(0x888880)));
+  // Integer value ticks
+  for (let v=0;v<=10;v++) { const y=(v-5)*SCALE_V; grp.add(ln([-0.028,y,0],[0.028,y,0],lm(0x777770))); }
+  // Hue spokes
+  for (let i=0;i<20;i++) {
+    const a=(i/20)*Math.PI*2;
+    const maxC=Math.min(Math.max(...MAX_CHROMA[i]),maxChromaClip);
+    grp.add(ln([0,0,0],[Math.cos(a)*(maxC+1)*SCALE_C,0,Math.sin(a)*(maxC+1)*SCALE_C],lm(0xc8baa8,0.28)));
+  }
+  // Chroma rings
+  for (let c=4;c<=18;c+=4) {
+    const pts=[];
+    for(let i=0;i<=72;i++){const a=i/72*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*c*SCALE_C,0,Math.sin(a)*c*SCALE_C));}
+    grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lm(0xc8baa8,0.18)));
+  }
+  return grp;
+}
+
+// ── Rebuild ───────────────────────────────────────────────────────
+function rebuild() {
+  if (pointsObj) scene.remove(pointsObj);
+  if (axisObj)   scene.remove(axisObj);
+  pointsObj = buildPoints(); axisObj = buildAxes();
+  scene.add(pointsObj); scene.add(axisObj);
+  document.getElementById('point-info').textContent =
+    `${pointsObj.geometry.attributes.position.count.toLocaleString()} chips · 20 hue pages · V0–V10`;
+}
+
+// ── HTML labels ───────────────────────────────────────────────────
+function updateLabels() {
+  const ov = document.getElementById('label-overlay');
+  ov.innerHTML = '';
+  if (!hSliceOn) {
+    activeHues.forEach(hi => {
+      const a=(hi/20)*Math.PI*2;
+      const maxC=Math.min(Math.max(...MAX_CHROMA[hi]),maxChromaClip);
+      const r=(maxC+2)*SCALE_C;
+      const p3=new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r);
+      const pr=p3.clone().project(camera); if(pr.z>1)return;
+      const d=document.createElement('div');
+      d.className='hue-label'; d.textContent=HUE_NAMES[hi];
+      d.style.left=((pr.x*.5+.5)*W)+'px'; d.style.top=((-pr.y*.5+.5)*H)+'px';
+      d.style.borderLeft=`3px solid ${HUE_SWATCHES[hi]}`;
+      ov.appendChild(d);
+    });
+  }
+  // Value axis labels (integers only)
+  for (let v=0;v<=10;v++) {
+    const p3=new THREE.Vector3(-0.09,(v-5)*SCALE_V,0);
+    const pr=p3.clone().project(camera); if(pr.z>1)return;
+    const d=document.createElement('div');
+    d.className='hue-label'; d.textContent='V'+v;
+    d.style.left=((pr.x*.5+.5)*W)+'px'; d.style.top=((-pr.y*.5+.5)*H)+'px';
+    d.style.background='rgba(245,240,232,0.7)'; d.style.borderLeft='none'; d.style.fontSize='8px';
+    ov.appendChild(d);
+  }
+}
+
+// ── Hue grid ──────────────────────────────────────────────────────
+function buildHueGrid() {
+  const grid = document.getElementById('hue-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const li = i, ri = i + 10; // ri is the true opposite
+    const row = document.createElement('div');
+    row.className = 'hue-pair-row';
+    [li, ri].forEach((idx, col) => {
+      const div = document.createElement('div');
+      div.className = 'hue-checkbox' + (activeHues.has(idx) ? ' active' : '');
+      div.dataset.idx = idx;
+      div.dataset.opp = (idx < 10) ? idx + 10 : idx - 10; // opposite index
+      div.innerHTML = `<div class="hue-swatch" style="background:${HUE_SWATCHES[idx]}"></div><span>${HUE_NAMES[idx]}</span>`;
+      div.addEventListener('click', () => {
+        const oppIdx = parseInt(div.dataset.opp);
+        if (pairMode) {
+          // In pair mode: clicking selects ONLY this pair
+          activeHues = new Set([idx, oppIdx]);
+        } else {
+          // Custom mode: toggle individually
+          if (activeHues.has(idx)) { if (activeHues.size > 1) activeHues.delete(idx); }
+          else activeHues.add(idx);
+        }
+        syncHueGrid();
+        rebuild();
+      });
+      row.appendChild(div);
+      if (col === 0) { const sep=document.createElement('div'); sep.className='pair-divider'; row.appendChild(sep); }
+    });
+    grid.appendChild(row);
+  }
+}
+
+function syncHueGrid() {
+  document.querySelectorAll('.hue-checkbox').forEach(d => {
+    d.classList.toggle('active', activeHues.has(parseInt(d.dataset.idx)));
+  });
+}
+
+// ── Events ────────────────────────────────────────────────────────
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const p=btn.dataset.preset;
+    pairMode = (p === 'pair');
+    if (p==='all')    activeHues=new Set([...Array(20).keys()]);
+    if (p==='10')     activeHues=new Set([0,2,4,6,8,10,12,14,16,18]);
+    if (p==='5')      activeHues=new Set([0,4,8,12,16]);
+    if (p==='pair')   activeHues=new Set([0,10]); // 5R ↔ 5BG to start
+    if (p==='custom') pairMode=false; // keep current selection
+    syncHueGrid(); rebuild();
+  });
+});
+
+const vTog=document.getElementById('vslice-toggle'), vCtl=document.getElementById('vslice-controls');
+vTog.addEventListener('click',()=>{ vSliceOn=!vSliceOn; vTog.classList.toggle('active',vSliceOn); vCtl.classList.toggle('dim',!vSliceOn); rebuild(); });
+document.getElementById('vslice-slider').addEventListener('input',e=>{ vSliceVal=parseInt(e.target.value); document.getElementById('vslice-val').textContent=vSliceVal; if(vSliceOn)rebuild(); });
+
+const hTog=document.getElementById('hslice-toggle'), hCtl=document.getElementById('hslice-controls');
+hTog.addEventListener('click',()=>{ hSliceOn=!hSliceOn; hTog.classList.toggle('active',hSliceOn); hCtl.classList.toggle('dim',!hSliceOn); rebuild(); });
+document.getElementById('hslice-slider').addEventListener('input',e=>{ hSliceIdx=parseInt(e.target.value); document.getElementById('hslice-val').textContent=HUE_NAMES[hSliceIdx]; if(hSliceOn)rebuild(); });
+
+document.getElementById('chroma-slider').addEventListener('input',e=>{
+  maxChromaClip=parseInt(e.target.value);
+  document.getElementById('chroma-val').textContent=maxChromaClip;
+  rebuild();
+});
+document.getElementById('size-slider').addEventListener('input',e=>{
+  pointSizeMult=parseInt(e.target.value)/10;
+  document.getElementById('size-val').textContent=pointSizeMult.toFixed(1)+'×';
+  if(pointsObj) pointsObj.material.size=BASE_SIZE*pointSizeMult;
+});
+
+window.addEventListener('resize',()=>{ W=container.clientWidth; H=container.clientHeight; camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H); });
+
+function animate(){ requestAnimationFrame(animate); controls.update(); updateLabels(); renderer.render(scene,camera); }
+buildHueGrid(); rebuild(); animate();
+</script>
+</body>
+</html>
