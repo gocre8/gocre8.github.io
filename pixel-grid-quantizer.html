@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHROMAGRID — Image Quantizer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --panel: #161616;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --text: #e0e0e0;
+    --muted: #555;
+    --track: #222;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .tagline {
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 250px;
+    min-width: 250px;
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* FILE INPUT — hidden, opened by <label for> which is universally reliable */
+  #file-input {
+    position: absolute;
+    width: 1px; height: 1px;
+    opacity: 0;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  label[for="file-input"] {
+    display: block;
+    border: 1.5px dashed var(--border);
+    border-radius: 4px;
+    padding: 22px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.7;
+    user-select: none;
+  }
+  label[for="file-input"]:hover,
+  label[for="file-input"].drag-over {
+    border-color: var(--accent);
+    background: rgba(232,255,71,0.04);
+    color: var(--accent);
+  }
+  label[for="file-input"] .icon { font-size: 1.6rem; display: block; margin-bottom: 6px; }
+
+  .hint {
+    font-size: 0.57rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 5px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Controls */
+  .control-row { display: flex; flex-direction: column; gap: 6px; }
+
+  .control-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.68rem;
+    color: var(--text);
+  }
+
+  .control-header .val {
+    color: var(--accent);
+    font-weight: 500;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--track);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%; background: var(--accent); border: none; cursor: pointer;
+  }
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 9px 6px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.63rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .mode-btn.active { background: var(--accent); color: #0e0e0e; font-weight: 500; }
+  .mode-btn:not(.active):hover { background: #1e1e1e; color: var(--text); }
+
+  /* Palette */
+  #palette-strip { display: flex; flex-wrap: wrap; gap: 4px; min-height: 20px; }
+  .swatch {
+    width: 22px; height: 22px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+    transition: transform 0.15s, outline 0.1s;
+    cursor: pointer;
+    position: relative;
+  }
+  .swatch:hover { transform: scale(1.35); z-index: 2; }
+  .swatch.selected {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    transform: scale(1.35);
+    z-index: 2;
+  }
+
+  .palette-hint {
+    font-size: 0.57rem;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.5;
+    transition: color 0.2s;
+  }
+  .palette-hint.armed { color: var(--accent); }
+
+  /* Checkbox */
+  .checkbox-row {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 0.68rem; cursor: pointer; color: var(--text);
+  }
+  .checkbox-row input[type="checkbox"] { display: none; }
+  .checkbox-row .box {
+    width: 15px; height: 15px;
+    border: 1.5px solid var(--border);
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .checkbox-row input[type="checkbox"]:checked + .box { background: var(--accent); border-color: var(--accent); }
+  .checkbox-row input[type="checkbox"]:checked + .box::after {
+    content: '✓'; font-size: 0.6rem; color: #0e0e0e; font-weight: 700;
+  }
+  .checkbox-row:hover .box { border-color: var(--accent); }
+
+  /* Buttons */
+  .btn {
+    width: 100%; padding: 10px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #0e0e0e; font-weight: 500; }
+  .btn.primary:hover:not(:disabled) { background: #d4e83e; }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+
+  /* CANVAS AREA */
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    position: relative;
+    overflow: auto;
+    background: #090909;
+  }
+
+  .canvas-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    color: var(--muted);
+    font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase;
+    pointer-events: none;
+  }
+  .canvas-placeholder .big {
+    font-family: 'Bebas Neue'; font-size: 5rem; color: #181818;
+    letter-spacing: 0.05em; line-height: 1;
+  }
+
+  #canvas-wrapper {
+    position: relative; display: none;
+    box-shadow: 0 0 0 1px var(--border), 0 20px 60px rgba(0,0,0,0.7);
+  }
+  #canvas-wrapper.picking { cursor: crosshair; }
+
+  /* Color preview tooltip shown while hovering in picking mode */
+  #pick-preview {
+    position: fixed;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 10px 5px 6px;
+    font-size: 0.62rem;
+    color: var(--text);
+    letter-spacing: 0.08em;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+  #pick-preview.show { display: flex; }
+  #pick-preview-dot {
+    width: 18px; height: 18px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+  }
+  #base-canvas { display: block; }
+  #grid-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+  #status {
+    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+    font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); background: #111; border: 1px solid var(--border);
+    padding: 5px 14px; border-radius: 20px; white-space: nowrap;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  #status.show { opacity: 1; }
+
+  .spinner {
+    display: none; width: 14px; height: 14px;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+    margin: 4px auto 0;
+  }
+  .spinner.show { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CHROMAGRID</h1>
+  <span class="tagline">Image Quantizer &amp; Grid Reducer</span>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <!-- Upload section: <input> is off-screen; <label for> opens it natively without JS -->
+    <div>
+      <div class="section-label">Image</div>
+      <input type="file" id="file-input" accept="image/*">
+      <label for="file-input" id="drop-label">
+        <span class="icon">⊞</span>
+        Click to browse<br>or drag &amp; drop
+      </label>
+      <p class="hint">Also supports Ctrl+V paste</p>
+    </div>
+
+    <div>
+      <div class="section-label">Mode</div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btn-color">Color</button>
+        <button class="mode-btn" id="btn-value">Value (Gray)</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Grid &amp; Colors</div>
+      <div class="control-row">
+        <div class="control-header"><span>Grid Size</span><span class="val" id="grid-val">20px</span></div>
+        <input type="range" id="grid-size" min="2" max="80" value="20" step="2">
+      </div>
+      <br>
+      <div class="control-row">
+        <div class="control-header"><span>Colors / Tones</span><span class="val" id="color-val">8</span></div>
+        <input type="range" id="num-colors" min="1" max="15" value="8">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Display</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <label class="checkbox-row">
+          <input type="checkbox" id="show-lines" checked>
+          <div class="box"></div>
+          Show grid lines
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" id="show-original">
+          <div class="box"></div>
+          Show original over grid
+        </label>
+      </div>
+      <br>
+      <div class="control-row" id="blend-row" style="opacity:0.3;pointer-events:none">
+        <div class="control-header"><span>Original opacity</span><span class="val" id="blend-val">40%</span></div>
+        <input type="range" id="blend-amount" min="0" max="100" value="40">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Extracted Palette</div>
+      <div id="palette-strip"></div>
+      <div class="palette-hint" id="palette-hint">Click a swatch to replace it by sampling the image</div>
+    </div>
+
+    <div class="spinner" id="spinner"></div>
+
+    <div class="btn-group">
+      <button class="btn primary" id="apply-btn" disabled>Run</button>
+      <button class="btn" id="export-btn" disabled>Export PNG</button>
+    </div>
+  </aside>
+
+  <main class="canvas-area" id="canvas-area">
+    <div class="canvas-placeholder" id="placeholder">
+      <div class="big">UPLOAD</div>
+      <div>Load an image to begin</div>
+    </div>
+    <div id="canvas-wrapper">
+      <canvas id="base-canvas"></canvas>
+      <canvas id="grid-canvas"></canvas>
+    </div>
+    <div id="status"></div>
+  </main>
+
+  <!-- Floating color preview shown while hovering in pick mode -->
+  <div id="pick-preview">
+    <div id="pick-preview-dot"></div>
+    <span id="pick-preview-label">rgb(0,0,0)</span>
+  </div>
+</div>
+
+<script>
+let originalImage = null;
+let originalData = null;   // raw pixel data from the loaded image, cached for sampling
+let currentMode = 'color';
+let currentPalette = [];
+let quantizedIndices = null;  // per-pixel palette index
+let imgW = 0, imgH = 0;
+const MAX_DIM = 900;
+
+let selectedSwatchIdx = null;  // index into currentPalette of the armed swatch, or null
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const baseCanvas = document.getElementById('base-canvas');
+const gridCanvas  = document.getElementById('grid-canvas');
+const bCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
+const gCtx = gridCanvas.getContext('2d');
+const wrapper     = document.getElementById('canvas-wrapper');
+const placeholder = document.getElementById('placeholder');
+const spinner     = document.getElementById('spinner');
+const applyBtn    = document.getElementById('apply-btn');
+const exportBtn   = document.getElementById('export-btn');
+const dropLabel   = document.getElementById('drop-label');
+const canvasArea  = document.getElementById('canvas-area');
+
+// ── File loading ───────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', function() {
+  if (this.files && this.files[0]) loadFile(this.files[0]);
+  this.value = '';
+});
+dropLabel.addEventListener('dragover', e => { e.preventDefault(); dropLabel.classList.add('drag-over'); });
+dropLabel.addEventListener('dragleave', () => dropLabel.classList.remove('drag-over'));
+dropLabel.addEventListener('drop', e => {
+  e.preventDefault(); dropLabel.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0]; if (f) loadFile(f);
+});
+canvasArea.addEventListener('dragover', e => e.preventDefault());
+canvasArea.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadFile(f);
+});
+document.addEventListener('paste', e => {
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const item of items)
+    if (item.type.startsWith('image/')) { loadFile(item.getAsFile()); break; }
+});
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) { showStatus('Not a valid image'); return; }
+  const reader = new FileReader();
+  reader.onload = evt => {
+    const img = new Image();
+    img.onload = () => {
+      originalImage = img;
+      let w = img.width, h = img.height;
+      if (w > MAX_DIM || h > MAX_DIM) {
+        const s = Math.min(MAX_DIM/w, MAX_DIM/h);
+        w = Math.round(w*s); h = Math.round(h*s);
+      }
+      imgW = w; imgH = h;
+      baseCanvas.width = w; baseCanvas.height = h;
+      gridCanvas.width  = w; gridCanvas.height  = h;
+
+      // Cache original pixel data for swatch sampling
+      const off = document.createElement('canvas');
+      off.width = w; off.height = h;
+      const offCtx = off.getContext('2d', { willReadFrequently: true });
+      offCtx.drawImage(img, 0, 0, w, h);
+      originalData = offCtx.getImageData(0, 0, w, h).data;
+
+      bCtx.drawImage(img, 0, 0, w, h);
+      placeholder.style.display = 'none';
+      wrapper.style.display = 'block';
+      applyBtn.disabled = false;
+      deselectSwatch();
+      showStatus('Loaded ' + img.width + '×' + img.height);
+      runQuantization();
+    };
+    img.onerror = () => showStatus('Failed to decode image');
+    img.src = evt.target.result;
+  };
+  reader.onerror = () => showStatus('Failed to read file');
+  reader.readAsDataURL(file);
+}
+
+// ── Canvas interaction: live preview + click to sample ────────────────────
+const pickPreview      = document.getElementById('pick-preview');
+const pickPreviewDot   = document.getElementById('pick-preview-dot');
+const pickPreviewLabel = document.getElementById('pick-preview-label');
+
+function sampleOriginal(cx, cy) {
+  // Average a 3×3 neighbourhood to reduce single-pixel noise
+  let r=0, g=0, b=0, n=0;
+  for (let dy=-1; dy<=1; dy++) {
+    for (let dx=-1; dx<=1; dx++) {
+      const px = Math.max(0, Math.min(imgW-1, cx+dx));
+      const py = Math.max(0, Math.min(imgH-1, cy+dy));
+      const i  = (py*imgW + px)*4;
+      r += originalData[i]; g += originalData[i+1]; b += originalData[i+2];
+      n++;
+    }
+  }
+  return [Math.round(r/n), Math.round(g/n), Math.round(b/n)];
+}
+
+function canvasCoords(e) {
+  const rect = baseCanvas.getBoundingClientRect();
+  const scaleX = imgW / rect.width;
+  const scaleY = imgH / rect.height;
+  const cx = Math.max(0, Math.min(imgW-1, Math.floor((e.clientX - rect.left) * scaleX)));
+  const cy = Math.max(0, Math.min(imgH-1, Math.floor((e.clientY - rect.top)  * scaleY)));
+  return [cx, cy];
+}
+
+baseCanvas.addEventListener('mousemove', e => {
+  if (selectedSwatchIdx === null || !originalData) return;
+  const [cx, cy] = canvasCoords(e);
+  const [r, g, b] = sampleOriginal(cx, cy);
+  pickPreviewDot.style.background   = `rgb(${r},${g},${b})`;
+  pickPreviewLabel.textContent       = `rgb(${r},${g},${b})`;
+  pickPreview.style.left = (e.clientX + 18) + 'px';
+  pickPreview.style.top  = (e.clientY - 14) + 'px';
+  pickPreview.classList.add('show');
+});
+
+baseCanvas.addEventListener('mouseleave', () => {
+  pickPreview.classList.remove('show');
+});
+
+baseCanvas.addEventListener('click', e => {
+  if (selectedSwatchIdx === null) return;
+  const [cx, cy] = canvasCoords(e);
+  const [r, g, b] = sampleOriginal(cx, cy);
+  const armedIdx = selectedSwatchIdx;
+  currentPalette[armedIdx] = [r, g, b];
+  // No index remapping — pixels keep their slot assignment, slot just gets new color
+  renderPaletteStrip();
+  redraw();
+  showStatus(`Swatch ${armedIdx + 1} → rgb(${r},${g},${b})`);
+  deselectSwatch();
+  pickPreview.classList.remove('show');
+});
+
+// ── Swatch select / deselect ───────────────────────────────────────────────
+function selectSwatch(idx) {
+  selectedSwatchIdx = idx;
+  wrapper.classList.add('picking');
+  document.querySelectorAll('.swatch').forEach((sw, i) => {
+    sw.classList.toggle('selected', i === idx);
+  });
+  const hint = document.getElementById('palette-hint');
+  hint.textContent = '← Armed — now click the image to sample';
+  hint.classList.add('armed');
+}
+
+function deselectSwatch() {
+  selectedSwatchIdx = null;
+  wrapper.classList.remove('picking');
+  pickPreview.classList.remove('show');
+  document.querySelectorAll('.swatch').forEach(sw => sw.classList.remove('selected'));
+  const hint = document.getElementById('palette-hint');
+  hint.textContent = 'Click a swatch to replace it by sampling the image';
+  hint.classList.remove('armed');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') deselectSwatch();
+});
+
+// ── Controls ───────────────────────────────────────────────────────────────
+const gridSlider  = document.getElementById('grid-size');
+const colorSlider = document.getElementById('num-colors');
+
+gridSlider.addEventListener('input', () => {
+  document.getElementById('grid-val').textContent = gridSlider.value + 'px';
+  if (quantizedIndices) redraw();
+});
+colorSlider.addEventListener('input', () => {
+  document.getElementById('color-val').textContent = colorSlider.value;
+});
+document.getElementById('show-lines').addEventListener('change', () => {
+  if (quantizedIndices) redraw();
+});
+document.getElementById('blend-amount').addEventListener('input', function() {
+  document.getElementById('blend-val').textContent = this.value + '%';
+  if (quantizedIndices) redraw();
+});
+document.getElementById('show-original').addEventListener('change', function() {
+  const br = document.getElementById('blend-row');
+  br.style.opacity = this.checked ? '1' : '0.3';
+  br.style.pointerEvents = this.checked ? 'auto' : 'none';
+  if (quantizedIndices) redraw();
+});
+document.getElementById('btn-color').addEventListener('click', function() {
+  currentMode = 'color';
+  this.classList.add('active');
+  document.getElementById('btn-value').classList.remove('active');
+});
+document.getElementById('btn-value').addEventListener('click', function() {
+  currentMode = 'value';
+  this.classList.add('active');
+  document.getElementById('btn-color').classList.remove('active');
+});
+applyBtn.addEventListener('click', runQuantization);
+exportBtn.addEventListener('click', exportImage);
+
+// ── Color math ─────────────────────────────────────────────────────────────
+function colorDist2(a, b) {
+  return (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2;
+}
+
+function kMeans(samples, k, iters) {
+  const cents = [samples[Math.floor(Math.random() * samples.length)].slice()];
+  while (cents.length < k) {
+    const dists = samples.map(s => {
+      let md = Infinity;
+      for (const c of cents) { const d = colorDist2(s,c); if (d<md) md=d; }
+      return md;
+    });
+    const sum = dists.reduce((a,b)=>a+b, 0);
+    let r = Math.random()*sum, idx=0;
+    while (r>0 && idx<dists.length-1) r -= dists[idx++];
+    cents.push(samples[idx].slice());
+  }
+  for (let it=0; it<iters; it++) {
+    const sums = Array.from({length:k}, ()=>[0,0,0,0]);
+    for (const s of samples) {
+      let best=0, bd=Infinity;
+      for (let c=0; c<k; c++) { const d=colorDist2(s,cents[c]); if(d<bd){bd=d;best=c;} }
+      sums[best][0]+=s[0]; sums[best][1]+=s[1]; sums[best][2]+=s[2]; sums[best][3]++;
+    }
+    for (let c=0; c<k; c++)
+      if (sums[c][3]>0)
+        cents[c] = [sums[c][0]/sums[c][3], sums[c][1]/sums[c][3], sums[c][2]/sums[c][3]];
+  }
+  return cents.map(c => [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]);
+}
+
+function grayscalePalette(k) {
+  if (k === 1) return [[128,128,128]];
+  return Array.from({length:k}, (_,i) => { const v=Math.round(i*255/(k-1)); return [v,v,v]; });
+}
+
+function closestIdx(r, g, b, pal) {
+  let best=0, bd=Infinity;
+  for (let i=0; i<pal.length; i++) {
+    const p=pal[i], d=(r-p[0])**2+(g-p[1])**2+(b-p[2])**2;
+    if (d<bd) { bd=d; best=i; }
+  }
+  return best;
+}
+
+// When replacing a swatch color, we intentionally do NOT remap pixel indices.
+// Pixels assigned to slot N stay assigned to slot N — they just now display
+// as the new color. This means "replace yellow with green" turns everything
+// that was yellow (hair, book, bed) into green, exactly as expected.
+
+// ── Main quantization run ──────────────────────────────────────────────────
+async function runQuantization() {
+  if (!originalImage) return;
+  deselectSwatch();
+  setStatusPersist('Building palette…');
+  spinner.classList.add('show');
+  applyBtn.disabled = true;
+  await new Promise(r => setTimeout(r, 20));
+
+  try {
+    const k = parseInt(colorSlider.value);
+    const total = imgW * imgH;
+
+    let palette;
+    if (currentMode === 'value') {
+      palette = grayscalePalette(k);
+    } else {
+      const step = Math.max(1, Math.floor(total / 8000));
+      const samples = [];
+      for (let i=0; i<total; i+=step)
+        samples.push([originalData[i*4], originalData[i*4+1], originalData[i*4+2]]);
+      palette = kMeans(samples, k, 14);
+      palette.sort((a,b) => (0.299*a[0]+0.587*a[1]+0.114*a[2]) - (0.299*b[0]+0.587*b[1]+0.114*b[2]));
+    }
+    currentPalette = palette;
+
+    // Assign each pixel to its nearest palette index
+    quantizedIndices = new Uint8Array(total);
+    for (let i=0; i<total; i++) {
+      const idx = i*4;
+      let r=originalData[idx], g=originalData[idx+1], b=originalData[idx+2];
+      if (currentMode === 'value') {
+        const lum = Math.round(0.299*r + 0.587*g + 0.114*b);
+        r=g=b=lum;
+      }
+      quantizedIndices[i] = closestIdx(r, g, b, palette);
+    }
+
+    renderPaletteStrip();
+    redraw();
+    exportBtn.disabled = false;
+    showStatus('Done — ' + k + (currentMode==='value' ? ' tones' : ' colors'));
+  } catch(err) {
+    console.error(err);
+    showStatus('Error: ' + err.message);
+  }
+
+  spinner.classList.remove('show');
+  applyBtn.disabled = false;
+}
+
+// ── Palette strip ──────────────────────────────────────────────────────────
+function renderPaletteStrip() {
+  const strip = document.getElementById('palette-strip');
+  strip.innerHTML = '';
+  currentPalette.forEach(([r,g,b], i) => {
+    const sw = document.createElement('div');
+    sw.className = 'swatch';
+    sw.style.background = `rgb(${r},${g},${b})`;
+    sw.title = `rgb(${r},${g},${b}) — click to replace`;
+    sw.addEventListener('click', () => {
+      if (selectedSwatchIdx === i) {
+        deselectSwatch();   // clicking armed swatch again cancels
+      } else {
+        selectSwatch(i);
+      }
+    });
+    strip.appendChild(sw);
+  });
+}
+
+// ── Redraw ─────────────────────────────────────────────────────────────────
+function redraw() {
+  if (!quantizedIndices) return;
+  const gs = parseInt(gridSlider.value);
+  const k  = currentPalette.length;
+  bCtx.clearRect(0, 0, imgW, imgH);
+
+  // Majority vote: each pixel casts a vote for its palette color; winner fills the cell
+  const votes = new Int32Array(k);
+  for (let gy=0; gy<imgH; gy+=gs) {
+    for (let gx=0; gx<imgW; gx+=gs) {
+      const x2 = Math.min(gx+gs, imgW);
+      const y2 = Math.min(gy+gs, imgH);
+      votes.fill(0);
+      for (let py=gy; py<y2; py++)
+        for (let px=gx; px<x2; px++)
+          votes[quantizedIndices[py*imgW + px]]++;
+      let winner=0;
+      for (let c=1; c<k; c++) if (votes[c]>votes[winner]) winner=c;
+      const p = currentPalette[winner];
+      bCtx.fillStyle = `rgb(${p[0]},${p[1]},${p[2]})`;
+      bCtx.fillRect(gx, gy, x2-gx, y2-gy);
+    }
+  }
+
+  // Optionally overlay original photo on top
+  if (document.getElementById('show-original').checked) {
+    const amt = parseInt(document.getElementById('blend-amount').value) / 100;
+    bCtx.globalAlpha = amt;
+    bCtx.drawImage(originalImage, 0, 0, imgW, imgH);
+    bCtx.globalAlpha = 1;
+  }
+
+  // Grid lines on overlay canvas
+  gCtx.clearRect(0, 0, imgW, imgH);
+  if (document.getElementById('show-lines').checked) {
+    gCtx.strokeStyle = 'rgba(0,0,0,0.2)';
+    gCtx.lineWidth = 0.5;
+    gCtx.beginPath();
+    for (let x=gs; x<imgW; x+=gs) { gCtx.moveTo(x+0.5, 0);    gCtx.lineTo(x+0.5, imgH); }
+    for (let y=gs; y<imgH; y+=gs) { gCtx.moveTo(0,      y+0.5); gCtx.lineTo(imgW,  y+0.5); }
+    gCtx.stroke();
+  }
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────
+function exportImage() {
+  const out = document.createElement('canvas');
+  out.width = imgW; out.height = imgH;
+  const ctx = out.getContext('2d');
+  ctx.drawImage(baseCanvas, 0, 0);
+  ctx.drawImage(gridCanvas, 0, 0);
+  out.toBlob(blob => {
+    if (!blob) { showStatus('Export failed'); return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'chromagrid.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    showStatus('Exported!');
+  }, 'image/png');
+}
+
+// ── Status ─────────────────────────────────────────────────────────────────
+let statusTimer = null;
+function showStatus(msg) {
+  const el = document.getElementById('status');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+function setStatusPersist(msg) {
+  const el = document.getElementById('status');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(statusTimer);
+}
+</script>
+</body>
+</html>
