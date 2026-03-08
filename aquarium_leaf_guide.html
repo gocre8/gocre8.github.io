@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquarium Leaf Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a14;
+    --paper: #f5f0e8;
+    --moss: #3d5a2e;
+    --sage: #7a9e6e;
+    --water: #2c5f7a;
+    --water-light: #ddeef5;
+    --cream: #fffdf7;
+    --border: #c8bfa0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: 'DM Sans', sans-serif; font-weight: 300; }
+
+  header { background: var(--moss); color: white; padding: 52px 48px 40px; position: relative; overflow: hidden; }
+  header::after { content: '🍃'; position: absolute; right: 48px; top: 50%; transform: translateY(-50%); font-size: 110px; opacity: 0.1; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 2.8rem; font-weight: 400; }
+  header p { margin-top: 10px; font-size: 0.95rem; opacity: 0.72; max-width: 500px; line-height: 1.6; }
+
+  .tabs { display: flex; background: var(--ink); padding: 0 48px; overflow-x: auto; }
+  .tab { padding: 13px 22px; color: rgba(255,255,255,0.45); font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+  .tab:hover { color: rgba(255,255,255,0.75); }
+  .tab.active { color: white; border-bottom-color: var(--sage); }
+
+  .section { display: none; padding: 44px 48px; max-width: 1300px; margin: 0 auto; }
+  .section.active { display: block; }
+
+  .section-label { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 400; color: var(--moss); margin-bottom: 6px; }
+  .section-sub { font-size: 0.83rem; color: #888; margin-bottom: 32px; font-style: italic; }
+
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; }
+
+  .card { background: var(--cream); border: 1px solid var(--border); border-radius: 2px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; animation: fadeUp 0.35s ease both; }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,0.09); }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+
+  .card-leaf-box { width: 100%; height: 200px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+  .card-leaf-box svg { width: 140px; height: 185px; filter: drop-shadow(2px 5px 8px rgba(0,0,0,0.2)); }
+
+  .card-body { padding: 16px 18px 4px; }
+  .card-name { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
+  .card-latin { font-family: 'Playfair Display', serif; font-size: 0.78rem; font-style: italic; color: #999; margin-bottom: 8px; }
+
+  .badge { display: inline-block; font-size: 0.63rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 7px; border-radius: 2px; margin-bottom: 8px; }
+  .badge-green { background: #d4edda; color: var(--moss); }
+  .badge-blue  { background: var(--water-light); color: var(--water); }
+
+  /* ID strip */
+  .id-strip { background: #f7f3e8; border: 1px solid #e0d8c0; border-radius: 2px; padding: 8px 10px; margin-bottom: 10px; font-size: 0.74rem; line-height: 1.55; color: #5a4e30; }
+  .id-strip strong { color: #3a3010; display: block; margin-bottom: 2px; font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  .google-link { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--water); text-decoration: none; padding: 5px 0 8px; opacity: 0.8; transition: opacity 0.15s; }
+  .google-link:hover { opacity: 1; text-decoration: underline; }
+  .google-link svg { flex-shrink: 0; }
+
+  .card-row { display: flex; justify-content: space-between; font-size: 0.75rem; padding: 4px 0; border-bottom: 1px solid #eee; line-height: 1.4; }
+  .card-row:last-of-type { border-bottom: none; }
+  .card-label { color: #aaa; flex-shrink: 0; margin-right: 6px; }
+  .card-val { color: var(--ink); text-align: right; font-weight: 500; }
+  .card-note { margin: 8px 0 14px; font-size: 0.73rem; color: #888; font-style: italic; line-height: 1.5; border-top: 1px solid #eee; padding-top: 8px; }
+
+  /* Foraging + buy */
+  .tips-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 40px; }
+  @media(max-width:700px){.tips-grid{grid-template-columns:1fr;}}
+  .tips-box { background: var(--cream); border: 1px solid var(--border); padding: 26px; }
+  .tips-box h3 { font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:700; margin-bottom:14px; color:var(--moss); }
+  .tips-box li { font-size:0.83rem; line-height:1.6; padding:5px 0; border-bottom:1px solid #ece8df; display:flex; gap:9px; list-style:none; }
+  .tips-box li:last-child { border-bottom:none; }
+  table { width:100%; border-collapse:collapse; font-size:0.83rem; background:var(--cream); border:1px solid var(--border); margin-bottom:32px; }
+  thead th { background:var(--moss); color:white; font-weight:500; font-size:0.72rem; letter-spacing:0.06em; text-transform:uppercase; padding:11px 14px; text-align:left; }
+  .buy-head th { background: var(--water); }
+  td { padding:10px 14px; border-bottom:1px solid #e8e4d8; vertical-align:top; line-height:1.5; }
+  tr:nth-child(even) td { background:#faf8f3; }
+  tr:last-child td { border-bottom:none; }
+  .free-tag { display:inline-block; background:#d4edda; color:var(--moss); font-size:0.68rem; font-weight:600; padding:2px 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Aquarium Leaf Guide</h1>
+  <p>Botanicals, tannins & leaf litter — including forageable leaves found around New York City.</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('general',this)">General Leaves</button>
+  <button class="tab" onclick="showTab('nyc',this)">🗽 NYC Forageable</button>
+  <button class="tab" onclick="showTab('foraging',this)">Foraging Guide</button>
+  <button class="tab" onclick="showTab('buy',this)">Where to Buy</button>
+</div>
+
+<div id="tab-general" class="section active">
+  <div class="section-label">General Aquarium Leaves</div>
+  <div class="section-sub">Widely available botanicals — most purchased online or at specialty stores. Click "See real photos" on any card to open a Google Image search.</div>
+  <div class="cards-grid" id="general-cards"></div>
+</div>
+
+<div id="tab-nyc" class="section">
+  <div class="section-label">New York City Forageable Leaves</div>
+  <div class="section-sub">All found in NYC parks — free, local, aquarium-safe. Collect naturally fallen dry leaves only. Use the ID notes + photo links to confirm species before collecting.</div>
+  <div class="cards-grid" id="nyc-cards"></div>
+</div>
+
+<div id="tab-foraging" class="section">
+  <div class="section-label">NYC Foraging Guide</div>
+  <div class="section-sub">How to safely collect, dry, and prepare local leaves for your aquarium.</div>
+  <div class="tips-grid">
+    <div class="tips-box">
+      <h3>✅ Do This</h3>
+      <ul>
+        <li><span>🍂</span> Collect only naturally fallen, dry brown leaves — not green ones</li>
+        <li><span>📍</span> Stay 50+ ft from busy roads (exhaust & pollution)</li>
+        <li><span>📅</span> Best time: October–November after first frost</li>
+        <li><span>🗂️</span> Store in dry paper bags or breathable mesh — never plastic</li>
+        <li><span>☀️</span> Air dry 2–4 weeks, or oven dry at 200°F for 1 hour</li>
+        <li><span>💧</span> Rinse briefly with room-temp water before adding to tank</li>
+        <li><span>🌿</span> Pre-soak 24–48 hrs to soften initial tannin burst if needed</li>
+      </ul>
+    </div>
+    <div class="tips-box">
+      <h3>⚠️ Avoid These</h3>
+      <ul>
+        <li><span>☠️</span> <strong>Black Walnut</strong> — toxic juglone, lethal to fish</li>
+        <li><span>☠️</span> <strong>Yew (Taxus)</strong> — highly toxic hedge plant</li>
+        <li><span>☠️</span> <strong>Horse Chestnut</strong> — toxic saponins</li>
+        <li><span>☠️</span> <strong>Privet</strong> — common hedge, toxic to fish</li>
+        <li><span>☠️</span> <strong>Oleander</strong> — extremely toxic</li>
+        <li><span>🚫</span> Green or waxy leaves still attached to trees</li>
+        <li><span>🚫</span> Never boil leaves — removes the beneficial tannins</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section-label" style="font-size:1.15rem;margin-bottom:14px;">Best NYC Parks for Foraging</div>
+  <table>
+    <thead><tr><th>Park</th><th>Borough</th><th>Best Leaves</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Central Park</strong></td><td>Manhattan</td><td>Red/Silver Maple, Sycamore, Elm, Oak</td><td>North Woods & Ramble area are best</td></tr>
+      <tr><td><strong>Prospect Park</strong></td><td>Brooklyn</td><td>Red/Silver Maple, Oak, Beech, Cherry</td><td>Long Meadow edges & Ravine section</td></tr>
+      <tr><td><strong>Inwood Hill Park</strong></td><td>Manhattan</td><td>American Beech, Oak, Maple, Cherry</td><td>One of last old-growth forests in NYC</td></tr>
+      <tr><td><strong>Van Cortlandt Park</strong></td><td>Bronx</td><td>Oak, Beech, Alder, Maple, Sweetgum</td><td>Near Tibbetts Brook for alder finds</td></tr>
+      <tr><td><strong>Staten Island Greenbelt</strong></td><td>Staten Island</td><td>Oak, Beech, Alder, Sweetgum, Sycamore</td><td>Most diverse foraging in all 5 boroughs</td></tr>
+      <tr><td><strong>Jamaica Bay / Gateway NRA</strong></td><td>Queens/Brooklyn</td><td>Sweetgum, Oak, Cherry, Alder</td><td>Freshwater edges — great for alder cones</td></tr>
+      <tr><td><strong>Pelham Bay Park</strong></td><td>Bronx</td><td>Oak, Maple, Beech, Sweetgum, Hawthorn</td><td>Largest NYC park — very diverse</td></tr>
+      <tr><td><strong>Alley Pond Park</strong></td><td>Queens</td><td>Sweetgum, Oak, Maple, Alder</td><td>Freshwater wetland — great alder cones</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="tab-buy" class="section">
+  <div class="section-label">Where to Buy</div>
+  <div class="section-sub">Cheapest options first — prices are estimates and may vary.</div>
+  <table>
+    <thead class="buy-head"><tr><th>Retailer</th><th>Product</th><th>Qty</th><th>Est. Price</th><th>Shipping</th><th>Per Leaf</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Free / Forage</strong></td><td>Oak, Beech, Maple, Magnolia, Alder</td><td>Unlimited</td><td><span class="free-tag">FREE</span></td><td>N/A</td><td>$0.00</td><td>NYC parks have all of these</td></tr>
+      <tr><td><strong>Amazon</strong></td><td>LeonBach Catappa 5–8"</td><td>100</td><td>~$8–$10</td><td>Free (Prime)</td><td>~$0.09</td><td>Best catappa bulk value on Amazon</td></tr>
+      <tr><td><strong>Amazon</strong></td><td>JungleAquashrimp Guava Leaves</td><td>200</td><td>~$10–$12</td><td>Free (Prime)</td><td>~$0.05</td><td>Best bulk value for guava</td></tr>
+      <tr><td><strong>Amazon</strong></td><td>SunGrow Mini Catappa</td><td>50</td><td>~$6</td><td>Free (Prime)</td><td>~$0.12</td><td>Great for small tanks & bettas</td></tr>
+      <tr><td><strong>Walmart.com</strong></td><td>Catappa Leaves (various)</td><td>10</td><td>~$5.59</td><td>Free over threshold</td><td>~$0.56</td><td>Search "aquarium catappa leaves"</td></tr>
+      <tr><td><strong>eBay</strong></td><td>Catappa Leaves (bulk)</td><td>50+</td><td>Varies</td><td>Often free</td><td>Often cheapest</td><td>Filter by free shipping</td></tr>
+      <tr><td><strong>Betta Botanicals</strong></td><td>Catappa, Loquat, Jackfruit, Guava</td><td>Varies</td><td>Varies</td><td>Paid</td><td>Mid-range</td><td>bettabotanicals.com — sustainably sourced</td></tr>
+      <tr><td><strong>Aquarium Co-Op</strong></td><td>Catappa Leaves</td><td>Varies</td><td>Varies</td><td>Paid</td><td>Mid-range</td><td>aquariumcoop.com — reliable quality</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+// ─── SVG LIBRARY ─────────────────────────────────────────────────────────────
+// Each leaf uses distinct shape, color, vein pattern, edge texture, and unique
+// identifying marks (drip-tips, asymmetric bases, lobe depth, teeth, spots etc.)
+
+const LEAVES = {
+
+  // ── CATAPPA ──────────────────────────────────────────────────────────────
+  // Very large, obovate (wider near tip), rounded apex with tiny drip-tip,
+  // wedge-shaped base, prominently impressed veins, turns red/orange when old
+  catappa: { bg:'#e8f0dc', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 158 C26 143 8 114 8 82 C8 50 22 22 50 8 C78 22 92 50 92 82 C92 114 74 143 50 158Z" fill="#6ea86a" stroke="#4a7848" stroke-width="1.3"/>
+    <!-- drip tip at top -->
+    <path d="M48 9 Q50 2 52 9" fill="#4a7848" stroke="none"/>
+    <!-- reddish autumn tinge near edges -->
+    <path d="M50 158 C34 148 16 126 12 100" stroke="#b06040" stroke-width="2.5" fill="none" opacity="0.35"/>
+    <path d="M50 158 C66 148 84 126 88 100" stroke="#b06040" stroke-width="2.5" fill="none" opacity="0.35"/>
+    <!-- midrib -->
+    <line x1="50" y1="158" x2="50" y2="9" stroke="#3a5e30" stroke-width="2"/>
+    <!-- many evenly-spaced parallel veins — characteristic of catappa -->
+    <line x1="50" y1="136" x2="20" y2="112" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="118" x2="15" y2="96" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="100" x2="14" y2="80" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="82" x2="16" y2="64" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="64" x2="22" y2="48" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="48" x2="32" y2="35" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="136" x2="80" y2="112" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="118" x2="85" y2="96" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="100" x2="86" y2="80" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="82" x2="84" y2="64" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="64" x2="78" y2="48" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="48" x2="68" y2="35" stroke="#3a5e30" stroke-width="0.9"/>
+    <!-- wedge base lines converging steeply -->
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── GUAVA ────────────────────────────────────────────────────────────────
+  // Elliptical, notably dull/matte surface, veins deeply SUNKEN (appear as grooves),
+  // edges slightly wavy/undulate, pale underside color, apex bluntly pointed
+  guava: { bg:'#e4edd8', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 155 C29 142 13 116 13 84 C13 54 28 27 50 14 C72 27 87 54 87 84 C87 116 71 142 50 155Z" fill="#9aba80" stroke="#628a50" stroke-width="1.2"/>
+    <!-- wavy edge suggestion -->
+    <path d="M13 84 C12 76 14 70 13 62 C12 54 14 48 14 42" stroke="#628a50" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <path d="M87 84 C88 76 86 70 87 62 C88 54 86 48 86 42" stroke="#628a50" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <!-- pale underside strip to show two-tone nature -->
+    <ellipse cx="50" cy="84" rx="20" ry="48" fill="#c8ddb0" opacity="0.22"/>
+    <!-- midrib — thick and raised-looking -->
+    <line x1="50" y1="155" x2="50" y2="14" stroke="#3e6830" stroke-width="2.8"/>
+    <!-- deeply impressed secondary veins — closer together than catappa -->
+    <line x1="50" y1="135" x2="28" y2="118" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="118" x2="22" y2="102" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="101" x2="20" y2="86" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="84" x2="20" y2="71" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="67" x2="23" y2="55" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="50" x2="28" y2="40" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="35" x2="36" y2="27" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="135" x2="72" y2="118" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="118" x2="78" y2="102" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="101" x2="80" y2="86" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="84" x2="80" y2="71" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="67" x2="77" y2="55" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="50" x2="72" y2="40" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="35" x2="64" y2="27" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="155" x2="50" y2="170" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── OAK (generic / White Oak type) ───────────────────────────────────────
+  // Rounded lobes (no points), 7-9 lobes, waxy-glossy upper surface,
+  // lobes widest at outer end, very shallow sinuses near base
+  oak: { bg:'#eee8d5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 7-lobed white-oak silhouette, rounded tips -->
+    <path d="M50 158
+      C50 158 40 150 32 142 C24 134 27 126 19 122 C11 118 7 125 7 117
+      C7 109 15 105 16 97 C17 89 9 83 12 75 C15 67 25 69 27 61
+      C29 53 21 43 26 35 C30 28 39 32 43 26 C45 22 48 15 50 10
+      C52 15 55 22 57 26 C61 32 70 28 74 35
+      C79 43 71 53 73 61 C75 69 85 67 88 75
+      C91 83 83 89 84 97 C85 105 93 109 93 117
+      C93 125 89 118 81 122 C73 126 76 134 68 142 C60 150 50 158 50 158Z"
+      fill="#96b065" stroke="#607840" stroke-width="1.2"/>
+    <!-- midrib -->
+    <line x1="50" y1="158" x2="50" y2="11" stroke="#486030" stroke-width="2"/>
+    <!-- lateral veins going into each rounded lobe -->
+    <line x1="50" y1="136" x2="26" y2="122" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="112" x2="14" y2="98" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="86" x2="14" y2="74" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="60" x2="26" y2="46" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="38" x2="40" y2="28" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="136" x2="74" y2="122" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="112" x2="86" y2="98" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="86" x2="86" y2="74" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="60" x2="74" y2="46" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="38" x2="60" y2="28" stroke="#486030" stroke-width="1"/>
+    <!-- acorn remnant scar at base for ID -->
+    <ellipse cx="50" cy="160" rx="5" ry="3" fill="#8a7040" opacity="0.4"/>
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── MAGNOLIA ─────────────────────────────────────────────────────────────
+  // Huge (8-12"), thick leathery, very glossy dark green top / rusty-brown felt underside,
+  // simple oval (no lobes/teeth), very stout midrib, few wide-spaced veins
+  magnolia: { bg:'#e0e8d0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- thick leathery outline with blunt apex and base -->
+    <path d="M50 162 C22 148 5 120 5 86 C5 52 22 22 50 8 C78 22 95 52 95 86 C95 120 78 148 50 162Z" fill="#527a48" stroke="#3a5a34" stroke-width="1.5"/>
+    <!-- glossy sheen patch on upper surface -->
+    <ellipse cx="40" cy="55" rx="10" ry="18" fill="white" opacity="0.12" transform="rotate(-15,40,55)"/>
+    <!-- rusty-brown UNDERSIDE color bleed along edges -->
+    <path d="M50 162 C36 152 22 136 14 116 C8 100 6 88 6 76" stroke="#a06030" stroke-width="5" fill="none" opacity="0.28"/>
+    <path d="M50 162 C64 152 78 136 86 116 C92 100 94 88 94 76" stroke="#a06030" stroke-width="5" fill="none" opacity="0.28"/>
+    <!-- very thick, prominent midrib -->
+    <line x1="50" y1="162" x2="50" y2="9" stroke="#2a4820" stroke-width="3.5"/>
+    <!-- only ~6 widely spaced, curving lateral veins (not many like catappa) -->
+    <path d="M50 138 Q30 128 18 118" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 115 Q28 105 14 96" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 90 Q28 82 14 74" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 66 Q30 58 18 52" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 44 Q34 38 24 33" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 138 Q70 128 82 118" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 115 Q72 105 86 96" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 90 Q72 82 86 74" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 66 Q70 58 82 52" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 44 Q66 38 76 33" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <!-- stout petiole -->
+    <line x1="50" y1="162" x2="50" y2="175" stroke="#8B5030" stroke-width="3"/>
+  </svg>` },
+
+  // ── LOQUAT ───────────────────────────────────────────────────────────────
+  // Long, narrow, strongly serrated (coarse teeth), leathery, deeply grooved veins,
+  // wrinkled/bullate surface between veins, woolly underside hint
+  loquat: { bg:'#e0eed5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- narrow oblanceolate with coarse teeth along margin -->
+    <path d="M50 158
+      C47 154 40 148 36 138 C31 128 30 118 30 108
+      L27 100 L30 95 L28 86 L30 78 L27 70 L30 62 L28 54 L30 46
+      L28 38 L32 30 L36 20 L40 12 L50 8 L60 12 L64 20 L68 30 L72 38
+      L70 46 L72 54 L70 62 L73 70 L70 78 L72 86 L70 95 L73 100
+      L70 108 C70 118 69 128 64 138 C60 148 53 154 50 158Z"
+      fill="#7db865" stroke="#4e8040" stroke-width="1.1"/>
+    <!-- bullate (puckered) surface between veins -->
+    <ellipse cx="38" cy="75" rx="5" ry="8" fill="#90c878" opacity="0.3"/>
+    <ellipse cx="62" cy="75" rx="5" ry="8" fill="#90c878" opacity="0.3"/>
+    <ellipse cx="38" cy="105" rx="5" ry="8" fill="#90c878" opacity="0.3"/>
+    <ellipse cx="62" cy="105" rx="5" ry="8" fill="#90c878" opacity="0.3"/>
+    <!-- woolly underside midrib hint -->
+    <line x1="50" y1="158" x2="50" y2="9" stroke="#386828" stroke-width="2.5"/>
+    <!-- deep, strongly-impressed lateral veins -->
+    <line x1="50" y1="136" x2="32" y2="118" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="118" x2="31" y2="100" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="100" x2="31" y2="83" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="82" x2="32" y2="66" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="64" x2="33" y2="50" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="46" x2="36" y2="34" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="136" x2="68" y2="118" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="118" x2="69" y2="100" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="100" x2="69" y2="83" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="82" x2="68" y2="66" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="64" x2="67" y2="50" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="46" x2="64" y2="34" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── JACKFRUIT ────────────────────────────────────────────────────────────
+  // Thick, dark glossy green, obovate, entire margin (NO teeth at all),
+  // stiff and leathery, latex drip spots, wide spaced veins
+  jackfruit: { bg:'#deebd0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- broader at top, perfectly smooth margin -->
+    <path d="M50 155 C28 142 12 116 12 84 C12 54 27 28 50 14 C73 28 88 54 88 84 C88 116 72 142 50 155Z" fill="#3a7840" stroke="#286030" stroke-width="1.5"/>
+    <!-- high gloss sheen highlights -->
+    <ellipse cx="38" cy="50" rx="8" ry="16" fill="white" opacity="0.16" transform="rotate(-20,38,50)"/>
+    <ellipse cx="44" cy="82" rx="4" ry="10" fill="white" opacity="0.10" transform="rotate(-10,44,82)"/>
+    <!-- latex milky drip dots along midrib — characteristic jackfruit feature -->
+    <circle cx="50" cy="70" r="2.5" fill="white" opacity="0.45"/>
+    <circle cx="50" cy="90" r="2" fill="white" opacity="0.35"/>
+    <circle cx="50" cy="110" r="2" fill="white" opacity="0.3"/>
+    <!-- thick midrib -->
+    <line x1="50" y1="155" x2="50" y2="15" stroke="#184820" stroke-width="3"/>
+    <!-- widely-spaced veins, gently curving up -->
+    <path d="M50 130 Q30 120 16 110" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <path d="M50 108 Q28 98 14 88" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <path d="M50 86 Q28 77 14 68" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <path d="M50 64 Q30 55 18 48" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <path d="M50 44 Q34 37 24 31" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <path d="M50 130 Q70 120 84 110" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <path d="M50 108 Q72 98 86 88" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <path d="M50 86 Q72 77 86 68" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <path d="M50 64 Q70 55 82 48" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <path d="M50 44 Q66 37 76 31" stroke="#184820" stroke-width="1.1" fill="none"/>
+    <line x1="50" y1="155" x2="50" y2="170" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── BEECH (generic) ──────────────────────────────────────────────────────
+  // Ovate, silky smooth when young, parallel veins each terminating at a sharp marginal tooth,
+  // wavy between teeth, papery texture, often retains dead leaves (marcescence)
+  beech: { bg:'#ede5cc', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- ovate with toothed wavy margin -->
+    <path d="M50 155 C44 151 34 143 26 133 C18 123 15 111 14 97 C13 83 15 69 19 57 C23 43 31 29 39 21 C43 17 47 11 50 8 C53 11 57 17 61 21 C69 29 77 43 81 57 C85 69 87 83 86 97 C85 111 82 123 74 133 C66 143 56 151 50 155Z" fill="#b0c878" stroke="#708848" stroke-width="1.1"/>
+    <!-- silky sheen -->
+    <ellipse cx="42" cy="60" rx="7" ry="20" fill="white" opacity="0.12" transform="rotate(-10,42,60)"/>
+    <!-- parallel veins to teeth — very regular, diagnostic -->
+    <line x1="50" y1="155" x2="50" y2="9" stroke="#506838" stroke-width="1.8"/>
+    <line x1="50" y1="133" x2="19" y2="119" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="116" x2="15" y2="103" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="99" x2="14" y2="87" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="82" x2="15" y2="71" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="65" x2="19" y2="55" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="48" x2="26" y2="39" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="32" x2="36" y2="25" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="133" x2="81" y2="119" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="116" x2="85" y2="103" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="99" x2="86" y2="87" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="82" x2="85" y2="71" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="65" x2="81" y2="55" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="48" x2="74" y2="39" stroke="#506838" stroke-width="1"/>
+    <line x1="50" y1="32" x2="64" y2="25" stroke="#506838" stroke-width="1"/>
+    <!-- tooth marks at vein ends (tiny spurs) -->
+    <path d="M19 119 L16 116 M15 103 L12 100 M14 87 L11 84 M15 71 L12 68 M19 55 L16 52 M26 39 L23 36" stroke="#506838" stroke-width="0.8" fill="none"/>
+    <path d="M81 119 L84 116 M85 103 L88 100 M86 87 L89 84 M85 71 L88 68 M81 55 L84 52 M74 39 L77 36" stroke="#506838" stroke-width="0.8" fill="none"/>
+    <line x1="50" y1="155" x2="50" y2="170" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── MULBERRY ─────────────────────────────────────────────────────────────
+  // Heart-shaped (cordate) base, apex pointed, edges irregularly LOBED or
+  // toothed (same tree can have unlobed AND mitten-shaped leaves), rough texture
+  mulberry: { bg:'#e2eed5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- cordate base with heart notch, irregular lobing on left -->
+    <path d="M50 155 C34 143 14 120 10 92 C6 66 18 44 32 30
+      C36 24 37 16 50 13 C63 16 64 24 68 30
+      C82 44 94 66 90 92 C86 120 66 143 50 155Z"
+      fill="#88b868" stroke="#507840" stroke-width="1.1"/>
+    <!-- heart-base notch -->
+    <path d="M43 16 C46 10 50 8 50 8 C50 8 54 10 57 16" fill="none" stroke="#507840" stroke-width="1.1"/>
+    <!-- MITTEN-LOBE on left — mulberry's most distinctive feature -->
+    <path d="M14 72 C8 68 4 60 8 54 C12 48 20 50 24 56" fill="#88b868" stroke="#507840" stroke-width="1.1"/>
+    <!-- rough sandpaper texture dots -->
+    <circle cx="30" cy="80" r="1" fill="#507840" opacity="0.25"/>
+    <circle cx="36" cy="96" r="1" fill="#507840" opacity="0.25"/>
+    <circle cx="28" cy="110" r="1" fill="#507840" opacity="0.25"/>
+    <circle cx="65" cy="80" r="1" fill="#507840" opacity="0.25"/>
+    <circle cx="70" cy="96" r="1" fill="#507840" opacity="0.25"/>
+    <circle cx="68" cy="112" r="1" fill="#507840" opacity="0.25"/>
+    <line x1="50" y1="155" x2="50" y2="13" stroke="#3e6028" stroke-width="1.8"/>
+    <line x1="50" y1="130" x2="24" y2="110" stroke="#3e6028" stroke-width="1"/>
+    <line x1="50" y1="110" x2="18" y2="90" stroke="#3e6028" stroke-width="1"/>
+    <line x1="50" y1="88" x2="18" y2="70" stroke="#3e6028" stroke-width="1"/>
+    <line x1="50" y1="66" x2="24" y2="52" stroke="#3e6028" stroke-width="1"/>
+    <line x1="50" y1="130" x2="76" y2="110" stroke="#3e6028" stroke-width="1"/>
+    <line x1="50" y1="110" x2="82" y2="90" stroke="#3e6028" stroke-width="1"/>
+    <line x1="50" y1="88" x2="82" y2="70" stroke="#3e6028" stroke-width="1"/>
+    <line x1="50" y1="66" x2="76" y2="52" stroke="#3e6028" stroke-width="1"/>
+    <line x1="50" y1="155" x2="50" y2="170" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ════ NYC LEAVES ══════════════════════════════════════════════════════════
+
+  // ── RED MAPLE ────────────────────────────────────────────────────────────
+  // 5-lobed, lobes triangular with pointed tips and V-shaped sinuses,
+  // RED PETIOLE (stem), reddish veins, whitish underside, leaf turns scarlet in fall
+  redmaple: { bg:'#fce8e0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 5-lobed with pointed tips, V sinuses -->
+    <path d="M50 152 L44 120 L24 136 L32 110 L6 114 L22 92 L4 80 L28 76 L16 56 L38 68 L38 44 L50 8 L62 44 L62 68 L84 56 L72 76 L96 80 L78 92 L94 114 L68 110 L76 136 L56 120 Z" fill="#c87878" stroke="#904040" stroke-width="1.2"/>
+    <!-- reddish veins -->
+    <line x1="50" y1="152" x2="50" y2="9" stroke="#8b2020" stroke-width="1.8"/>
+    <line x1="50" y1="95" x2="18" y2="76" stroke="#8b2020" stroke-width="1.1"/>
+    <line x1="50" y1="95" x2="82" y2="76" stroke="#8b2020" stroke-width="1.1"/>
+    <line x1="50" y1="95" x2="30" y2="122" stroke="#8b2020" stroke-width="1.1"/>
+    <line x1="50" y1="95" x2="70" y2="122" stroke="#8b2020" stroke-width="1.1"/>
+    <!-- bright red petiole -->
+    <line x1="50" y1="152" x2="50" y2="168" stroke="#cc2020" stroke-width="3.5"/>
+    <!-- whitish underside hint at lobe tips -->
+    <circle cx="50" cy="10" r="4" fill="white" opacity="0.2"/>
+    <circle cx="16" cy="57" r="3" fill="white" opacity="0.15"/>
+    <circle cx="84" cy="57" r="3" fill="white" opacity="0.15"/>
+  </svg>` },
+
+  // ── SILVER MAPLE ─────────────────────────────────────────────────────────
+  // Also 5-lobed but MUCH more deeply cut sinuses (almost to midrib),
+  // silvery-white underside very visible, more jagged toothed lobe edges,
+  // narrower lobes than red maple, earlier to flower in spring
+  silvermaple: { bg:'#e8e6f5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- deeply cut sinuses — lobes nearly separated -->
+    <path d="M50 152 L47 125 L26 140 L33 112 L5 118 L23 94 L5 82 L27 76 L13 52 L36 66 L36 40 L50 6 L64 40 L64 66 L87 52 L73 76 L95 82 L77 94 L95 118 L67 112 L74 140 L53 125 Z" fill="#8890c8" stroke="#4858a0" stroke-width="1.2"/>
+    <!-- SILVERY underside — the defining feature, shows through as pale sheen -->
+    <path d="M50 152 L47 126 L34 116 L38 96 L24 84 L36 76 L28 60 L42 68 L44 48 L50 16" fill="#d0d8f0" opacity="0.55"/>
+    <path d="M50 152 L53 126 L66 116 L62 96 L76 84 L64 76 L72 60 L58 68 L56 48 L50 16" fill="#d0d8f0" opacity="0.35"/>
+    <line x1="50" y1="152" x2="50" y2="7" stroke="#303880" stroke-width="1.8"/>
+    <line x1="50" y1="95" x2="18" y2="76" stroke="#303880" stroke-width="1.1"/>
+    <line x1="50" y1="95" x2="82" y2="76" stroke="#303880" stroke-width="1.1"/>
+    <line x1="50" y1="95" x2="30" y2="122" stroke="#303880" stroke-width="1.1"/>
+    <line x1="50" y1="95" x2="70" y2="122" stroke="#303880" stroke-width="1.1"/>
+    <line x1="50" y1="152" x2="50" y2="167" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── RED OAK ──────────────────────────────────────────────────────────────
+  // 7-11 lobes with BRISTLE-TIPS (tiny sharp spine at each lobe tip),
+  // deep U-shaped sinuses, matte surface, leaves turn deep red in fall
+  redoak: { bg:'#f5e8d5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- lobed with pointed tips + bristles -->
+    <path d="M50 158
+      C50 158 40 150 32 140 C24 130 26 122 18 116 C10 110 7 116 7 108
+      C7 100 15 96 15 88 C15 80 7 74 10 66
+      C13 58 23 60 25 52 C27 44 18 32 24 24
+      C28 18 38 22 42 16 L50 6 L58 16
+      C62 22 72 18 76 24 C82 32 73 44 75 52
+      C77 60 87 58 90 66 C93 74 85 80 85 88
+      C85 96 93 100 93 108 C93 116 90 110 82 116
+      C74 122 76 130 68 140 C60 150 50 158 50 158Z"
+      fill="#c09850" stroke="#806020" stroke-width="1.2"/>
+    <!-- BRISTLE TIPS on each lobe — the defining red oak feature -->
+    <line x1="50" y1="7" x2="50" y2="0" stroke="#806020" stroke-width="1.2"/>
+    <line x1="24" y1="25" x2="20" y2="19" stroke="#806020" stroke-width="1.2"/>
+    <line x1="76" y1="25" x2="80" y2="19" stroke="#806020" stroke-width="1.2"/>
+    <line x1="8" y1="108" x2="2" y2="106" stroke="#806020" stroke-width="1.2"/>
+    <line x1="92" y1="108" x2="98" y2="106" stroke="#806020" stroke-width="1.2"/>
+    <line x1="18" y1="116" x2="13" y2="112" stroke="#806020" stroke-width="1.2"/>
+    <line x1="82" y1="116" x2="87" y2="112" stroke="#806020" stroke-width="1.2"/>
+    <line x1="50" y1="158" x2="50" y2="162" stroke="#806020" stroke-width="1.2"/>
+    <!-- midrib -->
+    <line x1="50" y1="158" x2="50" y2="7" stroke="#604010" stroke-width="2"/>
+    <line x1="50" y1="134" x2="24" y2="118" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="108" x2="12" y2="94" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="80" x2="14" y2="68" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="52" x2="24" y2="40" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="134" x2="76" y2="118" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="108" x2="88" y2="94" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="80" x2="86" y2="68" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="52" x2="76" y2="40" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── WHITE OAK ────────────────────────────────────────────────────────────
+  // Rounded lobes (NO bristle tips), 7-9 lobes, cross-shaped when spread,
+  // bluish-green upper surface, whitish-pale underside, upper lobes wider
+  whiteoak: { bg:'#e8edda', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- rounded lobes, wider upper half -->
+    <path d="M50 158
+      C50 158 38 150 30 140 C22 130 25 122 17 118 C9 114 7 120 7 112
+      C7 104 15 100 16 92 C17 84 9 78 13 70
+      C17 62 27 64 29 56 C31 48 23 40 29 32
+      C33 26 41 30 45 24 C47 20 49 13 50 11
+      C51 13 53 20 55 24 C59 30 67 26 71 32
+      C77 40 69 48 71 56 C73 64 83 62 87 70
+      C91 78 83 84 84 92 C85 100 93 104 93 112
+      C93 120 91 114 83 118 C75 122 78 130 70 140 C62 150 50 158 50 158Z"
+      fill="#7aaa58" stroke="#4a7838" stroke-width="1.2"/>
+    <!-- bluish-green tinge on upper lobes -->
+    <ellipse cx="50" cy="35" rx="14" ry="20" fill="#6898c0" opacity="0.12"/>
+    <!-- whitish underside showing through -->
+    <path d="M50 158 C42 150 34 138 30 124 C26 112 26 98 28 86" stroke="white" stroke-width="3" fill="none" opacity="0.2"/>
+    <line x1="50" y1="158" x2="50" y2="12" stroke="#3a6028" stroke-width="2"/>
+    <line x1="50" y1="134" x2="26" y2="120" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="110" x2="15" y2="96" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="85" x2="16" y2="72" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="60" x2="28" y2="48" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="38" x2="40" y2="28" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="134" x2="74" y2="120" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="110" x2="85" y2="96" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="85" x2="84" y2="72" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="60" x2="72" y2="48" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="38" x2="60" y2="28" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── AMERICAN BEECH ───────────────────────────────────────────────────────
+  // Distinctly ovate-oblong, silky blue-green when fresh, papery thin when dry,
+  // VERY regular parallel veins (12-15 pairs), each ending in a small forward-pointing tooth,
+  // smooth except for teeth, thin papery texture, holds dead tan leaves all winter
+  ambeech: { bg:'#f0e8c8', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- smooth ovate margin with very regular teeth only at vein ends -->
+    <path d="M50 155 C45 151 35 142 27 131 C19 120 16 108 14 94 C12 80 14 66 18 54 C22 40 30 26 39 18 C43 14 47 9 50 7 C53 9 57 14 61 18 C70 26 78 40 82 54 C86 66 88 80 86 94 C84 108 81 120 73 131 C65 142 55 151 50 155Z" fill="#b8c880" stroke="#708848" stroke-width="1.1"/>
+    <!-- papery / thin texture — slight translucency hint -->
+    <path d="M50 155 C50 155 42 148 36 138" stroke="white" stroke-width="1.5" fill="none" opacity="0.2"/>
+    <!-- winter dead-leaf tan tinge at edges -->
+    <path d="M86 94 C87 108 82 120 74 131" stroke="#c8a060" stroke-width="2.5" fill="none" opacity="0.3"/>
+    <line x1="50" y1="155" x2="50" y2="8" stroke="#4a6030" stroke-width="1.8"/>
+    <!-- 13 pairs of very regular, nearly-horizontal veins — beech is famous for these -->
+    <line x1="50" y1="140" x2="19" y2="127" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="127" x2="16" y2="115" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="114" x2="14" y2="103" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="101" x2="14" y2="91" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="88" x2="15" y2="79" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="75" x2="16" y2="67" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="62" x2="19" y2="55" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="49" x2="23" y2="43" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="37" x2="30" y2="32" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="26" x2="38" y2="22" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="140" x2="81" y2="127" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="127" x2="84" y2="115" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="114" x2="86" y2="103" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="101" x2="86" y2="91" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="88" x2="85" y2="79" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="75" x2="84" y2="67" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="62" x2="81" y2="55" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="49" x2="77" y2="43" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="37" x2="70" y2="32" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="26" x2="62" y2="22" stroke="#4a6030" stroke-width="0.9"/>
+    <!-- tiny tooth spurs at each vein end -->
+    <path d="M19 127 L16 124 M16 115 L13 112 M14 103 L11 100 M14 91 L11 88 M15 79 L12 76 M16 67 L13 64 M19 55 L16 52 M23 43 L20 40 M30 32 L27 29" stroke="#4a6030" stroke-width="0.8" fill="none"/>
+    <path d="M81 127 L84 124 M84 115 L87 112 M86 103 L89 100 M86 91 L89 88 M85 79 L88 76 M84 67 L87 64 M81 55 L84 52 M77 43 L80 40 M70 32 L73 29" stroke="#4a6030" stroke-width="0.8" fill="none"/>
+    <line x1="50" y1="155" x2="50" y2="170" stroke="#8B5020" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── HAWTHORN ─────────────────────────────────────────────────────────────
+  // SMALL leaf (2-3"), deeply and sharply lobed (look almost like tiny oak leaves),
+  // toothed lobe margins, glossy dark green, often 3-5 lobes,
+  // found near thorny branches (key ID context)
+  hawthorn: { bg:'#e0f0d5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- small, deeply 5-lobed with toothed margins — show size scale bar -->
+    <path d="M50 138
+      C50 138 42 130 36 122 C30 114 32 107 24 103 C16 99 13 106 13 99
+      C13 92 20 89 22 83 C24 77 18 72 22 66
+      C26 60 34 63 37 57 C40 51 36 42 42 36
+      C44 31 48 24 50 14 C52 24 56 31 58 36
+      C64 42 60 51 63 57 C66 63 74 60 78 66
+      C82 72 76 77 78 83 C80 89 87 92 87 99
+      C87 106 84 99 76 103 C68 107 70 114 64 122 C58 130 50 138 50 138Z"
+      fill="#58a040" stroke="#387028" stroke-width="1.1"/>
+    <!-- glossy sheen — hawthorn has notably shiny leaves -->
+    <ellipse cx="40" cy="55" rx="6" ry="14" fill="white" opacity="0.2" transform="rotate(-15,40,55)"/>
+    <ellipse cx="60" cy="65" rx="4" ry="10" fill="white" opacity="0.15" transform="rotate(10,60,65)"/>
+    <!-- THORNS on stem — classic hawthorn ID context -->
+    <line x1="50" y1="138" x2="50" y2="162" stroke="#4a3018" stroke-width="2.5"/>
+    <line x1="50" y1="150" x2="43" y2="144" stroke="#4a3018" stroke-width="1.5"/>
+    <line x1="50" y1="156" x2="57" y2="150" stroke="#4a3018" stroke-width="1.5"/>
+    <line x1="50" y1="108" x2="28" y2="96" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="86" x2="24" y2="74" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="65" x2="30" y2="55" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="47" x2="38" y2="38" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="108" x2="72" y2="96" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="86" x2="76" y2="74" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="65" x2="70" y2="55" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="47" x2="62" y2="38" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="138" x2="50" y2="138" stroke="#387028" stroke-width="1.8"/>
+    <!-- scale bar to show small size -->
+    <line x1="8" y1="160" x2="28" y2="160" stroke="#888" stroke-width="1"/>
+    <text x="18" y="168" font-size="6" fill="#888" text-anchor="middle">~2–3"</text>
+  </svg>` },
+
+  // ── BLACK CHERRY ─────────────────────────────────────────────────────────
+  // Narrowly elliptic/lance-shaped, VERY finely serrated (tiny teeth),
+  // dark green glossy, reddish glands at base of blade near petiole (key ID),
+  // slightly drooping tip, bitter-almond smell when crushed
+  blackcherry: { bg:'#daecd5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- narrowly elliptic lance shape -->
+    <path d="M50 158 C40 150 25 134 19 114 C13 94 13 72 21 54 C27 40 37 22 50 10 C63 22 73 40 79 54 C87 72 87 94 81 114 C75 134 60 150 50 158Z" fill="#4e9858" stroke="#307040" stroke-width="1.1"/>
+    <!-- glossy sheen -->
+    <ellipse cx="40" cy="60" rx="7" ry="22" fill="white" opacity="0.15" transform="rotate(-8,40,60)"/>
+    <!-- REDDISH GLANDS at leaf base — the single best ID feature of black cherry -->
+    <circle cx="44" cy="148" r="2.5" fill="#cc3030" opacity="0.85"/>
+    <circle cx="56" cy="148" r="2.5" fill="#cc3030" opacity="0.85"/>
+    <!-- very fine serration along entire margin -->
+    <path d="M21 110 L17 107 L22 109 M20 92 L16 89 L21 91 M20 74 L16 71 L21 73 M22 57 L18 54 L23 56" stroke="#307040" stroke-width="0.7" fill="none"/>
+    <path d="M79 110 L83 107 L78 109 M80 92 L84 89 L79 91 M80 74 L84 71 L79 73 M78 57 L82 54 L77 56" stroke="#307040" stroke-width="0.7" fill="none"/>
+    <line x1="50" y1="158" x2="50" y2="11" stroke="#286038" stroke-width="2"/>
+    <line x1="50" y1="134" x2="27" y2="116" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="112" x2="23" y2="96" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="90" x2="22" y2="76" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="68" x2="25" y2="56" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="47" x2="33" y2="37" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="134" x2="73" y2="116" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="112" x2="77" y2="96" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="90" x2="78" y2="76" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="68" x2="75" y2="56" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="47" x2="67" y2="37" stroke="#286038" stroke-width="1"/>
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── AMERICAN ELM ─────────────────────────────────────────────────────────
+  // Oval but STRONGLY ASYMMETRIC BASE (one side attaches higher than the other),
+  // doubly-serrated teeth (big teeth with smaller teeth on them),
+  // rough sandpaper texture on upper side, parallel veins
+  elm: { bg:'#e4edd5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- asymmetric base — LEFT side starts much lower than RIGHT -->
+    <path d="M50 152 C36 142 18 124 14 104 C10 84 16 62 26 46 C32 36 40 22 50 12
+      C56 18 64 30 70 40 C80 56 86 80 82 102 C78 124 62 142 50 152Z"
+      fill="#88b068" stroke="#507840" stroke-width="1.1"/>
+    <!-- asymmetric base visible — left side base drops lower -->
+    <path d="M50 152 C44 148 34 138 26 126 C18 114 14 100 14 86" stroke="#507840" stroke-width="0.8" fill="none" opacity="0.4"/>
+    <!-- double serration — teeth on teeth -->
+    <path d="M16 90 L11 87 L17 88 M15 70 L10 67 L16 68 M17 52 L12 49 L18 50" stroke="#507840" stroke-width="0.8" fill="none"/>
+    <path d="M82 90 L87 87 L81 88 M83 70 L88 67 L82 68 M81 52 L86 49 L80 50" stroke="#507840" stroke-width="0.8" fill="none"/>
+    <!-- small extra serration marks between -->
+    <path d="M14 80 L11 78 M14 100 L11 98 M17 110 L14 108 M20 120 L17 118" stroke="#507840" stroke-width="0.6" fill="none"/>
+    <path d="M83 80 L86 78 M83 100 L86 98 M80 110 L83 108 M77 120 L80 118" stroke="#507840" stroke-width="0.6" fill="none"/>
+    <line x1="50" y1="152" x2="50" y2="13" stroke="#3a6028" stroke-width="2"/>
+    <line x1="50" y1="128" x2="26" y2="112" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="108" x2="20" y2="94" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="88" x2="19" y2="75" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="68" x2="22" y2="57" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="48" x2="30" y2="39" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="128" x2="74" y2="114" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="108" x2="79" y2="96" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="88" x2="80" y2="77" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="68" x2="77" y2="58" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="48" x2="68" y2="40" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="152" x2="50" y2="167" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── SWEETGUM ─────────────────────────────────────────────────────────────
+  // UNMISTAKABLE 5-7 pointed star shape, each lobe finely toothed,
+  // cordate (heart-shaped) base, glossy, resinous fragrance when crushed,
+  // spiky ball seed pods shown alongside
+  sweetgum: { bg:'#e0f0d0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- perfect star — most distinctive leaf in NYC -->
+    <path d="M50 148 L45 118 L24 134 L28 108 L4 100 L24 88 L8 66 L34 72 L36 44 L50 8 L64 44 L66 72 L92 66 L76 88 L96 100 L72 108 L76 134 L55 118 Z" fill="#70c050" stroke="#409030" stroke-width="1.2"/>
+    <!-- fine teeth along each lobe edge -->
+    <path d="M45 118 L42 115 M39 112 L37 109 M32 108 L28 108" stroke="#409030" stroke-width="0.7" fill="none"/>
+    <path d="M55 118 L58 115 M61 112 L63 109 M68 108 L72 108" stroke="#409030" stroke-width="0.7" fill="none"/>
+    <!-- resin gland dots — sweetgum has fragrant resin -->
+    <circle cx="50" cy="78" r="1.5" fill="#40a030" opacity="0.4"/>
+    <circle cx="44" cy="90" r="1" fill="#40a030" opacity="0.35"/>
+    <circle cx="56" cy="90" r="1" fill="#40a030" opacity="0.35"/>
+    <!-- glossy sheen -->
+    <ellipse cx="44" cy="55" rx="5" ry="12" fill="white" opacity="0.18" transform="rotate(-20,44,55)"/>
+    <!-- star veins -->
+    <line x1="50" y1="148" x2="50" y2="9" stroke="#307020" stroke-width="1.8"/>
+    <line x1="50" y1="96" x2="10" y2="80" stroke="#307020" stroke-width="1.1"/>
+    <line x1="50" y1="96" x2="90" y2="80" stroke="#307020" stroke-width="1.1"/>
+    <line x1="50" y1="96" x2="22" y2="126" stroke="#307020" stroke-width="1.1"/>
+    <line x1="50" y1="96" x2="78" y2="126" stroke="#307020" stroke-width="1.1"/>
+    <!-- spiky gumball pod (tiny, in corner) for ID -->
+    <circle cx="82" cy="148" r="8" fill="none" stroke="#507030" stroke-width="1"/>
+    <line x1="82" y1="140" x2="82" y2="136" stroke="#507030" stroke-width="0.8"/>
+    <line x1="90" y1="148" x2="94" y2="148" stroke="#507030" stroke-width="0.8"/>
+    <line x1="74" y1="148" x2="70" y2="148" stroke="#507030" stroke-width="0.8"/>
+    <line x1="82" y1="156" x2="82" y2="160" stroke="#507030" stroke-width="0.8"/>
+    <line x1="88" y1="142" x2="91" y2="139" stroke="#507030" stroke-width="0.8"/>
+    <line x1="76" y1="142" x2="73" y2="139" stroke="#507030" stroke-width="0.8"/>
+    <line x1="88" y1="154" x2="91" y2="157" stroke="#507030" stroke-width="0.8"/>
+    <line x1="76" y1="154" x2="73" y2="157" stroke="#507030" stroke-width="0.8"/>
+    <text x="82" y="167" font-size="5.5" fill="#507030" text-anchor="middle">pod</text>
+    <line x1="50" y1="148" x2="50" y2="162" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── ALDER ────────────────────────────────────────────────────────────────
+  // Oval with NOTCHED (emarginate) apex — dip at the tip, doubly-toothed margin,
+  // sticky when young, dark green. CONE shown alongside — oval woody cone,
+  // the most useful aquarium part
+  alder: { bg:'#d8ecd5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- oval leaf with notched apex -->
+    <path d="M50 148 C32 136 14 114 12 88 C10 62 24 38 38 24 C42 18 46 12 50 10 C54 12 58 18 62 24 C76 38 90 62 88 88 C86 114 68 136 50 148Z" fill="#70b860" stroke="#488040" stroke-width="1.1"/>
+    <!-- NOTCHED TIP — emarginate apex, the key alder ID feature -->
+    <path d="M46 12 C48 6 50 4 50 4 C50 4 52 6 54 12" fill="none" stroke="#488040" stroke-width="1.3"/>
+    <path d="M48 10 L50 14 L52 10" fill="none" stroke="#488040" stroke-width="1.3"/>
+    <!-- sticky-when-young gland dots near leaf base -->
+    <circle cx="44" cy="136" r="1.5" fill="#306820" opacity="0.5"/>
+    <circle cx="56" cy="136" r="1.5" fill="#306820" opacity="0.5"/>
+    <!-- double-toothed margin marks -->
+    <path d="M13 95 L9 92 L14 94 M13 75 L9 72 L14 74 M15 56 L11 53 L16 55" stroke="#488040" stroke-width="0.7" fill="none"/>
+    <path d="M87 95 L91 92 L86 94 M87 75 L91 72 L86 74 M85 56 L89 53 L84 55" stroke="#488040" stroke-width="0.7" fill="none"/>
+    <line x1="50" y1="148" x2="50" y2="10" stroke="#306828" stroke-width="2"/>
+    <line x1="50" y1="124" x2="24" y2="108" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="104" x2="17" y2="89" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="84" x2="16" y2="70" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="64" x2="20" y2="52" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="44" x2="30" y2="34" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="124" x2="76" y2="108" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="104" x2="83" y2="89" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="84" x2="84" y2="70" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="64" x2="80" y2="52" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="44" x2="70" y2="34" stroke="#306828" stroke-width="1"/>
+    <!-- ALDER CONE drawn to right of leaf — oval woody cone with scales -->
+    <ellipse cx="82" cy="130" rx="8" ry="12" fill="#7a5030" stroke="#5a3818" stroke-width="1"/>
+    <line x1="74" y1="126" x2="90" y2="126" stroke="#5a3818" stroke-width="0.8"/>
+    <line x1="74" y1="130" x2="90" y2="130" stroke="#5a3818" stroke-width="0.8"/>
+    <line x1="74" y1="134" x2="90" y2="134" stroke="#5a3818" stroke-width="0.8"/>
+    <line x1="82" y1="118" x2="82" y2="115" stroke="#5a3818" stroke-width="1.2"/>
+    <text x="82" y="148" font-size="5.5" fill="#5a3818" text-anchor="middle">cone</text>
+    <line x1="50" y1="148" x2="50" y2="163" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  // ── SYCAMORE ─────────────────────────────────────────────────────────────
+  // Very large (4-9"), broadly 3-5 lobed like a big maple but SHALLOWER sinuses,
+  // base is straight/truncate not heart-shaped, coarsely toothed lobes,
+  // distinctive jigsaw-puzzle bark pattern shown in stem
+  sycamore: { bg:'#e8f0d8', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 5-lobed but WIDE, shallow sinuses (vs deep in maple) -->
+    <path d="M50 150 L44 124 L20 138 L28 114 L2 114 L18 94 L2 80 L26 78 L18 58 L40 68 L40 46 L50 10 L60 46 L60 68 L82 58 L74 78 L98 80 L82 94 L98 114 L72 114 L80 138 L56 124 Z" fill="#90b870" stroke="#5a7a40" stroke-width="1.2"/>
+    <!-- TRUNCATE (flat) base — not heart shaped like maple -->
+    <line x1="40" y1="124" x2="60" y2="124" stroke="#5a7a40" stroke-width="1.2" opacity="0.5"/>
+    <!-- very coarse teeth on lobe edges -->
+    <path d="M44 124 L40 120 M36 116 L32 114" stroke="#5a7a40" stroke-width="0.9" fill="none"/>
+    <path d="M56 124 L60 120 M64 116 L68 114" stroke="#5a7a40" stroke-width="0.9" fill="none"/>
+    <line x1="50" y1="150" x2="50" y2="11" stroke="#406828" stroke-width="2"/>
+    <line x1="50" y1="104" x2="16" y2="86" stroke="#406828" stroke-width="1.1"/>
+    <line x1="50" y1="104" x2="84" y2="86" stroke="#406828" stroke-width="1.1"/>
+    <line x1="50" y1="104" x2="28" y2="128" stroke="#406828" stroke-width="1.1"/>
+    <line x1="50" y1="104" x2="72" y2="128" stroke="#406828" stroke-width="1.1"/>
+    <!-- JIGSAW BARK PATTERN on petiole/stem — sycamore's most famous feature -->
+    <line x1="50" y1="150" x2="50" y2="172" stroke="#8B6030" stroke-width="3.5"/>
+    <path d="M47 153 Q50 157 53 153 Q56 157 53 161 Q56 165 53 169" stroke="#c8a060" stroke-width="1.2" fill="none"/>
+    <path d="M47 161 Q44 165 47 169" stroke="#c8a060" stroke-width="1.2" fill="none"/>
+    <!-- scale bar showing large size -->
+    <line x1="6" y1="162" x2="30" y2="162" stroke="#888" stroke-width="1"/>
+    <text x="18" y="170" font-size="6" fill="#888" text-anchor="middle">~4–9"</text>
+  </svg>` },
+};
+
+// ─── LEAF DATA ────────────────────────────────────────────────────────────────
+const generalLeaves = [
+  {
+    key:'catappa', name:'Catappa', latin:'Terminalia catappa',
+    badge:'Most Popular', badgeType:'green',
+    duration:'1–2 months', tannins:'High', shrimp:'✅',
+    best:'Bettas, Apistogramma, discus, shrimp, fry',
+    id:'Large obovate leaf (widest near tip), blunt apex with tiny drip-tip, wedge-shaped base. Often shows red/orange tinge along edges. 10–15 prominent parallel veins per side. Turns deep red/orange before falling.',
+    note:'The gold standard. Lowers pH, antibacterial & antifungal.',
+    search:'Terminalia catappa leaf aquarium'
+  },
+  {
+    key:'guava', name:'Guava', latin:'Psidium guajava',
+    badge:'Great for Shrimp', badgeType:'green',
+    duration:'2–3 months', tannins:'Medium', shrimp:'✅',
+    best:'Shrimp, nano fish, bettas',
+    id:'Elliptic, dull matte surface (not glossy). Veins deeply sunken/grooved, giving puckered look between them. Pale green underside. Edges slightly undulate/wavy. Faint pleasant fruity smell when fresh.',
+    note:'Slower breakdown, lighter tint. Rich in polyphenols & flavonoids.',
+    search:'Psidium guajava leaf identification'
+  },
+  {
+    key:'oak', name:'Oak Leaf', latin:'Quercus spp.',
+    badge:'Budget-Friendly', badgeType:'green',
+    duration:'3–6 months', tannins:'Medium–High', shrimp:'✅',
+    best:'Most freshwater fish, shrimp, crayfish',
+    id:'Classically lobed shape. White/English oak has rounded lobe tips; Red oak has pointed bristle-tipped lobes. 7-9 lobes. Waxy feel on upper surface. Often retains dead brown leaves on tree through winter.',
+    note:'Can be collected free in autumn. Long-lasting litter structure.',
+    search:'oak leaf aquarium safe identification'
+  },
+  {
+    key:'magnolia', name:'Magnolia', latin:'Magnolia grandiflora',
+    badge:'Most Durable', badgeType:'green',
+    duration:'6–12 months', tannins:'Low–Medium', shrimp:'✅',
+    best:'Bottom dwellers, shrimp, plecos',
+    id:'Very large (8–12"), thick leathery, no teeth or lobes. Upper side very glossy dark green; underside has distinctive rusty-brown fuzzy/felty coating. Very stout midrib. Feels stiff and heavy.',
+    note:'Use only dried brown leaves — not green ones. Most durable of all aquarium leaves.',
+    search:'Magnolia grandiflora leaf aquarium'
+  },
+  {
+    key:'loquat', name:'Loquat', latin:'Eriobotrya japonica',
+    badge:'Mineral-Rich', badgeType:'green',
+    duration:'3–5 months', tannins:'Medium', shrimp:'✅',
+    best:'Shrimp, snails, nano fish',
+    id:'Long, narrow, lance-shaped (oblanceolate). Coarse sharp teeth along margins. Surface is wrinkled/puckered between veins (bullate texture). Feels like rough leather. Whitish-woolly underside. Veins deeply impressed on upper side.',
+    note:'Rich in potassium, calcium, magnesium & iron.',
+    search:'Eriobotrya japonica loquat leaf identification'
+  },
+  {
+    key:'jackfruit', name:'Jackfruit', latin:'Artocarpus heterophyllus',
+    badge:'Good for Shrimp', badgeType:'green',
+    duration:'2–4 months', tannins:'Medium', shrimp:'✅',
+    best:'Shrimp, small fish, snails',
+    id:'Thick, stiff, very dark glossy green. Obovate (wider near tip), completely smooth margins (NO teeth). High gloss like patent leather. White latex/milky sap drips from midrib when fresh. Stout petiole.',
+    note:'Harder & more fibrous than catappa. Long biofilm grazing surface.',
+    search:'Artocarpus heterophyllus jackfruit leaf'
+  },
+  {
+    key:'beech', name:'Beech', latin:'Fagus spp.',
+    badge:'Moderate Tannins', badgeType:'green',
+    duration:'2–4 months', tannins:'Medium', shrimp:'✅',
+    best:'Most freshwater fish, shrimp',
+    id:'Ovate, silky smooth when fresh, papery thin when dry. Parallel veins very regular (9–14 pairs), each vein ending in a single small tooth at the margin. Wavy between teeth. Often keeps dead tan color through winter on the tree (marcescence).',
+    note:'Thick waxy leaf = slower breakdown, moderate golden tint.',
+    search:'Fagus beech leaf aquarium identification'
+  },
+  {
+    key:'mulberry', name:'Mulberry', latin:'Morus spp.',
+    badge:'Nutritious', badgeType:'green',
+    duration:'2–4 weeks', tannins:'Low–Medium', shrimp:'✅',
+    best:'Shrimp, snails, herbivorous fish',
+    id:'Heart-shaped (cordate) base, apex pointed. Famous for variable shape — same tree produces unlobed, mitten-shaped (1 lobe), and fully lobed leaves. Rough sandpaper texture on upper surface. Irregularly toothed margins.',
+    note:'Breaks down fastest of all. Very nutritious for shrimp and snails.',
+    search:'Morus mulberry leaf aquarium identification'
+  },
+];
+
+const nycLeaves = [
+  {
+    key:'redmaple', name:'Red Maple', latin:'Acer rubrum',
+    badge:'NYC Native', badgeType:'blue',
+    duration:'1–2 weeks', tannins:'Low', shrimp:'✅',
+    best:'Shrimp, snails, nano fish, otos',
+    id:'5 lobes with pointed tips and V-shaped sinuses. KEY ID: bright red petiole (leaf stalk) — very distinctive. Whitish-pale underside. Leaves turn brilliant scarlet in fall. Smaller than silver maple; sinuses shallower than silver maple.',
+    note:'Very common in all NYC parks. Fast breakdown creates great biofilm.',
+    search:'Acer rubrum red maple leaf identification'
+  },
+  {
+    key:'silvermaple', name:'Silver Maple', latin:'Acer saccharinum',
+    badge:'NYC Native', badgeType:'blue',
+    duration:'1–2 weeks', tannins:'Low', shrimp:'✅',
+    best:'Shrimp, snails, fry, nano fish',
+    id:'5 lobes with DEEPLY cut sinuses (almost reaching midrib — much deeper than red maple). KEY ID: brilliant silver-white underside — very obvious when wind blows. Edges more jagged/toothed than red maple. Petiole green-red (not as red as red maple).',
+    note:'Abundant in Prospect Park & Central Park.',
+    search:'Acer saccharinum silver maple leaf identification'
+  },
+  {
+    key:'redoak', name:'Red Oak', latin:'Quercus rubra',
+    badge:'NYC Native ⭐', badgeType:'blue',
+    duration:'3–6 months', tannins:'High', shrimp:'✅',
+    best:'Most freshwater fish, shrimp, bettas',
+    id:'7–11 lobes with POINTED tips, each lobe tip has a tiny BRISTLE (hair-like extension). Sinuses are U-shaped, moderately deep. Matte/dull surface. Leaves turn deep red to brown in fall. Acorns take 2 years to mature.',
+    note:'Best free catappa alternative. Pointed bristle-tipped lobes are the key ID feature.',
+    search:'Quercus rubra red oak leaf identification'
+  },
+  {
+    key:'whiteoak', name:'White Oak', latin:'Quercus alba',
+    badge:'NYC Native ⭐', badgeType:'blue',
+    duration:'3–6 months', tannins:'High', shrimp:'✅',
+    best:'Most freshwater fish, shrimp',
+    id:'7–9 lobes with fully ROUNDED tips (no bristles at all). Bluish-green upper surface with pale/whitish underside. Upper lobes usually widest/most finger-like. Acorns mature in 1 year (unlike red oak). Leaves turn brown/wine-red in fall.',
+    note:'Rounded lobe tips (no bristles) vs red oak\'s pointed bristle tips.',
+    search:'Quercus alba white oak leaf identification'
+  },
+  {
+    key:'ambeech', name:'American Beech', latin:'Fagus grandifolia',
+    badge:'NYC Native ⭐', badgeType:'blue',
+    duration:'4–6+ months', tannins:'Low–Medium', shrimp:'✅',
+    best:'Most freshwater fish, shrimp',
+    id:'Ovate-oblong, papery thin when dry. KEY ID: very regular parallel veins (9–14 pairs) each ending in a small sharp forward-pointing tooth. Smooth between teeth. Holds dead tan/copper leaves on the tree all winter (marcescence). Silvery-grey smooth bark (look up at the tree to confirm).',
+    note:'Inwood Hill Park has excellent specimens. Keeps shape beautifully in tanks.',
+    search:'Fagus grandifolia American beech leaf identification'
+  },
+  {
+    key:'hawthorn', name:'Hawthorn', latin:'Crataegus spp.',
+    badge:'NYC Native', badgeType:'blue',
+    duration:'2–3 months', tannins:'Medium', shrimp:'✅',
+    best:'Nano fish, shrimp, bettas',
+    id:'SMALL leaf (only 2–3"). Deeply lobed with 3–7 pointed lobes, each with toothed margins — looks like a tiny deeply-cut oak. Very glossy upper surface. KEY ID: found on thorny-branched trees or shrubs with sharp 1–2" thorns along stems.',
+    note:'Smaller leaves perfect for nano tanks. Always check the branch for thorns to confirm ID.',
+    search:'Crataegus hawthorn leaf identification NYC'
+  },
+  {
+    key:'blackcherry', name:'Black Cherry', latin:'Prunus serotina',
+    badge:'NYC Native', badgeType:'blue',
+    duration:'2–3 months', tannins:'Medium–High', shrimp:'✅',
+    best:'Bettas, blackwater fish, shrimp',
+    id:'Narrowly elliptic/lance-shaped, dark glossy green. Very finely serrated margins (tiny forward-curved teeth). KEY ID: 1–2 small reddish glands at the very base of the blade where it meets the petiole. Crushed leaves smell of bitter almonds. Remove ALL fruit and stem.',
+    note:'Leaves only — remove all fruit & stems. Red glands at leaf base are the key ID feature.',
+    search:'Prunus serotina black cherry leaf identification'
+  },
+  {
+    key:'elm', name:'American Elm', latin:'Ulmus americana',
+    badge:'NYC Native', badgeType:'blue',
+    duration:'1–2 months', tannins:'Low–Medium', shrimp:'✅',
+    best:'Shrimp, most freshwater fish',
+    id:'Oval to oblong. KEY ID: strongly asymmetric base — one side of the leaf attaches noticeably higher on the stem than the other (like a lopsided egg). Double-serrated margins (big teeth with smaller teeth on them). Rough sandpaper texture on upper surface. Vase-shaped tree canopy.',
+    note:'Asymmetric base is unmistakable. Found on classic vase-shaped trees throughout NYC.',
+    search:'Ulmus americana elm leaf identification'
+  },
+  {
+    key:'sweetgum', name:'Sweetgum', latin:'Liquidambar styraciflua',
+    badge:'NYC Area', badgeType:'blue',
+    duration:'Leaves: 2–3 mo / Pods: 6+ mo', tannins:'Medium', shrimp:'✅',
+    best:'Shrimp, nano fish, snails',
+    id:'UNMISTAKABLE 5–7 pointed star shape. Cordate (heart-shaped) base. Finely toothed along each lobe. Glossy. Resinous/spicy fragrance when crushed. KEY ID: spiky brown ball seed pods (gumballs) on the ground under the tree — also aquarium-safe and beloved by shrimp.',
+    note:'Star shape is unmistakable. Collect the spiky seed pods too — shrimp love them.',
+    search:'Liquidambar sweetgum leaf pod identification'
+  },
+  {
+    key:'alder', name:'Alder', latin:'Alnus serrulata',
+    badge:'NYC Area ⭐', badgeType:'blue',
+    duration:'Leaves: 1–2 mo / Cones: 6+ mo', tannins:'Medium–High', shrimp:'✅',
+    best:'All freshwater fish, shrimp, bettas',
+    id:'Oval leaf with KEY ID: NOTCHED (emarginate) tip — a small indentation/dip at the apex rather than a point. Doubly-toothed margins, dark green. Sticky when young. Found near water (stream edges). Small woody oval cones (½" long) persist year-round on the branch.',
+    note:'Grow near water — look for the small woody cones. Both leaves and cones are aquarium-safe.',
+    search:'Alnus serrulata alder leaf cone identification'
+  },
+  {
+    key:'sycamore', name:'Sycamore', latin:'Platanus occidentalis',
+    badge:'NYC Native', badgeType:'blue',
+    duration:'2–4 months', tannins:'Low–Medium', shrimp:'✅',
+    best:'Most freshwater fish, larger tanks',
+    id:'Very large (4–9"), broadly 3–5 lobed, shallower sinuses than maple. Coarsely toothed lobes. Base is flat/truncate (not heart-shaped). KEY ID: the tree has unmistakable peeling bark in cream/tan/grey jigsaw-puzzle patches — look up at the trunk to instantly confirm. Very common along NYC streets.',
+    note:'Look for the peeling jigsaw-bark trunk to confirm ID from a distance.',
+    search:'Platanus occidentalis sycamore leaf identification'
+  },
+];
+
+function googleURL(q) {
+  return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
+}
+
+function buildCards(leaves, containerId) {
+  const container = document.getElementById(containerId);
+  leaves.forEach((leaf, i) => {
+    const data = LEAVES[leaf.key] || { bg:'#e8f0e0', svg:'<svg viewBox="0 0 100 170"></svg>' };
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = (i * 0.045) + 's';
+    card.innerHTML = `
+      <div class="card-leaf-box" style="background:${data.bg}">${data.svg}</div>
+      <div class="card-body">
+        <div class="card-name">${leaf.name}</div>
+        <div class="card-latin">${leaf.latin}</div>
+        <span class="badge badge-${leaf.badgeType}">${leaf.badge}</span>
+        <div class="id-strip">
+          <strong>🔍 How to Identify</strong>
+          ${leaf.id}
+        </div>
+        <a class="google-link" href="${googleURL(leaf.search)}" target="_blank" rel="noopener">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          See real photos
+        </a>
+        <div class="card-row"><span class="card-label">Duration</span><span class="card-val">${leaf.duration}</span></div>
+        <div class="card-row"><span class="card-label">Tannins</span><span class="card-val">${leaf.tannins}</span></div>
+        <div class="card-row"><span class="card-label">Shrimp Safe</span><span class="card-val">${leaf.shrimp} Yes</span></div>
+        <div class="card-row"><span class="card-label">Best For</span><span class="card-val">${leaf.best}</span></div>
+        <div class="card-note">${leaf.note}</div>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+buildCards(generalLeaves, 'general-cards');
+buildCards(nycLeaves, 'nyc-cards');
+
+function showTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
