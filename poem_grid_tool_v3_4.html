@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phonetic Grid Tool</title>
+<script src="https://gocre8.github.io/spectral.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<script>
+const PROXY_URL = 'https://anthropic-proxy.gocre8.workers.dev';
+</script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#f5f0e8; min-height:100vh;
+  display:flex; flex-direction:column; align-items:center;
+  padding:20px 20px 60px;
+  font-family:'IM Fell English',serif; color:#2a1e10;
+}
+h1 {
+  font-family:'IM Fell English SC',serif;
+  font-size:1.9rem; letter-spacing:0.15em;
+  margin-bottom:5px; text-align:center; color:#4a3010;
+}
+.subtitle { font-style:italic; color:#8a7050; font-size:0.88rem; margin-bottom:18px; text-align:center; }
+
+/* ── TAB BAR ── */
+.tab-bar {
+  display:flex; gap:0; margin-bottom:22px;
+  border:1px solid #c8b490; border-radius:5px; overflow:hidden;
+}
+.tab-btn {
+  font-family:'IM Fell English SC',serif;
+  font-size:0.92rem; letter-spacing:0.1em;
+  padding:9px 32px; border:none; border-radius:0;
+  background:#ece5d0; color:#8a7050;
+  cursor:pointer; transition:all 0.18s; width:auto;
+}
+.tab-btn:hover { background:#ddd5bc; color:#4a3010; }
+.tab-btn.active { background:#7a5820; color:#f5f0e8; }
+.tab-panel { display:none; width:100%; }
+.tab-panel.active { display:block; }
+
+/* ── OCR TAB STYLES ── */
+.ocr-wrap {
+  max-width:920px; width:100%; margin:0 auto;
+  display:flex; flex-direction:column; gap:18px;
+}
+.ocr-section {
+  background:#ece5d0; border:1px solid #c8b490;
+  border-radius:5px; padding:16px 18px;
+}
+.ocr-section h3 {
+  font-family:'IM Fell English SC',serif;
+  font-size:0.92rem; letter-spacing:0.08em; color:#7a5820;
+  margin-bottom:10px;
+}
+.ocr-section p { font-size:0.8rem; color:#8a7050; font-style:italic; margin-bottom:9px; }
+.ocr-section input[type=text],
+.ocr-section input[type=password] {
+  width:100%; background:#f5f0e8; border:1px solid #c8b490;
+  color:#2a1e10; font-family:'IM Fell English',serif;
+  font-size:0.85rem; padding:7px 10px; border-radius:3px;
+  margin-bottom:7px;
+}
+.ocr-section input[type=file] { display:none; }
+.ocr-btn {
+  font-family:'IM Fell English SC',serif;
+  font-size:0.85rem; letter-spacing:0.06em;
+  padding:8px 20px; border-radius:14px;
+  border:1px solid #7a5820; background:transparent;
+  color:#7a5820; cursor:pointer; transition:all 0.18s;
+}
+.ocr-btn:hover { background:#7a5820; color:#f5f0e8; }
+.ocr-btn:disabled { border-color:#c8b490; color:#c8b490; cursor:not-allowed; }
+.ocr-btn.primary { background:#7a5820; color:#f5f0e8; }
+.ocr-btn.primary:hover { background:#5a3e10; }
+.ocr-btn.go-grid {
+  background:#3a7040; border-color:#3a7040; color:#f0fff4;
+  font-size:0.92rem; padding:10px 26px;
+}
+.ocr-btn.go-grid:hover { background:#2a5030; }
+.status-msg { font-size:0.78rem; font-style:italic; color:#8a7050; margin-top:7px; }
+.status-msg.error { color:#b04030; }
+.status-msg.ok { color:#3a8040; }
+
+/* spinner */
+.spinner {
+  display:inline-block; width:14px; height:14px;
+  border:2px solid #c8b490; border-top-color:#7a5820;
+  border-radius:50%; animation:spin 0.8s linear infinite;
+  vertical-align:middle; margin-right:6px;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.canvas-tabs { display:flex; gap:6px; margin-bottom:10px; }
+.cv-tab { font-size:0.78rem; padding:5px 14px; border-radius:10px; }
+.cv-tab.active { background:#ddd5bc; color:#4a3010; border-color:#9a8a60; }
+
+#ocrCanvasWrap { position:relative; border:1px solid #c8b490; border-radius:3px; overflow:auto; max-height:520px; }
+#ocrCanvasWrap canvas { display:block; }
+
+/* Line editor */
+.line-editor { display:flex; flex-direction:column; gap:7px; }
+.line-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.line-num { font-size:0.75rem; color:#8a7050; width:22px; text-align:right; flex-shrink:0; }
+.line-row input[type=text] {
+  flex:1; background:#f5f0e8; border:1px solid #c8b490;
+  color:#2a1e10; font-family:'IM Fell English',serif;
+  font-size:0.85rem; padding:6px 9px; border-radius:3px; margin-bottom:0; min-width:180px;
+}
+.offset-label { font-size:0.72rem; color:#8a7050; flex-shrink:0; }
+.offset-input {
+  width:56px; background:#f5f0e8; border:1px solid #c8b490;
+  color:#4a3a22; font-family:monospace; font-size:0.8rem;
+  padding:5px 7px; border-radius:3px; flex-shrink:0;
+}
+
+/* Spacing slider row */
+.spacing-row {
+  display:flex; align-items:center; gap:10px; margin-top:6px;
+  padding-top:10px; border-top:1px solid #c8b490;
+}
+.spacing-row label { font-size:0.8rem; color:#6a5030; font-style:italic; flex-shrink:0; }
+.spacing-row input[type=range] { flex:1; accent-color:#7a5820; cursor:pointer; }
+.spacing-row .val { font-size:0.78rem; color:#8a7050; min-width:32px; text-align:right; }
+.spacing-row button { width:auto; padding:4px 12px; font-size:0.75rem; }
+
+.transfer-box {
+  background:#e8f5ea; border:1px solid #5a9a60;
+  border-radius:5px; padding:16px 18px; text-align:center;
+}
+.transfer-box p { color:#2a6030; font-size:0.85rem; margin-bottom:11px; }
+
+/* ── GRID TAB STYLES ── */
+.workspace { display:flex; gap:26px; align-items:flex-start; max-width:1360px; width:100%; margin:0 auto; }
+.controls { display:flex; flex-direction:column; gap:11px; width:220px; flex-shrink:0; }
+.ctrl-section {
+  background:#ece5d0; border:1px solid #c8b490;
+  border-radius:5px; padding:12px 14px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.ctrl-head {
+  font-family:'IM Fell English SC',serif;
+  font-size:0.84rem; letter-spacing:0.08em; color:#7a5820; margin-bottom:2px;
+}
+label { font-size:0.74rem; font-style:italic; color:#8a7050; }
+input[type=range] { width:100%; accent-color:#7a5820; cursor:pointer; }
+.row { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.val { font-size:0.78rem; color:#6a5030; font-style:italic; min-width:36px; text-align:right; }
+
+button {
+  font-family:'IM Fell English SC',serif;
+  font-size:0.82rem; letter-spacing:0.06em;
+  padding:7px 13px; border-radius:14px;
+  border:1px solid #7a5820; background:transparent;
+  color:#7a5820; cursor:pointer; transition:all 0.18s; width:100%;
+}
+button:hover { background:#7a5820; color:#f5f0e8; }
+button.sec { border-color:#c8b490; color:#8a7050; }
+button.sec:hover { background:#ddd5bc; color:#4a3010; border-color:#9a8a60; }
+button.active { background:#7a5820; color:#f5f0e8; }
+
+.mode-row { display:flex; gap:5px; }
+.mode-row button { flex:1; }
+
+.cast-info { font-size:0.72rem; font-style:italic; color:#8a7050; line-height:1.6; border-top:1px solid #c8b490; padding-top:8px; margin-top:2px; }
+.cast-info strong { color:#5a3e10; font-style:normal; }
+
+/* Color pickers */
+.picker-row { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.picker-row label { font-size:0.74rem; font-style:italic; color:#8a7050; flex:1; }
+.picker-row input[type=color] { width:34px; height:26px; border:1px solid #c8b490; border-radius:3px; background:none; cursor:pointer; padding:1px; }
+.picker-reset { font-size:0.7rem; padding:3px 8px; width:auto; }
+
+/* Cast toggle buttons */
+.toggle-row { display:flex; gap:5px; }
+.toggle-row button { flex:1; font-size:0.75rem; padding:5px 6px; }
+
+.recipe-box {
+  background:#f5f0e8; border:1px solid #c8b490;
+  border-radius:3px; padding:10px 12px;
+  font-size:0.74rem; line-height:1.9; color:#8a7050; min-height:80px;
+}
+.recipe-box strong { color:#4a3010; font-style:normal; }
+.recipe-box .chars-line {
+  font-family:monospace; font-size:0.82rem; color:#5a3e10;
+  word-break:break-all; line-height:1.5; margin:2px 0;
+}
+.split-char { color:#b07010; }
+
+.canvas-area { flex:1; display:flex; flex-direction:column; gap:11px; }
+.canvas-wrap {
+  position:relative; display:inline-block;
+  border:1px solid #c8b490; border-radius:3px; overflow:hidden;
+  cursor:crosshair;
+}
+canvas { display:block; }
+#overlayCanvas { position:absolute; top:0; left:0; pointer-events:none; }
+#interactCanvas { position:absolute; top:0; left:0; }
+
+.legend {
+  display:flex; gap:14px; flex-wrap:wrap;
+  padding:9px 13px; border:1px solid #c8b490; border-radius:4px;
+  background:#ece5d0;
+}
+.li { display:flex; align-items:center; gap:6px; font-size:0.76rem; color:#6a5030; }
+.ls { width:14px; height:14px; border-radius:2px; border:1px solid rgba(0,0,0,0.15); flex-shrink:0; }
+.hint { font-size:0.72rem; font-style:italic; color:#9a8a60; text-align:center; }
+.origin-hint { font-size:0.7rem; font-style:italic; color:#9a8a60; }
+
+.grid-placeholder {
+  background:#ece5d0; border:1px solid #c8b490; border-radius:5px;
+  padding:50px; text-align:center; color:#8a7050;
+  font-style:italic; font-size:0.95rem;
+}
+</style>
+</head>
+<body>
+
+<h1>Phonetic Grid · Image Tool</h1>
+<p class="subtitle">OCR your poem image, then visualise its sounds as colour</p>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('ocr')">① OCR</button>
+  <button class="tab-btn" id="gridTabBtn" onclick="switchTab('grid')">② Grid</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ OCR TAB -->
+<div class="tab-panel active" id="tab-ocr">
+<div class="ocr-wrap">
+
+  <!-- IMAGE UPLOAD -->
+  <div class="ocr-section">
+    <h3>Step 1 · Upload Poem Image</h3>
+    <p>Photograph or scan of your handwritten or printed poem.</p>
+    <input type="file" id="imgInput" accept="image/*" onchange="loadImage(event)">
+    <button class="ocr-btn" onclick="document.getElementById('imgInput').click()">Choose image…</button>
+    <div class="status-msg" id="imgStatus">No image loaded</div>
+  </div>
+
+  <!-- RUN OCR -->
+  <div class="ocr-section">
+    <h3>Step 2 · Run OCR</h3>
+    <p>Sends the image to Claude Vision to extract letter positions line-by-line. <strong>This can take 30–60 seconds</strong> — please wait after clicking.</p>
+    <button class="ocr-btn primary" id="runOcrBtn" onclick="runOCR()" disabled>Run OCR</button>
+    <div class="status-msg" id="ocrStatus">Upload an image first</div>
+  </div>
+
+  <!-- CANVAS VIEWER -->
+  <div class="ocr-section">
+    <h3>Canvas View</h3>
+    <div class="canvas-tabs">
+      <button class="ocr-btn cv-tab active" id="cvTab0" onclick="showCvTab(0)">Detection Overlay</button>
+      <button class="ocr-btn cv-tab" id="cvTab1" onclick="showCvTab(1)">Synthetic Render</button>
+    </div>
+    <div id="ocrCanvasWrap">
+      <canvas id="ocrCanvas0"></canvas>
+      <canvas id="ocrCanvas1" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <!-- LINE EDITOR -->
+  <div class="ocr-section">
+    <h3>Step 3 · Review &amp; Correct Lines</h3>
+    <p>Edit any misread lines. Corrected letters are remapped to detected positions. Use dx: to shift a line left/right. Use the spacing slider to stretch or compress letter spacing globally.</p>
+    <div class="line-editor" id="lineEditor"><em style="font-size:0.78rem;color:#9a8a60">Run OCR first</em></div>
+
+    <!-- Global letter spacing slider -->
+    <div class="spacing-row">
+      <label>Letter spacing scale:</label>
+      <input type="range" id="spacingScale" min="50" max="200" value="100" oninput="updateSpacingDisplay()">
+      <span class="val" id="vSpacing">100%</span>
+      <button class="ocr-btn sec" onclick="resetSpacing()">Reset</button>
+    </div>
+
+    <br>
+    <button class="ocr-btn" id="applyBtn" onclick="applyCorrections()" disabled>Apply Corrections &amp; Re-render</button>
+    <div class="status-msg" id="corrStatus"></div>
+  </div>
+
+  <!-- SEND TO GRID -->
+  <div class="transfer-box" id="transferBox" style="display:none">
+    <p>OCR complete — ready to send data to the Grid tab.</p>
+    <button class="ocr-btn go-grid" onclick="sendToGrid()">Send to Grid →</button>
+  </div>
+
+</div>
+</div><!-- /tab-ocr -->
+
+<!-- ═══════════════════════════════════════════════════════════ GRID TAB -->
+<div class="tab-panel" id="tab-grid">
+
+  <!-- Shown when no data yet -->
+  <div class="grid-placeholder" id="gridPlaceholder">
+    Complete the OCR step and click <strong>Send to Grid →</strong> to begin.
+  </div>
+
+  <!-- Shown when data is loaded -->
+  <div class="workspace" id="gridWorkspace" style="display:none">
+
+    <div class="controls">
+      <div class="ctrl-section">
+        <div class="ctrl-head">Grid</div>
+        <label>Cell width (px)</label>
+        <div class="row">
+          <input type="range" id="cellW" min="10" max="200" value="60" oninput="upd('cellW','vW');gridRender()">
+          <span class="val" id="vW">60</span>
+        </div>
+        <label>Cell height (px)</label>
+        <div class="row">
+          <input type="range" id="cellH" min="8" max="120" value="50" oninput="upd('cellH','vH');gridRender()">
+          <span class="val" id="vH">50</span>
+        </div>
+        <label>Color opacity</label>
+        <div class="row">
+          <input type="range" id="opacity" min="0" max="100" value="70" oninput="upd('opacity','vO','%');gridRender()">
+          <span class="val" id="vO">70%</span>
+        </div>
+        <label>Show char labels</label>
+        <div class="row">
+          <input type="range" id="labelSize" min="0" max="12" value="6" oninput="upd('labelSize','vL');gridRender()">
+          <span class="val" id="vL">6</span>
+        </div>
+        <p class="origin-hint">Grid origin: drag ✛ on canvas</p>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Color</div>
+        <label>Hue expression</label>
+        <div class="row">
+          <input type="range" id="hueExp" min="2" max="30" value="11" oninput="upd('hueExp','vHE',null,0.1);gridRender()">
+          <span class="val" id="vHE">1.1</span>
+        </div>
+
+        <!-- Color pickers for S / F / R -->
+        <div style="border-top:1px solid #c8b490;padding-top:8px;margin-top:2px;">
+          <label style="display:block;margin-bottom:6px;">Sound category colours</label>
+          <div class="picker-row">
+            <label>Stops (S)</label>
+            <input type="color" id="colS" value="#FF00FF" oninput="gridRender()">
+          </div>
+          <div class="picker-row" style="margin-top:5px;">
+            <label>Fricatives (F)</label>
+            <input type="color" id="colF" value="#00FFFF" oninput="gridRender()">
+          </div>
+          <div class="picker-row" style="margin-top:5px;">
+            <label>Sonorants (R)</label>
+            <input type="color" id="colR" value="#FFFF00" oninput="gridRender()">
+          </div>
+          <button class="ocr-btn sec picker-reset" style="margin-top:8px;width:100%;" onclick="resetColors()">Reset colours</button>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Cast (colour wash)</div>
+
+        <!-- On/Off toggle -->
+        <div class="toggle-row">
+          <button id="btnCastOn" class="active" onclick="setCastMode('on')">Cast On</button>
+          <button id="btnCastOff" class="sec" onclick="setCastMode('off')">Off</button>
+        </div>
+
+        <!-- Basis toggle: last word / all words -->
+        <label style="margin-top:4px;">Cast source</label>
+        <div class="toggle-row">
+          <button id="btnCastLast" class="active" onclick="setCastBasis('last')">Last word</button>
+          <button id="btnCastAll" class="sec" onclick="setCastBasis('all')">All words</button>
+        </div>
+
+        <label>Cast strength</label>
+        <div class="row">
+          <input type="range" id="castStr" min="0" max="100" value="32" oninput="upd('castStr','vCS','%');gridRender()">
+          <span class="val" id="vCS">32%</span>
+        </div>
+        <div class="cast-info" id="castInfo">—</div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Mode</div>
+        <div class="mode-row">
+          <button class="active" id="btnColor" onclick="setMode('color')">Color</button>
+          <button class="sec" id="btnGrid" onclick="setMode('grid')">Grid only</button>
+        </div>
+        <div class="mode-row" style="margin-top:4px">
+          <button class="sec" id="btnBoth" onclick="setMode('both')">Color+text</button>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Hovered cell</div>
+        <div class="recipe-box" id="recipe">Hover a cell to see recipe</div>
+      </div>
+
+    </div><!-- /controls -->
+
+    <div class="canvas-area">
+      <div class="canvas-wrap" id="wrap">
+        <canvas id="imgC"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+        <canvas id="interactCanvas"></canvas>
+      </div>
+      <div class="legend" id="legend">
+        <div class="li"><div class="ls" style="background:#fff;border-color:#aaa"></div>White · silence</div>
+        <div class="li"><div class="ls" id="lgS" style="background:rgb(255,100,255)"></div>Magenta · Stops</div>
+        <div class="li"><div class="ls" id="lgF" style="background:rgb(100,220,220)"></div>Cyan · Fricatives</div>
+        <div class="li"><div class="ls" id="lgR" style="background:rgb(220,220,80)"></div>Yellow · Sonorants</div>
+        <div class="li"><div class="ls" style="background:#aaa"></div>Grey · Mixed</div>
+        <div class="li"><div class="ls" style="background:rgba(180,140,30,0.6)"></div>Gold label · boundary</div>
+      </div>
+      <p class="hint">Boundary letters (20–80% overlap) appear in gold in both adjacent cells · recipe shows split weight</p>
+    </div>
+
+  </div><!-- /gridWorkspace -->
+</div><!-- /tab-grid -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const idx = name === 'ocr' ? 0 : 1;
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHARED STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let shared = {
+  charData: null, lineRows: null, textBbox: null,
+  imgW: 0, imgH: 0, poemLines: null, synthCanvas: null,
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OCR TAB
+// ═══════════════════════════════════════════════════════════════════════════
+let ocrImgEl = null, ocrImgBase64 = null, ocrImgW = 0, ocrImgH = 0;
+let rawLines = null;   // [{text, y0, y1, chars:[{ch,x0,x1}]}]
+let lineOffsets = [];
+let charData = null, lineRows = null, textBbox = null, poemLines = null;
+let activeCvTab = 0, synthCanvas = null;
+let spacingScaleVal = 1.0; // global letter spacing multiplier
+
+function loadImage(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 900;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      ocrImgBase64 = cv.toDataURL('image/jpeg', 0.92).split(',')[1];
+      ocrImgW = w; ocrImgH = h;
+      ocrImgEl = new Image();
+      ocrImgEl.src = cv.toDataURL('image/jpeg', 0.92);
+
+      const c0 = document.getElementById('ocrCanvas0');
+      c0.width = w; c0.height = h;
+      c0.getContext('2d').drawImage(img, 0, 0, w, h);
+      const c1 = document.getElementById('ocrCanvas1');
+      c1.width = w; c1.height = h;
+
+      setStatus('imgStatus', `Image loaded: ${w}×${h} px`, 'ok');
+      document.getElementById('runOcrBtn').disabled = false;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setStatus(id, msg, cls) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'status-msg' + (cls ? ' ' + cls : '');
+}
+
+async function runOCR() {
+  if (!ocrImgBase64) { setStatus('ocrStatus', 'Upload an image first', 'error'); return; }
+  if (!PROXY_URL || PROXY_URL === 'YOUR_WORKER_URL_HERE') {
+    setStatus('ocrStatus', 'Proxy URL not configured', 'error'); return;
+  }
+
+  document.getElementById('ocrStatus').innerHTML =
+    '<span class="spinner"></span>Running OCR — this can take 30–60 seconds, please wait…';
+  document.getElementById('runOcrBtn').disabled = true;
+
+  const prompt = `You are a precise OCR engine for handwritten cursive poetry. Your most important job is to return PIXEL-ACCURATE bounding coordinates for each character.
+
+Analyse this poem image carefully. Return ONLY valid JSON — no preamble, no markdown fences, no explanation.
+
+The JSON must follow this exact schema:
+{
+  "lines": [
+    {
+      "text": "the line text",
+      "y0": 42,
+      "y1": 68,
+      "chars": [
+        {"ch": "T", "x0": 12, "x1": 22},
+        {"ch": "h", "x0": 22, "x1": 30}
+      ]
+    }
+  ]
+}
+
+CRITICAL coordinate rules — read carefully:
+- x0/x1 are the LEFT and RIGHT pixel edges of each character's INK on the image, measured in pixels from the LEFT edge of the image (x=0 is the leftmost pixel)
+- For cursive handwriting, x0/x1 must span the FULL INK WIDTH of the character including connecting strokes to neighbouring letters
+- Characters should tile continuously: each character's x1 should equal (or nearly equal) the next character's x0
+- The first character of a line should have x0 matching where its ink actually starts in the image — do NOT start at x=0 unless the ink really starts there
+- The last character of a line should have x1 matching where its ink actually ends
+- y0/y1 are pixel rows spanning the full height of the text line (top of ascenders to bottom of descenders)
+- Spaces: x0=previous char x1, x1=next char x0 (i.e. the gap between words)
+- Preserve exact capitalisation
+- Skip blank lines between stanzas
+- Image dimensions: ${ocrImgW}×${ocrImgH} pixels
+
+Example: if "When" starts at pixel x=240 and ends at x=380, then W=(240,268), h=(268,296), e=(296,322), n=(322,380).`;
+
+  try {
+    const resp = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 20000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: ocrImgBase64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      setStatus('ocrStatus', `API error: ${err.error?.message || resp.status}`, 'error');
+      document.getElementById('runOcrBtn').disabled = false;
+      return;
+    }
+
+    const data = await resp.json();
+    let raw = data.content[0].text.trim();
+    raw = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    const parsed = JSON.parse(raw);
+    rawLines = parsed.lines;
+    processOCRResult();
+    showCvTab(0);
+    setStatus('ocrStatus', `OCR complete — ${rawLines.length} lines detected`, 'ok');
+    document.getElementById('applyBtn').disabled = false;
+    document.getElementById('transferBox').style.display = 'block';
+  } catch (e) {
+    setStatus('ocrStatus', `Error: ${e.message}`, 'error');
+  }
+  document.getElementById('runOcrBtn').disabled = false;
+}
+
+function processOCRResult() {
+  if (!rawLines) return;
+  lineOffsets = rawLines.map(() => 0);
+  spacingScaleVal = 1.0;
+  document.getElementById('spacingScale').value = 100;
+  document.getElementById('vSpacing').textContent = '100%';
+  rebuildCharData();
+  poemLines = rawLines.map(l => l.text);
+  drawOverlay();
+  drawSynthetic();
+  buildLineEditor();
+}
+
+function rebuildCharData() {
+  charData = rawLines.map((line, li) => {
+    const dx = lineOffsets[li] || 0;
+    const y0 = line.y0, y1 = line.y1;
+    const chars = (line.chars || []).filter(c => c.ch !== ' ');
+    if (chars.length === 0) return [];
+
+    // Apply spacing scale: stretch/compress x positions around the first char's x0
+    const anchor = chars[0].x0;
+    return (line.chars || []).map(ch => {
+      if (ch.ch === ' ') return null; // skip spaces
+      const newX0 = anchor + (ch.x0 - anchor) * spacingScaleVal + dx;
+      const newX1 = anchor + (ch.x1 - anchor) * spacingScaleVal + dx;
+      return { ch: ch.ch, x0: newX0, x1: newX1, row0: y0, row1: y1 };
+    }).filter(Boolean);
+  });
+
+  lineRows = rawLines.map(l => [l.y0, l.y1]);
+
+  let bx0 = Infinity, by0 = Infinity, bx1 = 0, by1 = 0;
+  rawLines.forEach(l => {
+    by0 = Math.min(by0, l.y0); by1 = Math.max(by1, l.y1);
+    (l.chars||[]).forEach(ch => { bx0 = Math.min(bx0, ch.x0); bx1 = Math.max(bx1, ch.x1); });
+  });
+  textBbox = { x0: bx0 === Infinity ? 0 : bx0, y0: by0===Infinity?0:by0, x1: bx1, y1: by1 };
+}
+
+function drawOverlay() {
+  const cv = document.getElementById('ocrCanvas0');
+  cv.width = ocrImgW; cv.height = ocrImgH;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(ocrImgEl, 0, 0);
+  if (!rawLines) return;
+  rawLines.forEach(line => {
+    ctx.strokeStyle = 'rgba(80,160,80,0.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, line.y0, ocrImgW, line.y1 - line.y0);
+    (line.chars||[]).forEach(ch => {
+      if (ch.ch === ' ') return;
+      ctx.strokeStyle = 'rgba(80,160,255,0.7)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(ch.x0, line.y0, ch.x1 - ch.x0, line.y1 - line.y0);
+      ctx.fillStyle = 'rgba(220,160,30,0.95)';
+      ctx.font = '9px monospace';
+      ctx.fillText(ch.ch, ch.x0 + 1, line.y0 + 10);
+    });
+  });
+}
+
+function drawSynthetic() {
+  const cv = document.getElementById('ocrCanvas1');
+  cv.width = ocrImgW; cv.height = ocrImgH;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#f5eed8';
+  ctx.fillRect(0, 0, ocrImgW, ocrImgH);
+  if (!rawLines) return;
+
+  const lineHeights = rawLines.map(l => Math.max(10, l.y1 - l.y0));
+  const sorted = [...lineHeights].sort((a,b) => a-b);
+  const medianLH = sorted[Math.floor(sorted.length / 2)];
+  const fontSize = Math.round(medianLH * 0.82);
+  ctx.font = `${fontSize}px 'IM Fell English', serif`;
+
+  const CATS = {S:'#cc44cc', F:'#44aacc', R:'#aaaa22', V:'#888', O:'#555'};
+
+  rawLines.forEach((line, li) => {
+    const dx = lineOffsets[li] || 0;
+    const anchor = (line.chars||[]).filter(c=>c.ch!==' ')[0]?.x0 || 0;
+    const lh = Math.max(10, line.y1 - line.y0);
+
+    ctx.fillStyle = 'rgba(160,190,255,0.1)';
+    ctx.fillRect(0, line.y0, ocrImgW, lh);
+
+    (line.chars||[]).forEach(ch => {
+      if (ch.ch === ' ') return;
+      const scaledX = anchor + (ch.x0 - anchor) * spacingScaleVal + dx;
+      const cat = getCharCat(ch.ch);
+      ctx.fillStyle = CATS[cat] || '#333';
+      ctx.fillText(ch.ch, scaledX, line.y1 - Math.round(lh * 0.12));
+    });
+  });
+
+  synthCanvas = document.createElement('canvas');
+  synthCanvas.width = ocrImgW;
+  synthCanvas.height = ocrImgH;
+  synthCanvas.getContext('2d').drawImage(cv, 0, 0);
+}
+
+function getCharCat(c) {
+  c = c.toLowerCase();
+  const STOPS = {b:1,d:1,g:1,k:1,p:1,q:1,t:1};
+  const FRICS = {f:1,h:1,j:1,s:1,v:1,x:1,z:1};
+  const SONS  = {l:1,m:1,n:1,r:1,w:1};
+  const VOWS  = {a:1,e:1,i:1,o:1,u:1,y:1};
+  if (STOPS[c]) return 'S';
+  if (FRICS[c]) return 'F';
+  if (SONS[c])  return 'R';
+  if (VOWS[c])  return 'V';
+  return 'O';
+}
+
+function showCvTab(n) {
+  activeCvTab = n;
+  ['ocrCanvas0','ocrCanvas1'].forEach((id,i) => {
+    document.getElementById(id).style.display = i === n ? 'block' : 'none';
+  });
+  ['cvTab0','cvTab1'].forEach((id,i) => {
+    document.getElementById(id).classList.toggle('active', i === n);
+  });
+}
+
+function buildLineEditor() {
+  const el = document.getElementById('lineEditor');
+  if (!rawLines) { el.innerHTML = '<em style="font-size:0.78rem;color:#9a8a60">Run OCR first</em>'; return; }
+  el.innerHTML = '';
+  rawLines.forEach((line, i) => {
+    const row = document.createElement('div');
+    row.className = 'line-row';
+
+    const numSpan = document.createElement('span');
+    numSpan.className = 'line-num';
+    numSpan.textContent = i + 1;
+
+    const textIn = document.createElement('input');
+    textIn.type = 'text';
+    textIn.value = line.text;
+    textIn.style.flex = '1';
+    textIn.style.minWidth = '180px';
+
+    const offLabel = document.createElement('span');
+    offLabel.className = 'offset-label';
+    offLabel.textContent = 'dx:';
+
+    const offIn = document.createElement('input');
+    offIn.type = 'number';
+    offIn.value = lineOffsets[i] || 0;
+    offIn.step = 5;
+    offIn.className = 'offset-input';
+    offIn.title = 'Shift all characters on this line left/right (pixels)';
+
+    row.appendChild(numSpan);
+    row.appendChild(textIn);
+    row.appendChild(offLabel);
+    row.appendChild(offIn);
+    el.appendChild(row);
+  });
+}
+
+function updateSpacingDisplay() {
+  const v = document.getElementById('spacingScale').value;
+  document.getElementById('vSpacing').textContent = v + '%';
+}
+
+function resetSpacing() {
+  document.getElementById('spacingScale').value = 100;
+  document.getElementById('vSpacing').textContent = '100%';
+}
+
+function applyCorrections() {
+  if (!rawLines) return;
+
+  // Read spacing scale
+  spacingScaleVal = document.getElementById('spacingScale').value / 100;
+
+  // Read text corrections and remap letters onto detected coordinates
+  const textInputs = document.querySelectorAll('#lineEditor input[type=text]');
+  const offInputs  = document.querySelectorAll('#lineEditor .offset-input');
+
+  textInputs.forEach((inp, i) => {
+    if (!rawLines[i]) return;
+    const corrected = inp.value;
+    // Remap corrected letters onto detected char positions (preserving coordinates)
+    const corrLetters = corrected.replace(/\s/g, '').split('');
+    const detectedNonSpace = rawLines[i].chars.filter(c => c.ch !== ' ');
+    const minLen = Math.min(corrLetters.length, detectedNonSpace.length);
+    for (let k = 0; k < minLen; k++) {
+      detectedNonSpace[k].ch = corrLetters[k];
+    }
+    rawLines[i].text = corrected;
+  });
+
+  offInputs.forEach((inp, i) => {
+    lineOffsets[i] = parseInt(inp.value) || 0;
+  });
+
+  poemLines = rawLines.map(l => l.text);
+  rebuildCharData();
+  drawSynthetic();
+  showCvTab(1);
+  setStatus('corrStatus', 'Corrections applied — see Synthetic Render tab.', 'ok');
+}
+
+function sendToGrid() {
+  if (!charData || !lineRows || !poemLines) {
+    alert('OCR data not ready. Run OCR first.'); return;
+  }
+  drawSynthetic();
+  shared.charData    = charData;
+  shared.lineRows    = lineRows;
+  shared.textBbox    = textBbox;
+  shared.imgW        = ocrImgW;
+  shared.imgH        = ocrImgH;
+  shared.poemLines   = poemLines;
+  shared.synthCanvas = synthCanvas;
+
+  switchTab('grid');
+  initGrid();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GRID TAB
+// ═══════════════════════════════════════════════════════════════════════════
+
+const STOPS = {b:1,d:1,g:1,k:1,p:1,t:1,q:1};
+const FRICS = {f:1,v:1,s:1,z:1,h:1,j:1,x:1};
+const SONS  = {l:1,m:1,n:1,r:1,w:1};
+const VOWS  = {a:1,e:1,i:1,o:1,u:1,y:1};
+const DI    = {th:'F',sh:'F',ch:'F',ck:'S',ng:'R',ph:'F',wh:'F',gh:'F',qu:'S'};
+
+// Cast state
+let castMode  = 'on';   // 'on' | 'off'
+let castBasis = 'last'; // 'last' | 'all'
+
+function getCat(ch, nxt) {
+  const c = ch.toLowerCase(), n = (nxt||'').toLowerCase(), di = c+n;
+  if (DI[di]) return {cat: DI[di], skip: true};
+  if (c==='c') return {cat: (['e','i','y'].includes(n) ? 'F' : 'S'), skip: false};
+  if (c==='y') return {cat: 'V', skip: false};
+  if (STOPS[c]) return {cat:'S', skip:false};
+  if (FRICS[c]) return {cat:'F', skip:false};
+  if (SONS[c])  return {cat:'R', skip:false};
+  if (VOWS[c])  return {cat:'V', skip:false};
+  return null;
+}
+
+function wordPhonetics(word) {
+  const w = word.toLowerCase().replace(/[^a-z]/g,'');
+  let S=0,F=0,R=0; let i=0;
+  while (i < w.length) {
+    const di = w[i] + (w[i+1]||'');
+    if (DI[di]) { DI[di]==='S'?S++:DI[di]==='F'?F++:R++; i+=2; continue; }
+    const r = getCat(w[i], w[i+1]);
+    if (r) { if(r.cat==='S')S++; else if(r.cat==='F')F++; else if(r.cat==='R')R++; }
+    i++;
+  }
+  const c = S+F+R;
+  return {M: c>0?S/c:0, C: c>0?F/c:0, Y: c>0?R/c:0, S, F, R};
+}
+
+function allWordsPhonetics(poemLines) {
+  let S=0, F=0, R=0;
+  const allWords = poemLines.join(' ').replace(/[^a-zA-Z ]/g,' ').trim().split(/\s+/);
+  allWords.forEach(w => {
+    const p = wordPhonetics(w);
+    S += p.S; F += p.F; R += p.R;
+  });
+  const c = S+F+R;
+  return {M: c>0?S/c:0, C: c>0?F/c:0, Y: c>0?R/c:0, S, F, R};
+}
+
+function getUserColors() {
+  return {
+    S: document.getElementById('colS').value,
+    F: document.getElementById('colF').value,
+    R: document.getElementById('colR').value,
+  };
+}
+
+function resetColors() {
+  document.getElementById('colS').value = '#FF00FF';
+  document.getElementById('colF').value = '#00FFFF';
+  document.getElementById('colR').value = '#FFFF00';
+  updateLegend();
+  gridRender();
+}
+
+function updateLegend() {
+  const cols = getUserColors();
+  const sRgb = hexToRgb(cols.S);
+  const fRgb = hexToRgb(cols.F);
+  const rRgb = hexToRgb(cols.R);
+  document.getElementById('lgS').style.background = `rgb(${sRgb})`;
+  document.getElementById('lgF').style.background = `rgb(${fRgb})`;
+  document.getElementById('lgR').style.background = `rgb(${rRgb})`;
+}
+
+// Attach legend update to color inputs
+document.getElementById('colS').addEventListener('input', updateLegend);
+document.getElementById('colF').addEventListener('input', updateLegend);
+document.getElementById('colR').addEventListener('input', updateLegend);
+
+function spectralMix(concC, concM, concY, concW, userCols) {
+  const PIGMENTS = {
+    C: userCols.F,  // Fricatives → user's F color (default Cyan)
+    M: userCols.S,  // Stops → user's S color (default Magenta)
+    Y: userCols.R,  // Sonorants → user's R color (default Yellow)
+    W: '#FFFFFF',
+  };
+  if (typeof spectral !== 'undefined' && spectral.mix) {
+    const total = concC+concM+concY+concW;
+    if (total < 0.001) return [255,255,255];
+    const nc=concC/total, nm=concM/total, ny=concY/total, nw=concW/total;
+    const pigTotal = nc+nm+ny;
+    if (pigTotal < 0.001) return [255,255,255];
+    let mixed = PIGMENTS.C;
+    if (nm > 0) mixed = spectral.mix(mixed, PIGMENTS.M, nm/(nc+nm+0.0001));
+    if (ny > 0) {
+      const cmTotal = nc+nm;
+      mixed = spectral.mix(mixed, PIGMENTS.Y, ny/(cmTotal+ny+0.0001));
+    }
+    if (nw > 0) mixed = spectral.mix(mixed, PIGMENTS.W, nw);
+    return hexToRgb(mixed);
+  } else {
+    const C=Math.min(1,concC), M=Math.min(1,concM), Y=Math.min(1,concY);
+    return [
+      Math.round(255*(1-C)*(1-M)),
+      Math.round(255*(1-M)*(1-Y)),
+      Math.round(255*(1-C)*(1-Y)),
+    ];
+  }
+}
+
+function hexToRgb(hex) {
+  if (Array.isArray(hex)) return hex;
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+
+function clamp(x) { return Math.max(0, Math.min(1, x)); }
+
+let originX = 0, originY = 0;
+let gridCells = [];
+let mode = 'color';
+let hoveredIdx = -1;
+let draggingOrigin = false;
+let dragOffX = 0, dragOffY = 0;
+let castWord = null;
+let lastWord = '';
+
+let imgCv, ovcCv, intCv, imgCtx, oCtx, iCtx;
+const ORIGIN_R = 10;
+
+function initGrid() {
+  document.getElementById('gridPlaceholder').style.display = 'none';
+  document.getElementById('gridWorkspace').style.display = 'flex';
+
+  imgCv  = document.getElementById('imgC');
+  ovcCv  = document.getElementById('overlayCanvas');
+  intCv  = document.getElementById('interactCanvas');
+  imgCtx = imgCv.getContext('2d');
+  oCtx   = ovcCv.getContext('2d');
+  iCtx   = intCv.getContext('2d');
+
+  [imgCv, ovcCv, intCv].forEach(cv => {
+    cv.width = shared.imgW; cv.height = shared.imgH;
+  });
+  document.getElementById('wrap').style.width  = shared.imgW + 'px';
+  document.getElementById('wrap').style.height = shared.imgH + 'px';
+
+  imgCtx.drawImage(shared.synthCanvas, 0, 0, shared.imgW, shared.imgH);
+
+  computeCastWords();
+  originX = 0; originY = 0;
+  updateCastInfo();
+  gridRender();
+  bindGridEvents(); // always re-bind on each initGrid
+}
+
+function computeCastWords() {
+  const allWords = shared.poemLines.join(' ').replace(/[^a-zA-Z ]/g,' ').trim().split(/\s+/);
+  lastWord = allWords[allWords.length - 1];
+  if (castBasis === 'last') {
+    castWord = wordPhonetics(lastWord);
+  } else {
+    castWord = allWordsPhonetics(shared.poemLines);
+  }
+}
+
+function bindGridEvents() {
+  // Always remove old listeners by cloning — simplest way to reset
+  const oldIntCv = intCv;
+  const newIntCv = oldIntCv.cloneNode(true);
+  oldIntCv.parentNode.replaceChild(newIntCv, oldIntCv);
+  intCv = newIntCv;
+
+  intCv.addEventListener('mousedown', e => {
+    const [mx,my] = canvasXY(e);
+    const dx = mx-originX, dy = my-originY;
+    if (dx*dx+dy*dy <= ORIGIN_R*ORIGIN_R*2.5) {
+      draggingOrigin = true;
+      dragOffX = dx; dragOffY = dy;
+      intCv.style.cursor = 'grabbing';
+    }
+  });
+
+  intCv.addEventListener('mousemove', e => {
+    const [mx,my] = canvasXY(e);
+    if (draggingOrigin) {
+      originX = Math.max(0, Math.min(shared.imgW-10, mx-dragOffX));
+      originY = Math.max(0, Math.min(shared.imgH-10, my-dragOffY));
+      gridRender(); return;
+    }
+    const dx = mx-originX, dy = my-originY;
+    intCv.style.cursor = (dx*dx+dy*dy <= ORIGIN_R*ORIGIN_R*3) ? 'grab' : 'crosshair';
+    const newIdx = gridCells.findIndex(c => mx>=c.x&&mx<c.x+c.w&&my>=c.y&&my<c.y+c.h);
+    if (newIdx !== hoveredIdx) { hoveredIdx = newIdx; gridRender(); updateRecipe(); }
+  });
+
+  intCv.addEventListener('mouseup', () => { draggingOrigin = false; intCv.style.cursor = 'crosshair'; });
+  intCv.addEventListener('mouseleave', () => {
+    draggingOrigin = false; hoveredIdx = -1; gridRender();
+    document.getElementById('recipe').innerHTML = 'Hover a cell to see recipe';
+  });
+}
+
+function computeGrid() {
+  const cellW = +document.getElementById('cellW').value;
+  const cellH = +document.getElementById('cellH').value;
+  const hueExp = document.getElementById('hueExp').value / 10;
+  const castStr = castMode === 'on' ? document.getElementById('castStr').value / 100 : 0;
+  const userCols = getUserColors();
+  const IMG_W = shared.imgW, IMG_H = shared.imgH;
+  const CHAR_DATA = shared.charData;
+  const LINE_ROWS = shared.lineRows;
+
+  const nCols = Math.ceil((IMG_W - originX) / cellW) + 1;
+  const nRows = Math.ceil((IMG_H - originY) / cellH) + 1;
+
+  const cells = [];
+  for (let r=0; r<nRows; r++) for (let c=0; c<nCols; c++) {
+    cells.push({row:r, col:c, x:originX+c*cellW, y:originY+r*cellH, w:cellW, h:cellH,
+      S:0, F:0, R:0, V:0, O:0, charEntries:[], userCols});
+  }
+  function idx(r,c) { return r*nCols+c; }
+
+  CHAR_DATA.forEach(lineChars => {
+    lineChars.forEach(ch => {
+      const {ch:letter, x0, x1, row0, row1} = ch;
+      const charW = Math.max(1, x1-x0);
+      const charRow = Math.floor(((row0+row1)/2 - originY) / cellH);
+      if (charRow < 0 || charRow >= nRows) return;
+      const cMin = Math.floor((x0 - originX) / cellW);
+      const cMax = Math.floor((x1 - 1 - originX) / cellW);
+      const res = getCat(letter, '');
+      const cat = res ? res.cat : null;
+      if (!cat) return;
+      for (let c=cMin; c<=cMax; c++) {
+        if (c<0||c>=nCols) continue;
+        const colX0 = originX + c*cellW;
+        const colX1 = colX0 + cellW;
+        const olapX0 = Math.max(x0, colX0);
+        const olapX1 = Math.min(x1, colX1);
+        const overlap = Math.max(0, olapX1-olapX0);
+        const frac = overlap/charW;
+        let weight=0, split=false;
+        if (frac > 0.8)       { weight=1.0; split=false; }
+        else if (frac >= 0.2) { weight=0.5; split=true; }
+        else                  continue;
+        const ci = idx(charRow, c);
+        if (ci<0||ci>=cells.length) continue;
+        cells[ci][cat] += weight;
+        cells[ci].charEntries.push({ch:letter, cat, weight, split});
+      }
+    });
+  });
+
+  LINE_ROWS.forEach(([r0,r1]) => {
+    const rowMin = Math.floor((r0-originY)/cellH);
+    const rowMax = Math.floor((r1-originY)/cellH);
+    for (let r=rowMin; r<=rowMax; r++) {
+      for (let c=0; c<nCols; c++) {
+        const ci = idx(r,c);
+        if (ci>=0&&ci<cells.length) {
+          const cell = cells[ci];
+          if (cell.S+cell.F+cell.R+cell.V===0) cell.O += 0.5;
+        }
+      }
+    }
+  });
+
+  let gMax = 0;
+  cells.forEach(c => { gMax = Math.max(gMax, c.S+c.F+c.R+c.V+c.O); });
+  if (gMax < 0.1) gMax = 1;
+
+  cells.forEach(cell => {
+    const {S,F,R,V,O} = cell;
+    const total = S+F+R+V+O;
+    cell.gMax = gMax;
+    if (total < 0.05) { cell.rgb = null; cell.conc = null; return; }
+    const d = Math.log(total+1)/Math.log(gMax+1);
+    const cons = S+F+R;
+    const mR = cons>0?S/cons:1/3;
+    const cR = cons>0?F/cons:1/3;
+    const yR = cons>0?R/cons:1/3;
+    const mn = 1/3;
+    const ev = 1 - Math.sqrt(((mR-mn)**2+(cR-mn)**2+(yR-mn)**2)/(2/3));
+    const cf = cons/total;
+    const gP = ev*cf, hP = clamp((1-ev)*cf*hueExp);
+
+    // Apply cast if on
+    const castC = castWord ? castWord.C * castStr * d : 0;
+    const castM = castWord ? castWord.M * castStr * d : 0;
+    const castY = castWord ? castWord.Y * castStr * d : 0;
+
+    let C = clamp(cR*hP + gP*0.5 + castC) * d;
+    let M = clamp(mR*hP + gP*0.5 + castM) * d;
+    let Y = clamp(yR*hP + gP*0.5 + castY) * d;
+    C=clamp(C); M=clamp(M); Y=clamp(Y);
+    const W = Math.max(0, 1-C-M-Y);
+    const t = C+M+Y+W;
+    cell.conc = {C:C/t, M:M/t, Y:Y/t, W:W/t};
+    cell.rgb  = spectralMix(cell.conc.C, cell.conc.M, cell.conc.Y, cell.conc.W, userCols);
+  });
+
+  return cells;
+}
+
+function gridRender() {
+  if (!shared.charData) return;
+  gridCells = computeGrid();
+  const op = document.getElementById('opacity').value / 100;
+  const labelSz = +document.getElementById('labelSize').value;
+
+  oCtx.clearRect(0, 0, shared.imgW, shared.imgH);
+
+  if (mode !== 'grid') {
+    gridCells.forEach(cell => {
+      if (!cell.rgb) return;
+      oCtx.globalAlpha = op;
+      oCtx.fillStyle = `rgb(${cell.rgb[0]},${cell.rgb[1]},${cell.rgb[2]})`;
+      oCtx.fillRect(cell.x, cell.y, cell.w, cell.h);
+    });
+  }
+
+  oCtx.globalAlpha = 0.22;
+  oCtx.strokeStyle = '#555';
+  oCtx.lineWidth = 0.5;
+  gridCells.forEach(cell => { oCtx.strokeRect(cell.x, cell.y, cell.w, cell.h); });
+
+  if (labelSz > 0 && (mode === 'grid' || mode === 'both')) {
+    oCtx.globalAlpha = 0.9;
+    oCtx.font = `${labelSz}px monospace`;
+    oCtx.textAlign = 'left';
+    oCtx.textBaseline = 'top';
+    gridCells.forEach(cell => {
+      let px=cell.x+2, py=cell.y+2;
+      cell.charEntries.forEach(e => {
+        oCtx.fillStyle = e.split ? 'rgba(180,120,0,0.95)' : 'rgba(40,20,0,0.75)';
+        oCtx.fillText(e.ch, px, py);
+        px += labelSz * 0.75;
+        if (px > cell.x+cell.w-labelSz) { px=cell.x+2; py+=labelSz+1; }
+      });
+    });
+  }
+
+  if (hoveredIdx >= 0 && hoveredIdx < gridCells.length) {
+    const c = gridCells[hoveredIdx];
+    oCtx.globalAlpha = 1;
+    oCtx.strokeStyle = 'rgba(255,255,255,0.9)';
+    oCtx.lineWidth = 2;
+    oCtx.strokeRect(c.x+1, c.y+1, c.w-2, c.h-2);
+  }
+
+  oCtx.globalAlpha = 1;
+
+  // Draw origin handle on interact canvas
+  iCtx.clearRect(0, 0, shared.imgW, shared.imgH);
+  iCtx.beginPath();
+  iCtx.arc(originX, originY, ORIGIN_R, 0, Math.PI*2);
+  iCtx.fillStyle = 'rgba(120,80,30,0.85)';
+  iCtx.fill();
+  iCtx.strokeStyle = '#fff';
+  iCtx.lineWidth = 1.5;
+  iCtx.stroke();
+  iCtx.strokeStyle = '#fff';
+  iCtx.lineWidth = 1.2;
+  iCtx.beginPath();
+  iCtx.moveTo(originX-ORIGIN_R+3, originY);
+  iCtx.lineTo(originX+ORIGIN_R-3, originY);
+  iCtx.moveTo(originX, originY-ORIGIN_R+3);
+  iCtx.lineTo(originX, originY+ORIGIN_R-3);
+  iCtx.stroke();
+}
+
+function canvasXY(e) {
+  const rect = intCv.getBoundingClientRect();
+  const scX = shared.imgW/rect.width, scY = shared.imgH/rect.height;
+  return [(e.clientX-rect.left)*scX, (e.clientY-rect.top)*scY];
+}
+
+function updateRecipe() {
+  const box = document.getElementById('recipe');
+  if (hoveredIdx < 0 || hoveredIdx >= gridCells.length) {
+    box.innerHTML = 'Hover a cell to see recipe'; return;
+  }
+  const cell = gridCells[hoveredIdx];
+  const {S,F,R,V,O,conc,charEntries} = cell;
+  const total = S+F+R+V+O;
+  const charHtml = charEntries.map(e => {
+    const cls = e.split ? 'split-char' : '';
+    return `<span class="${cls}" title="${e.cat}${e.split?'½':''}">${e.ch}</span>`;
+  }).join('');
+  if (total < 0.05 || !conc) {
+    box.innerHTML = `<strong>R${cell.row+1}·C${cell.col+1}</strong><br><em>empty</em>`; return;
+  }
+  const Cp=Math.round(conc.C*100), Mp=Math.round(conc.M*100);
+  const Yp=Math.round(conc.Y*100), Wp=Math.max(0,100-Cp-Mp-Yp);
+  const dom = S+F+R<0.05 ? 'vowels/open' : S>=F&&S>=R ? 'Stops→S' : F>=R ? 'Fric→F' : 'Son→R';
+  box.innerHTML =
+    `<strong>R${cell.row+1}·C${cell.col+1}</strong><br>`+
+    `<div class="chars-line">${charHtml||'—'}</div>`+
+    `<span style="color:#b07010;font-size:0.66rem">gold = boundary (split ½)</span><br>`+
+    `S:${Math.round(S*10)/10} F:${Math.round(F*10)/10} R:${Math.round(R*10)/10} V:${Math.round(V*10)/10}<br>`+
+    `dominant: ${dom}<br>─────────────<br>`+
+    `<strong>Spectral KM Recipe</strong><br>`+
+    `S-pig ${Mp}% · F-pig ${Cp}%<br>`+
+    `R-pig ${Yp}% · Water ${Wp}%`;
+}
+
+function setMode(m) {
+  mode = m;
+  ['btnColor','btnGrid','btnBoth'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+    document.getElementById(id).classList.add('sec');
+  });
+  const activeId = m==='color'?'btnColor':m==='grid'?'btnGrid':'btnBoth';
+  document.getElementById(activeId).classList.add('active');
+  document.getElementById(activeId).classList.remove('sec');
+  gridRender();
+}
+
+function setCastMode(m) {
+  castMode = m;
+  document.getElementById('btnCastOn').className  = m === 'on'  ? 'active' : 'sec';
+  document.getElementById('btnCastOff').className = m === 'off' ? 'active' : 'sec';
+  gridRender();
+}
+
+function setCastBasis(b) {
+  castBasis = b;
+  document.getElementById('btnCastLast').className = b === 'last' ? 'active' : 'sec';
+  document.getElementById('btnCastAll').className  = b === 'all'  ? 'active' : 'sec';
+  if (shared.poemLines) { computeCastWords(); updateCastInfo(); }
+  gridRender();
+}
+
+function upd(inputId, displayId, suffix, mult) {
+  const v = +document.getElementById(inputId).value;
+  const display = suffix==='%' ? Math.round(v)+'%' : (mult!=null ? (v*mult).toFixed(1) : Math.round(v));
+  document.getElementById(displayId).textContent = display;
+}
+
+function updateCastInfo() {
+  if (!castWord) return;
+  const src = castBasis === 'last' ? `"${lastWord}"` : 'all words';
+  const dom = castWord.S>=castWord.F&&castWord.S>=castWord.R ? 'Stops' :
+              castWord.F>=castWord.R ? 'Fricatives' : 'Sonorants';
+  document.getElementById('castInfo').innerHTML =
+    `Source: <strong>${src}</strong><br>S:${castWord.S} F:${castWord.F} R:${castWord.R}<br>`+
+    `Dominant: ${dom} · Cast ${castMode}`;
+}
+</script>
+</body>
+</html>
