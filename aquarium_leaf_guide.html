@@ -429,20 +429,41 @@ const LEAVES = {
   // 5-lobed, lobes triangular with pointed tips and V-shaped sinuses,
   // RED PETIOLE (stem), reddish veins, whitish underside, leaf turns scarlet in fall
   redmaple: { bg:'#fce8e0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- 5-lobed with pointed tips, V sinuses -->
-    <path d="M50 152 L44 120 L24 136 L32 110 L6 114 L22 92 L4 80 L28 76 L16 56 L38 68 L38 44 L50 8 L62 44 L62 68 L84 56 L72 76 L96 80 L78 92 L94 114 L68 110 L76 136 L56 120 Z" fill="#c87878" stroke="#904040" stroke-width="1.2"/>
-    <!-- reddish veins -->
-    <line x1="50" y1="152" x2="50" y2="9" stroke="#8b2020" stroke-width="1.8"/>
-    <line x1="50" y1="95" x2="18" y2="76" stroke="#8b2020" stroke-width="1.1"/>
-    <line x1="50" y1="95" x2="82" y2="76" stroke="#8b2020" stroke-width="1.1"/>
-    <line x1="50" y1="95" x2="30" y2="122" stroke="#8b2020" stroke-width="1.1"/>
-    <line x1="50" y1="95" x2="70" y2="122" stroke="#8b2020" stroke-width="1.1"/>
-    <!-- bright red petiole -->
-    <line x1="50" y1="152" x2="50" y2="168" stroke="#cc2020" stroke-width="3.5"/>
-    <!-- whitish underside hint at lobe tips -->
-    <circle cx="50" cy="10" r="4" fill="white" opacity="0.2"/>
-    <circle cx="16" cy="57" r="3" fill="white" opacity="0.15"/>
-    <circle cx="84" cy="57" r="3" fill="white" opacity="0.15"/>
+    <!--
+      Red maple: 5 softly-pointed lobes, organic curves, V-shaped sinuses
+      that curve smoothly inward. No sharp corners.
+    -->
+    <path d="
+      M50 150
+      C48 145 44 140 40 135
+      C36 130 32 126 28 122
+      C24 118 18 117 14 113
+      C10 109 10 104 13 100
+      C16 96 21 94 23 90
+      C25 86 24 81 25 76
+      C26 71 28 67 32 64
+      C36 61 38 57 38 52
+      C38 47 36 41 38 36
+      C40 31 44 24 50 11
+      C56 24 60 31 62 36
+      C64 41 62 47 62 52
+      C62 57 64 61 68 64
+      C72 67 74 71 75 76
+      C76 81 75 86 77 90
+      C79 94 84 96 87 100
+      C90 104 90 109 86 113
+      C82 117 76 118 72 122
+      C68 126 64 130 60 135
+      C56 140 52 145 50 150Z
+    " fill="#c87878" stroke="#904040" stroke-width="1.2"/>
+    <!-- reddish veins curving into lobes -->
+    <line x1="50" y1="150" x2="50" y2="12" stroke="#8b2020" stroke-width="1.8"/>
+    <path d="M50 95 C40 89 30 84 16 80" stroke="#8b2020" stroke-width="1.1" fill="none"/>
+    <path d="M50 95 C60 89 70 84 84 80" stroke="#8b2020" stroke-width="1.1" fill="none"/>
+    <path d="M50 96 C44 107 37 116 28 124" stroke="#8b2020" stroke-width="1.1" fill="none"/>
+    <path d="M50 96 C56 107 63 116 72 124" stroke="#8b2020" stroke-width="1.1" fill="none"/>
+    <!-- bright red petiole — key ID feature -->
+    <line x1="50" y1="150" x2="50" y2="168" stroke="#cc2020" stroke-width="3.5"/>
   </svg>` },
 
   // ── SILVER MAPLE ─────────────────────────────────────────────────────────
@@ -450,16 +471,42 @@ const LEAVES = {
   // silvery-white underside very visible, more jagged toothed lobe edges,
   // narrower lobes than red maple, earlier to flower in spring
   silvermaple: { bg:'#e8e6f5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- deeply cut sinuses — lobes nearly separated -->
-    <path d="M50 152 L47 125 L26 140 L33 112 L5 118 L23 94 L5 82 L27 76 L13 52 L36 66 L36 40 L50 6 L64 40 L64 66 L87 52 L73 76 L95 82 L77 94 L95 118 L67 112 L74 140 L53 125 Z" fill="#8890c8" stroke="#4858a0" stroke-width="1.2"/>
-    <!-- SILVERY underside — the defining feature, shows through as pale sheen -->
-    <path d="M50 152 L47 126 L34 116 L38 96 L24 84 L36 76 L28 60 L42 68 L44 48 L50 16" fill="#d0d8f0" opacity="0.55"/>
-    <path d="M50 152 L53 126 L66 116 L62 96 L76 84 L64 76 L72 60 L58 68 L56 48 L50 16" fill="#d0d8f0" opacity="0.35"/>
-    <line x1="50" y1="152" x2="50" y2="7" stroke="#303880" stroke-width="1.8"/>
-    <line x1="50" y1="95" x2="18" y2="76" stroke="#303880" stroke-width="1.1"/>
-    <line x1="50" y1="95" x2="82" y2="76" stroke="#303880" stroke-width="1.1"/>
-    <line x1="50" y1="95" x2="30" y2="122" stroke="#303880" stroke-width="1.1"/>
-    <line x1="50" y1="95" x2="70" y2="122" stroke="#303880" stroke-width="1.1"/>
+    <!--
+      Silver maple: 5 lobes, sinuses cut MUCH deeper than red maple
+      (nearly to the midrib), narrower lobes, all curves — no sharp corners.
+      Silvery underside washes through as a pale overlay.
+    -->
+    <path d="
+      M50 152
+      C48 147 45 142 43 137
+      C41 132 40 128 37 125
+      C34 122 29 121 26 117
+      C23 113 23 108 26 104
+      C29 100 34 99 36 95
+      C38 91 37 86 38 81
+      C35 76 29 73 31 67
+      C33 61 40 60 42 55
+      C40 49 36 43 38 37
+      C40 31 45 23 50 9
+      C55 23 60 31 62 37
+      C64 43 60 49 58 55
+      C60 60 67 61 69 67
+      C71 73 65 76 62 81
+      C63 86 62 91 64 95
+      C66 99 71 100 74 104
+      C77 108 77 113 74 117
+      C71 121 66 122 63 125
+      C60 128 59 132 57 137
+      C55 142 52 147 50 152Z
+    " fill="#8890c8" stroke="#4858a0" stroke-width="1.2"/>
+    <!-- silvery underside — defining feature -->
+    <path d="M50 152 C48 145 44 138 42 132 C39 126 38 120 36 115 C34 110 30 107 31 101 C32 95 37 93 38 88 C36 82 31 78 32 71 C33 64 40 62 42 57 C41 51 38 44 40 37 C42 30 46 22 50 10"
+      fill="#d0d8f0" opacity="0.5"/>
+    <line x1="50" y1="152" x2="50" y2="10" stroke="#303880" stroke-width="1.8"/>
+    <path d="M50 96 C40 90 30 85 18 82" stroke="#303880" stroke-width="1.1" fill="none"/>
+    <path d="M50 96 C60 90 70 85 82 82" stroke="#303880" stroke-width="1.1" fill="none"/>
+    <path d="M50 97 C44 108 38 118 30 126" stroke="#303880" stroke-width="1.1" fill="none"/>
+    <path d="M50 97 C56 108 62 118 70 126" stroke="#303880" stroke-width="1.1" fill="none"/>
     <line x1="50" y1="152" x2="50" y2="167" stroke="#8B6030" stroke-width="2.2"/>
   </svg>` },
 
@@ -673,24 +720,51 @@ const LEAVES = {
   // cordate (heart-shaped) base, glossy, resinous fragrance when crushed,
   // spiky ball seed pods shown alongside
   sweetgum: { bg:'#e0f0d0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- perfect star — most distinctive leaf in NYC -->
-    <path d="M50 148 L45 118 L24 134 L28 108 L4 100 L24 88 L8 66 L34 72 L36 44 L50 8 L64 44 L66 72 L92 66 L76 88 L96 100 L72 108 L76 134 L55 118 Z" fill="#70c050" stroke="#409030" stroke-width="1.2"/>
-    <!-- fine teeth along each lobe edge -->
-    <path d="M45 118 L42 115 M39 112 L37 109 M32 108 L28 108" stroke="#409030" stroke-width="0.7" fill="none"/>
-    <path d="M55 118 L58 115 M61 112 L63 109 M68 108 L72 108" stroke="#409030" stroke-width="0.7" fill="none"/>
-    <!-- resin gland dots — sweetgum has fragrant resin -->
-    <circle cx="50" cy="78" r="1.5" fill="#40a030" opacity="0.4"/>
-    <circle cx="44" cy="90" r="1" fill="#40a030" opacity="0.35"/>
-    <circle cx="56" cy="90" r="1" fill="#40a030" opacity="0.35"/>
+    <!--
+      Sweetgum: 5-pointed star but with CURVED sides to each lobe —
+      organic and leaf-like, not a sharp geometric star.
+      Cordate (heart-notched) base, sinuses curve smoothly inward.
+    -->
+    <path d="
+      M50 150
+      C48 146 45 141 44 136
+      C42 131 40 128 36 126
+      C32 124 27 125 24 122
+      C21 119 20 114 22 111
+      C24 108 28 107 30 104
+      C32 101 32 97 30 94
+      C28 91 24 90 22 87
+      C20 84 20 79 23 77
+      C26 75 31 76 34 74
+      C37 72 39 68 39 64
+      C39 60 37 55 38 50
+      C39 45 42 38 50 10
+      C58 38 61 45 62 50
+      C63 55 61 60 61 64
+      C61 68 63 72 66 74
+      C69 76 74 75 77 77
+      C80 79 80 84 78 87
+      C76 90 72 91 70 94
+      C68 97 68 101 70 104
+      C72 107 76 108 78 111
+      C80 114 79 119 76 122
+      C73 125 68 124 64 126
+      C60 128 58 131 56 136
+      C55 141 52 146 50 150Z
+    " fill="#70c050" stroke="#409030" stroke-width="1.2"/>
     <!-- glossy sheen -->
-    <ellipse cx="44" cy="55" rx="5" ry="12" fill="white" opacity="0.18" transform="rotate(-20,44,55)"/>
-    <!-- star veins -->
-    <line x1="50" y1="148" x2="50" y2="9" stroke="#307020" stroke-width="1.8"/>
-    <line x1="50" y1="96" x2="10" y2="80" stroke="#307020" stroke-width="1.1"/>
-    <line x1="50" y1="96" x2="90" y2="80" stroke="#307020" stroke-width="1.1"/>
-    <line x1="50" y1="96" x2="22" y2="126" stroke="#307020" stroke-width="1.1"/>
-    <line x1="50" y1="96" x2="78" y2="126" stroke="#307020" stroke-width="1.1"/>
-    <!-- spiky gumball pod (tiny, in corner) for ID -->
+    <ellipse cx="43" cy="52" rx="5" ry="13" fill="white" opacity="0.18" transform="rotate(-18,43,52)"/>
+    <!-- resin gland dots -->
+    <circle cx="50" cy="80" r="1.5" fill="#40a030" opacity="0.4"/>
+    <circle cx="44" cy="92" r="1" fill="#40a030" opacity="0.3"/>
+    <circle cx="56" cy="92" r="1" fill="#40a030" opacity="0.3"/>
+    <!-- star veins curving into each lobe -->
+    <line x1="50" y1="150" x2="50" y2="11" stroke="#307020" stroke-width="1.8"/>
+    <path d="M50 98 C42 93 34 88 22 84" stroke="#307020" stroke-width="1.1" fill="none"/>
+    <path d="M50 98 C58 93 66 88 78 84" stroke="#307020" stroke-width="1.1" fill="none"/>
+    <path d="M50 99 C44 110 38 120 28 128" stroke="#307020" stroke-width="1.1" fill="none"/>
+    <path d="M50 99 C56 110 62 120 72 128" stroke="#307020" stroke-width="1.1" fill="none"/>
+    <!-- spiky gumball pod in corner -->
     <circle cx="82" cy="148" r="8" fill="none" stroke="#507030" stroke-width="1"/>
     <line x1="82" y1="140" x2="82" y2="136" stroke="#507030" stroke-width="0.8"/>
     <line x1="90" y1="148" x2="94" y2="148" stroke="#507030" stroke-width="0.8"/>
@@ -701,7 +775,7 @@ const LEAVES = {
     <line x1="88" y1="154" x2="91" y2="157" stroke="#507030" stroke-width="0.8"/>
     <line x1="76" y1="154" x2="73" y2="157" stroke="#507030" stroke-width="0.8"/>
     <text x="82" y="167" font-size="5.5" fill="#507030" text-anchor="middle">pod</text>
-    <line x1="50" y1="148" x2="50" y2="162" stroke="#8B5030" stroke-width="2.2"/>
+    <line x1="50" y1="150" x2="50" y2="163" stroke="#8B5030" stroke-width="2.2"/>
   </svg>` },
 
   // ── ALDER ────────────────────────────────────────────────────────────────
@@ -746,23 +820,49 @@ const LEAVES = {
   // base is straight/truncate not heart-shaped, coarsely toothed lobes,
   // distinctive jigsaw-puzzle bark pattern shown in stem
   sycamore: { bg:'#e8f0d8', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- 5-lobed but WIDE, shallow sinuses (vs deep in maple) -->
-    <path d="M50 150 L44 124 L20 138 L28 114 L2 114 L18 94 L2 80 L26 78 L18 58 L40 68 L40 46 L50 10 L60 46 L60 68 L82 58 L74 78 L98 80 L82 94 L98 114 L72 114 L80 138 L56 124 Z" fill="#90b870" stroke="#5a7a40" stroke-width="1.2"/>
-    <!-- TRUNCATE (flat) base — not heart shaped like maple -->
-    <line x1="40" y1="124" x2="60" y2="124" stroke="#5a7a40" stroke-width="1.2" opacity="0.5"/>
-    <!-- very coarse teeth on lobe edges -->
-    <path d="M44 124 L40 120 M36 116 L32 114" stroke="#5a7a40" stroke-width="0.9" fill="none"/>
-    <path d="M56 124 L60 120 M64 116 L68 114" stroke="#5a7a40" stroke-width="0.9" fill="none"/>
-    <line x1="50" y1="150" x2="50" y2="11" stroke="#406828" stroke-width="2"/>
-    <line x1="50" y1="104" x2="16" y2="86" stroke="#406828" stroke-width="1.1"/>
-    <line x1="50" y1="104" x2="84" y2="86" stroke="#406828" stroke-width="1.1"/>
-    <line x1="50" y1="104" x2="28" y2="128" stroke="#406828" stroke-width="1.1"/>
-    <line x1="50" y1="104" x2="72" y2="128" stroke="#406828" stroke-width="1.1"/>
-    <!-- JIGSAW BARK PATTERN on petiole/stem — sycamore's most famous feature -->
-    <line x1="50" y1="150" x2="50" y2="172" stroke="#8B6030" stroke-width="3.5"/>
-    <path d="M47 153 Q50 157 53 153 Q56 157 53 161 Q56 165 53 169" stroke="#c8a060" stroke-width="1.2" fill="none"/>
-    <path d="M47 161 Q44 165 47 169" stroke="#c8a060" stroke-width="1.2" fill="none"/>
-    <!-- scale bar showing large size -->
+    <!--
+      Sycamore: 3-5 broad lobes with SHALLOW sinuses — much less deeply cut
+      than maple. Wide leaf, almost as broad as it is tall. Coarsely toothed.
+      Flat/truncate base (not heart-shaped). All smooth curves.
+    -->
+    <path d="
+      M50 148
+      C47 144 43 140 40 136
+      C37 132 34 129 30 127
+      C26 125 21 126 18 122
+      C15 118 16 113 19 110
+      C22 107 27 106 29 103
+      C31 100 30 96 28 93
+      C26 90 22 89 20 85
+      C18 81 19 76 22 74
+      C25 72 30 73 33 71
+      C36 69 37 65 37 61
+      C37 57 35 52 37 47
+      C39 42 43 35 50 11
+      C57 35 61 42 63 47
+      C65 52 63 57 63 61
+      C63 65 64 69 67 71
+      C70 73 75 72 78 74
+      C81 76 82 81 80 85
+      C78 89 74 90 72 93
+      C70 96 69 100 71 103
+      C73 106 78 107 81 110
+      C84 113 85 118 82 122
+      C79 126 74 125 70 127
+      C66 129 63 132 60 136
+      C57 140 53 144 50 148Z
+    " fill="#90b870" stroke="#5a7a40" stroke-width="1.2"/>
+    <!-- veins fanning into 3 main lobes -->
+    <line x1="50" y1="148" x2="50" y2="12" stroke="#406828" stroke-width="2"/>
+    <path d="M50 100 C40 94 30 88 18 84" stroke="#406828" stroke-width="1.1" fill="none"/>
+    <path d="M50 100 C60 94 70 88 82 84" stroke="#406828" stroke-width="1.1" fill="none"/>
+    <path d="M50 102 C44 112 38 122 30 130" stroke="#406828" stroke-width="1.1" fill="none"/>
+    <path d="M50 102 C56 112 62 122 70 130" stroke="#406828" stroke-width="1.1" fill="none"/>
+    <!-- JIGSAW BARK on petiole -->
+    <line x1="50" y1="148" x2="50" y2="172" stroke="#8B6030" stroke-width="3.5"/>
+    <path d="M47 152 Q50 156 53 152 Q56 156 53 161 Q56 165 53 170" stroke="#c8a060" stroke-width="1.2" fill="none"/>
+    <path d="M47 160 Q44 164 47 169" stroke="#c8a060" stroke-width="1.2" fill="none"/>
+    <!-- scale bar -->
     <line x1="6" y1="162" x2="30" y2="162" stroke="#888" stroke-width="1"/>
     <text x="18" y="170" font-size="6" fill="#888" text-anchor="middle">~4–9"</text>
   </svg>` },
