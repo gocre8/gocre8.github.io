@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pond Water Microorganism Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0e1a2b;
+    --paper: #e8f0f5;
+    --deep: #1a3a5c;
+    --teal: #1a7a7a;
+    --teal-light: #d0eeee;
+    --algae: #2a6e3a;
+    --algae-light: #d4edd8;
+    --amber: #7a5010;
+    --amber-light: #f0e0c0;
+    --cream: #f5fafd;
+    --border: #a8c4d4;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: 'DM Sans', sans-serif; font-weight: 300; }
+
+  header {
+    background: linear-gradient(135deg, #0a2240 0%, #1a4a6a 60%, #0e5a5a 100%);
+    color: white; padding: 52px 48px 44px; position: relative; overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 70% 50%, rgba(26,122,122,0.3) 0%, transparent 65%);
+  }
+  /* floating bubble decorations */
+  header::after {
+    content: '🔬';
+    position: absolute; right: 52px; top: 50%; transform: translateY(-50%);
+    font-size: 100px; opacity: 0.12;
+  }
+  .header-inner { position: relative; max-width: 680px; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 2.6rem; font-weight: 400; line-height: 1.15; }
+  header p { margin-top: 10px; font-size: 0.9rem; opacity: 0.75; line-height: 1.65; }
+
+  .tabs { display:flex; background: var(--ink); padding: 0 48px; overflow-x: auto; }
+  .tab { padding:13px 20px; color:rgba(255,255,255,0.4); font-size:0.76rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; background:none; border-top:none; border-left:none; border-right:none; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+  .tab:hover { color:rgba(255,255,255,0.75); }
+  .tab.active { color:white; border-bottom-color:#1a9a9a; }
+
+  .section { display:none; padding:44px 48px; max-width:1320px; margin:0 auto; }
+  .section.active { display:block; }
+
+  .section-label { font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:400; color: var(--deep); margin-bottom:5px; }
+  .section-sub { font-size:0.82rem; color:#668; margin-bottom:32px; font-style:italic; }
+
+  .cards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(270px, 1fr)); gap:22px; }
+
+  .card { background: var(--cream); border:1px solid var(--border); border-radius:3px; overflow:hidden; transition:transform 0.2s, box-shadow 0.2s; animation:fadeUp 0.35s ease both; }
+  .card:hover { transform:translateY(-3px); box-shadow:0 10px 28px rgba(10,34,64,0.12); }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(14px);} to{opacity:1;transform:translateY(0);} }
+
+  .card-micro-box { width:100%; height:220px; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--border); position:relative; overflow:hidden; padding:18px; }
+  .card-micro-box svg { max-width:70%; max-height:70%; width:auto; height:auto; filter: drop-shadow(1px 3px 6px rgba(0,30,60,0.22)); }
+
+  /* magnification badge in corner */
+  .mag-badge {
+    position:absolute; bottom:8px; right:10px;
+    font-size:0.65rem; font-weight:600; letter-spacing:0.04em;
+    color: rgba(255,255,255,0.9); background: rgba(10,34,64,0.55);
+    padding:2px 7px; border-radius:10px;
+    font-family:'DM Sans',sans-serif;
+  }
+
+  .card-body { padding:14px 16px 4px; }
+  .card-name { font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; margin-bottom:1px; }
+  .card-latin { font-family:'Playfair Display',serif; font-size:0.77rem; font-style:italic; color:#889; margin-bottom:8px; }
+
+  .badge { display:inline-block; font-size:0.62rem; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; padding:3px 7px; border-radius:2px; margin-bottom:8px; }
+  .badge-proto { background:#dce8f5; color:#1a3a7a; }
+  .badge-algae  { background: var(--algae-light); color: var(--algae); }
+  .badge-animal { background: var(--amber-light); color: var(--amber); }
+  .badge-macro { background:#fdecd0; color:#7a3a08; }
+
+  .id-strip { background:#eef4f8; border:1px solid #c0d8e8; border-radius:2px; padding:8px 10px; margin-bottom:9px; font-size:0.73rem; line-height:1.55; color:#2a3a50; }
+  .id-strip strong { color:#0e2040; display:block; margin-bottom:2px; font-size:0.68rem; letter-spacing:0.05em; text-transform:uppercase; }
+
+  .google-link { display:flex; align-items:center; gap:5px; font-size:0.71rem; color: var(--teal); text-decoration:none; padding:4px 0 8px; opacity:0.85; transition:opacity 0.15s; }
+  .google-link:hover { opacity:1; text-decoration:underline; }
+
+  .card-row { display:flex; justify-content:space-between; font-size:0.74rem; padding:4px 0; border-bottom:1px solid #e4ecf2; line-height:1.4; }
+  .card-row:last-of-type { border-bottom:none; }
+  .card-label { color:#99aabb; flex-shrink:0; margin-right:6px; }
+  .card-val { color: var(--ink); text-align:right; font-weight:500; }
+  .card-note { margin:8px 0 14px; font-size:0.72rem; color:#6a7a8a; font-style:italic; line-height:1.5; border-top:1px solid #e4ecf2; padding-top:8px; }
+
+  /* Tips section */
+  .tips-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-bottom:40px; }
+  @media(max-width:700px){.tips-grid{grid-template-columns:1fr;}}
+  .tips-box { background: var(--cream); border:1px solid var(--border); padding:26px; border-radius:3px; }
+  .tips-box h3 { font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:700; margin-bottom:14px; color:var(--deep); }
+  .tips-box li { font-size:0.82rem; line-height:1.6; padding:5px 0; border-bottom:1px solid #dce8f0; display:flex; gap:9px; list-style:none; }
+  .tips-box li:last-child { border-bottom:none; }
+
+  .mag-table { width:100%; border-collapse:collapse; font-size:0.83rem; background: var(--cream); border:1px solid var(--border); border-radius:3px; overflow:hidden; }
+  .mag-table th { background: var(--deep); color:white; font-weight:500; font-size:0.71rem; letter-spacing:0.06em; text-transform:uppercase; padding:11px 14px; text-align:left; }
+  .mag-table td { padding:10px 14px; border-bottom:1px solid #dce8f0; vertical-align:top; line-height:1.5; }
+  .mag-table tr:nth-child(even) td { background:#f0f6fa; }
+  .mag-table tr:last-child td { border-bottom:none; }
+
+  .scale-bar { display:inline-block; background: var(--deep); color:white; font-size:0.65rem; font-weight:600; padding:2px 8px; border-radius:2px; letter-spacing:0.04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <h1>Pond Water<br>Microorganism Guide</h1>
+    <p>An illustrated field reference for the microscopic world found in a single drop of pond water — from protozoans to micro-animals. Each entry includes what to look for under the microscope and a link to real photographs.</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('protozoa',this)">Protozoa</button>
+  <button class="tab" onclick="showTab('algae',this)">Algae</button>
+  <button class="tab" onclick="showTab('animals',this)">Micro-Animals</button>
+  <button class="tab" onclick="showTab('macro',this)">🐌 Macro-Invertebrates</button>
+  <button class="tab" onclick="showTab('bacteria',this)">Bacteria</button>
+  <button class="tab" onclick="showTab('tips',this)">Tips</button>
+</div>
+
+<!-- PROTOZOA -->
+<div id="tab-protozoa" class="section active">
+  <div class="section-label">Protozoa</div>
+  <div class="section-sub">Single-celled "animal-like" organisms — the most visible and active creatures in a pond sample. Usually 100–500 µm. Best seen at 100–400×.</div>
+  <div class="cards-grid" id="protozoa-cards"></div>
+</div>
+
+<!-- ALGAE -->
+<div id="tab-algae" class="section">
+  <div class="section-label">Algae & Cyanobacteria</div>
+  <div class="section-sub">Photosynthetic organisms ranging from single cells to long filaments. Often green, golden, or brown. Best seen at 100–400×.</div>
+  <div class="cards-grid" id="algae-cards"></div>
+</div>
+
+<!-- MICRO-ANIMALS -->
+<div id="tab-animals" class="section">
+  <div class="section-label">Micro-Animals</div>
+  <div class="section-sub">Multicellular animals small enough to live in a drop of water. Some visible to the naked eye. Seen at 40–200×.</div>
+  <div class="cards-grid" id="animals-cards"></div>
+</div>
+
+<!-- MACRO-INVERTEBRATES -->
+<div id="tab-macro" class="section">
+  <div class="section-label">Macro-Invertebrates</div>
+  <div class="section-sub">Larger pond animals visible to the naked eye — often found clinging to plants, crawling on the bottom, or swimming at the surface. No microscope needed; a hand lens or jar is enough.</div>
+  <div class="cards-grid" id="macro-cards"></div>
+</div>
+
+<!-- BACTERIA -->
+<div id="tab-bacteria" class="section">
+  <div class="section-label">Bacteria & Filamentous Forms</div>
+  <div class="section-sub">The smallest inhabitants — require 400–1000× to see shape. Most appear as tiny moving dots at lower magnifications.</div>
+  <div class="cards-grid" id="bacteria-cards"></div>
+</div>
+
+<!-- TIPS -->
+<div id="tab-tips" class="section">
+  <div class="section-label">Microscopy Tips</div>
+  <div class="section-sub">How to collect, prepare, and observe pond water samples for best results.</div>
+  <div class="tips-grid">
+    <div class="tips-box">
+      <h3>🧪 Collection</h3>
+      <ul>
+        <li><span>💧</span> Collect from multiple spots — surface, bottom sediment, and near plants give different organisms</li>
+        <li><span>🌿</span> Squeeze aquatic plants or algae into your sample jar — many organisms live attached to surfaces</li>
+        <li><span>🪣</span> Use glass jars, not plastic — some organisms stick to plastic</li>
+        <li><span>☀️</span> Observe within 24–48 hrs for most accurate natural population</li>
+        <li><span>🌡️</span> Keep sample at room temp, loosely covered — organisms need oxygen</li>
+        <li><span>🔦</span> After a few days, place near a window — algae will grow and feed the creatures</li>
+      </ul>
+    </div>
+    <div class="tips-box">
+      <h3>🔬 On the Microscope</h3>
+      <ul>
+        <li><span>1️⃣</span> Always start at lowest magnification (40×) — scan the whole slide first</li>
+        <li><span>🐌</span> Fast-movers: add a tiny wisp of cotton fiber or methyl cellulose to slow them down</li>
+        <li><span>💡</span> Reduce light intensity — many protozoa are near-transparent; less light = better contrast</li>
+        <li><span>🎯</span> Phase contrast dramatically improves visibility of transparent organisms if available</li>
+        <li><span>📏</span> Identify movement pattern first — it's often faster than shape for ID</li>
+        <li><span>🌊</span> Let the slide sit 1 min — organisms settle and become easier to observe</li>
+        <li><span>🌿</span> Green = likely algae or Euglena; colorless + moving = protozoan or rotifer</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section-label" style="font-size:1.2rem; margin-bottom:14px;">Magnification Guide</div>
+  <table class="mag-table">
+    <thead><tr><th>Magnification</th><th>What You Can See</th><th>Best For</th></tr></thead>
+    <tbody>
+      <tr><td><strong>40× (4× obj.)</strong></td><td>Large organisms, general movement, filamentous algae colonies</td><td>Daphnia, copepods, Spirogyra chains, Volvox colonies</td></tr>
+      <tr><td><strong>100× (10× obj.)</strong></td><td>Most protozoa, rotifers, nematodes, algae shape</td><td>Paramecium, Euglena, Stentor, rotifers, diatoms</td></tr>
+      <tr><td><strong>400× (40× obj.)</strong></td><td>Cell structure, cilia, organelles, small protozoa</td><td>Amoeba pseudopods, Vorticella stalk, flagella, small bacteria</td></tr>
+      <tr><td><strong>1000× (100× oil)</strong></td><td>Bacteria shape, internal cell detail</td><td>Bacterial morphology, very fine cell structures</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-label" style="font-size:1.2rem; margin-bottom:14px; margin-top:36px;">ID by Movement</div>
+  <table class="mag-table">
+    <thead><tr><th>Movement Type</th><th>Description</th><th>Likely Organism</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Gliding/flowing</strong></td><td>Blob extending and retracting, no fixed shape</td><td>Amoeba</td></tr>
+      <tr><td><strong>Spinning cork-screw</strong></td><td>Rotating while moving forward, often green</td><td>Euglena, Peranema</td></tr>
+      <tr><td><strong>Fast darting, slipper-shaped</strong></td><td>Rapid straight-line movement, rotates slightly</td><td>Paramecium</td></tr>
+      <tr><td><strong>Trumpet/bell, attached</strong></td><td>Anchored, body extends then snaps back</td><td>Vorticella, Stentor</td></tr>
+      <tr><td><strong>Jumping/hopping</strong></td><td>Jerky, rapid hops with pauses</td><td>Copepod</td></tr>
+      <tr><td><strong>Tumbling/somersaulting</strong></td><td>Head-over-heels rotation while swimming</td><td>Rotifer</td></tr>
+      <tr><td><strong>Wriggling S-shape</strong></td><td>Sinusoidal body movement</td><td>Nematode</td></tr>
+      <tr><td><strong>Slow crawl, 8 legs</strong></td><td>Bear-like lumbering on stubby legs</td><td>Tardigrade</td></tr>
+      <tr><td><strong>Spinning sphere</strong></td><td>Green ball rolling slowly</td><td>Volvox</td></tr>
+      <tr><td><strong>Vibrating, stationary</strong></td><td>Tiny dots that shimmy but barely move</td><td>Bacteria</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+// ─── SVG ILLUSTRATIONS ────────────────────────────────────────────────────────
+// Each drawn to match the organism's actual microscopic appearance
+
+const MICROBES = {
+
+  // ══════════════════════════════════════════════════════════ PROTOZOA
+
+  paramecium: { bg:'#d8eef8', svg:`<svg viewBox="0 0 120 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Paramecium: slipper-shaped, widest ~1/3 from front, tapered at both ends -->
+    <!-- Outer pellicle -->
+    <path d="M60 185 C36 175 18 155 14 128 C10 101 16 75 26 55 C36 35 50 18 60 12 C70 18 84 35 94 55 C104 75 110 101 106 128 C102 155 84 175 60 185Z" fill="#b8ddf5" stroke="#4a90c0" stroke-width="1.5"/>
+    <!-- cilia all around body — rows of fine hairs -->
+    <g stroke="#2a70a8" stroke-width="0.7" opacity="0.7">
+      <!-- left side cilia -->
+      <line x1="14" y1="128" x2="6" y2="126"/><line x1="15" y1="112" x2="7" y2="109"/><line x1="17" y1="96" x2="9" y2="92"/>
+      <line x1="21" y1="80" x2="13" y2="75"/><line x1="26" y1="66" x2="18" y2="60"/><line x1="34" y1="52" x2="27" y2="46"/>
+      <line x1="43" y1="38" x2="37" y2="32"/><line x1="54" y1="26" x2="50" y2="19"/>
+      <line x1="16" y1="143" x2="8" y2="142"/><line x1="20" y1="158" x2="12" y2="158"/>
+      <line x1="28" y1="170" x2="21" y2="171"/><line x1="40" y1="179" x2="34" y2="181"/>
+      <!-- right side cilia -->
+      <line x1="106" y1="128" x2="114" y2="126"/><line x1="105" y1="112" x2="113" y2="109"/><line x1="103" y1="96" x2="111" y2="92"/>
+      <line x1="99" y1="80" x2="107" y2="75"/><line x1="94" y1="66" x2="102" y2="60"/><line x1="86" y1="52" x2="93" y2="46"/>
+      <line x1="77" y1="38" x2="83" y2="32"/><line x1="66" y1="26" x2="70" y2="19"/>
+      <line x1="104" y1="143" x2="112" y2="142"/><line x1="100" y1="158" x2="108" y2="158"/>
+      <line x1="92" y1="170" x2="99" y2="171"/><line x1="80" y1="179" x2="86" y2="181"/>
+    </g>
+    <!-- oral groove — diagonal channel leading to mouth -->
+    <path d="M60 55 C50 70 42 85 40 105" stroke="#2a60a0" stroke-width="2" fill="none" stroke-dasharray="3,2"/>
+    <!-- macronucleus — large kidney-shaped -->
+    <ellipse cx="60" cy="110" rx="18" ry="26" fill="#90c0e8" stroke="#3a80b8" stroke-width="1" opacity="0.8"/>
+    <!-- micronucleus — small dot -->
+    <circle cx="60" cy="85" r="5" fill="#5a90c8" opacity="0.9"/>
+    <!-- contractile vacuoles — two clear circles -->
+    <circle cx="60" cy="55" r="8" fill="none" stroke="#2a80c0" stroke-width="1.2" stroke-dasharray="2,1"/>
+    <circle cx="60" cy="155" r="7" fill="none" stroke="#2a80c0" stroke-width="1.2" stroke-dasharray="2,1"/>
+    <!-- food vacuoles -->
+    <circle cx="48" cy="120" r="4" fill="#60a8d8" opacity="0.5"/>
+    <circle cx="72" cy="125" r="3.5" fill="#60a8d8" opacity="0.5"/>
+  </svg>` },
+
+  amoeba: { bg:'#dff0e8', svg:`<svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Amoeba: irregular blob with pseudopods extending outward, no fixed shape -->
+    <!-- Main body — organic irregular shape -->
+    <path d="M80 130
+      C65 128 50 122 42 112
+      C34 102 36 90 30 82
+      C24 74 14 72 12 62
+      C10 52 18 44 26 40
+      C30 38 32 32 38 26
+      C44 20 52 18 60 22
+      C66 25 70 22 76 18
+      C82 14 90 14 96 18
+      C102 22 104 30 110 34
+      C116 38 124 36 130 42
+      C136 48 136 58 132 66
+      C128 74 120 76 118 86
+      C116 96 122 106 116 114
+      C110 122 98 128 80 130Z"
+      fill="#b8e8c8" stroke="#3a9858" stroke-width="1.3"/>
+    <!-- pseudopods extending out — finger-like projections -->
+    <path d="M26 62 C18 58 8 52 4 44 C8 44 14 48 20 52 C16 46 14 38 18 32 C22 36 24 44 26 52Z" fill="#a0d8b0" stroke="#3a9858" stroke-width="1"/>
+    <path d="M76 18 C74 8 76 0 82 -2 C82 4 80 10 80 18Z" fill="#a0d8b0" stroke="#3a9858" stroke-width="1"/>
+    <path d="M118 86 C128 82 138 84 142 90 C136 90 128 88 122 88 C130 92 136 98 134 106 C128 102 122 96 118 90Z" fill="#a0d8b0" stroke="#3a9858" stroke-width="1"/>
+    <path d="M80 130 C78 140 80 150 86 154 C84 148 82 140 82 132Z" fill="#a0d8b0" stroke="#3a9858" stroke-width="1"/>
+    <!-- nucleus — large, irregular -->
+    <ellipse cx="78" cy="80" rx="24" ry="20" fill="#78c898" stroke="#2a8848" stroke-width="1.2" opacity="0.8"/>
+    <!-- nucleolus -->
+    <circle cx="78" cy="80" r="8" fill="#48a870" opacity="0.7"/>
+    <!-- food vacuoles — engulfed bacteria/algae -->
+    <circle cx="55" cy="95" r="7" fill="#60b880" opacity="0.5" stroke="#3a9858" stroke-width="0.8"/>
+    <circle cx="100" cy="70" r="5" fill="#60b880" opacity="0.5" stroke="#3a9858" stroke-width="0.8"/>
+    <circle cx="60" cy="65" r="4" fill="#40a060" opacity="0.45"/>
+    <!-- streaming cytoplasm lines -->
+    <path d="M78 100 C72 106 64 110 55 112" stroke="#2a8848" stroke-width="0.7" fill="none" opacity="0.5"/>
+    <path d="M80 60 C84 52 90 46 96 42" stroke="#2a8848" stroke-width="0.7" fill="none" opacity="0.5"/>
+  </svg>` },
+
+  euglena: { bg:'#d8f0d8', svg:`<svg viewBox="0 -20 80 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Euglena: spindle-shaped, pointed tail, blunt front with flagellum -->
+    <!-- Body — pellicle with diagonal striations -->
+    <path d="M40 185 C26 175 16 158 14 138 C12 118 18 95 28 72 C34 58 38 42 40 14 C42 42 46 58 52 72 C62 95 68 118 66 138 C64 158 54 175 40 185Z" fill="#78d878" stroke="#2a8030" stroke-width="1.3"/>
+    <!-- diagonal striations of pellicle (characteristic of Euglena) -->
+    <g stroke="#2a8030" stroke-width="0.6" opacity="0.5">
+      <path d="M16 130 C25 126 35 124 50 126 C58 127 64 130 66 134" fill="none"/>
+      <path d="M15 115 C24 111 34 109 49 111 C57 112 63 115 65 119" fill="none"/>
+      <path d="M15 100 C24 96 34 94 49 96 C57 97 63 100 65 104" fill="none"/>
+      <path d="M17 85 C26 81 35 79 50 81 C57 82 62 85 64 89" fill="none"/>
+      <path d="M20 70 C28 66 37 65 51 67 C57 68 61 71 62 74" fill="none"/>
+      <path d="M24 56 C31 53 39 52 52 54 C57 55 60 58 61 61" fill="none"/>
+    </g>
+    <!-- chloroplasts — oval green bodies inside -->
+    <ellipse cx="34" cy="100" rx="8" ry="14" fill="#2a9040" opacity="0.6" transform="rotate(-15,34,100)"/>
+    <ellipse cx="48" cy="115" rx="7" ry="12" fill="#2a9040" opacity="0.6" transform="rotate(10,48,115)"/>
+    <ellipse cx="36" cy="130" rx="7" ry="11" fill="#2a9040" opacity="0.6" transform="rotate(-5,36,130)"/>
+    <ellipse cx="46" cy="145" rx="6" ry="10" fill="#2a9040" opacity="0.55" transform="rotate(8,46,145)"/>
+    <!-- nucleus — central oval -->
+    <ellipse cx="40" cy="90" rx="10" ry="13" fill="#58b858" stroke="#2a8030" stroke-width="1" opacity="0.8"/>
+    <!-- eyespot (stigma) — bright red dot near front -->
+    <circle cx="34" cy="30" r="5" fill="#e03030" opacity="0.9"/>
+    <circle cx="34" cy="30" r="3" fill="#ff4040" opacity="0.7"/>
+    <!-- reservoir + flagellum emerging from front -->
+    <path d="M40 14 C38 8 36 2 34 -6 C36 -4 40 0 42 6 C44 0 46 -8 50 -14 C48 -8 44 -2 40 4" stroke="#208020" stroke-width="1.2" fill="none"/>
+    <!-- long whip flagellum -->
+    <path d="M40 14 C42 4 46 -6 50 -16 C52 -24 54 -28 56 -20" stroke="#208020" stroke-width="1.5" fill="none"/>
+  </svg>` },
+
+  vorticella: { bg:'#d8e8f8', svg:`<svg viewBox="0 -10 140 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Vorticella: bell-shaped body on coiled contractile stalk, attached to surface -->
+    <!-- substrate line at bottom -->
+    <line x1="0" y1="195" x2="140" y2="195" stroke="#8aab88" stroke-width="2.5"/>
+    <!-- coiled stalk — spiral spring shape -->
+    <path d="M70 185 C80 180 88 172 84 164 C80 156 68 154 64 146 C60 138 68 130 74 122 C80 114 82 106 76 100" stroke="#4a90c0" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- bell body — wide at top, narrowing to stalk attachment -->
+    <path d="M76 100 C74 90 68 78 60 70 C50 60 38 56 32 50 C28 44 32 36 40 32 C50 26 64 26 76 28 C88 30 100 34 106 40 C112 46 110 56 104 62 C96 70 86 74 82 82 C78 90 78 98 76 100Z" fill="#90c8f0" stroke="#3a80c0" stroke-width="1.5"/>
+    <!-- oral cilia ring at top of bell — whirling crown -->
+    <ellipse cx="70" cy="32" rx="36" ry="10" fill="none" stroke="#2a70b0" stroke-width="1.2" stroke-dasharray="3,2"/>
+    <g stroke="#2a70b0" stroke-width="1" opacity="0.8">
+      <path d="M34 32 C32 22 34 14 36 8" fill="none"/>
+      <path d="M44 27 C42 17 44 9 46 3" fill="none"/>
+      <path d="M56 24 C55 14 57 6 59 0" fill="none"/>
+      <path d="M70 23 C70 13 72 5 72 -1" fill="none"/>
+      <path d="M84 24 C85 14 83 6 81 0" fill="none"/>
+      <path d="M96 27 C98 17 96 9 94 3" fill="none"/>
+      <path d="M106 32 C108 22 106 14 104 8" fill="none"/>
+    </g>
+    <!-- macronucleus — C-shaped/horseshoe inside bell -->
+    <path d="M55 60 C50 55 50 48 56 44 C62 40 72 40 78 44 C84 48 84 56 78 60" stroke="#2a70b0" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- contractile vacuole -->
+    <circle cx="70" cy="70" r="6" fill="none" stroke="#2a70b0" stroke-width="1" stroke-dasharray="2,1"/>
+    <!-- second vorticella on same surface (they're colonial) -->
+    <path d="M110 185 C116 178 118 168 112 162 C106 156 100 158 98 152 C96 146 102 140 106 134" stroke="#4a90c0" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M106 134 C104 126 100 118 94 112 C86 104 78 102 76 96 C74 90 80 84 88 82 C96 80 104 84 108 90 C112 96 110 104 106 110 C102 116 98 120 98 128" fill="#b8dcf5" stroke="#3a80c0" stroke-width="1.2"/>
+    <ellipse cx="94" cy="92" rx="18" ry="6" fill="none" stroke="#2a70b0" stroke-width="1" stroke-dasharray="2,2"/>
+  </svg>` },
+
+  stentor: { bg:'#d5e8f5', svg:`<svg viewBox="0 0 130 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Stentor: large trumpet/vase-shaped ciliate, attached at narrow base -->
+    <!-- trumpet body -->
+    <path d="M65 190 C62 185 58 175 54 162 C50 149 48 135 46 120 C44 105 42 90 40 78 C38 66 36 55 38 46 C40 37 46 30 52 24 C58 18 64 14 72 14 C80 14 88 18 96 26 C100 30 102 38 100 48 C98 58 92 66 88 76 C84 86 82 98 82 112 C82 126 84 140 84 154 C84 168 82 180 78 188Z" fill="#90c0e8" stroke="#3070b0" stroke-width="1.5"/>
+    <!-- stripes (macronucleus chain is characteristic) -->
+    <!-- macronucleus — moniliform (beaded string) shape, unique to Stentor -->
+    <g fill="#5090c8" opacity="0.75" stroke="#2060a0" stroke-width="0.8">
+      <ellipse cx="64" cy="155" rx="8" ry="6"/>
+      <ellipse cx="64" cy="140" rx="8" ry="6"/>
+      <ellipse cx="64" cy="125" rx="8" ry="6"/>
+      <ellipse cx="64" cy="110" rx="8" ry="6"/>
+      <ellipse cx="64" cy="95" rx="7" ry="5"/>
+      <ellipse cx="64" cy="81" rx="6" ry="5"/>
+    </g>
+    <!-- connecting strands of beaded nucleus -->
+    <line x1="64" y1="149" x2="64" y2="146" stroke="#2060a0" stroke-width="1"/>
+    <line x1="64" y1="134" x2="64" y2="131" stroke="#2060a0" stroke-width="1"/>
+    <line x1="64" y1="119" x2="64" y2="116" stroke="#2060a0" stroke-width="1"/>
+    <line x1="64" y1="104" x2="64" y2="101" stroke="#2060a0" stroke-width="1"/>
+    <line x1="64" y1="89" x2="64" y2="87" stroke="#2060a0" stroke-width="1"/>
+    <!-- adoral zone of membranelles — spiral of cilia at wide mouth end -->
+    <path d="M38 46 C44 36 54 28 68 22 C82 16 96 18 104 28" stroke="#2060a0" stroke-width="1.5" fill="none"/>
+    <!-- cilia fringe at mouth -->
+    <g stroke="#2060a0" stroke-width="0.9" opacity="0.7">
+      <line x1="40" y1="42" x2="36" y2="34"/><line x1="46" y1="36" x2="43" y2="27"/>
+      <line x1="53" y1="30" x2="51" y2="21"/><line x1="61" y1="25" x2="60" y2="15"/>
+      <line x1="70" y1="22" x2="70" y2="12"/><line x1="80" y1="22" x2="81" y2="12"/>
+      <line x1="90" y1="26" x2="93" y2="17"/><line x1="98" y1="33" x2="103" y2="26"/>
+      <line x1="104" y1="42" x2="110" y2="37"/>
+    </g>
+    <!-- body cilia -->
+    <g stroke="#3070b0" stroke-width="0.6" opacity="0.5">
+      <line x1="46" y1="120" x2="40" y2="118"/><line x1="46" y1="105" x2="40" y2="103"/>
+      <line x1="47" y1="90" x2="41" y2="88"/><line x1="49" y1="76" x2="43" y2="74"/>
+      <line x1="82" y1="120" x2="88" y2="118"/><line x1="82" y1="105" x2="88" y2="103"/>
+      <line x1="81" y1="90" x2="87" y2="88"/><line x1="79" y1="76" x2="85" y2="74"/>
+    </g>
+    <!-- holdfast at bottom -->
+    <circle cx="65" cy="190" r="5" fill="#3070b0" opacity="0.6"/>
+  </svg>` },
+
+  lacrymaria: { bg:'#d8ecf8', svg:`<svg viewBox="0 0 100 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Lacrymaria: teardrop body with extraordinarily extensible neck (7× body length) -->
+    <!-- extensible neck — long sinuous thread -->
+    <path d="M50 175 C48 165 44 155 40 143 C36 131 36 120 40 110 C44 100 48 92 46 82 C44 72 38 64 38 54 C38 44 42 34 46 26 C48 20 50 15 50 8" stroke="#3a88c0" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <!-- slight waviness of the neck -->
+    <path d="M50 8 C52 14 54 20 52 26 C50 32 47 36 48 42 C49 48 52 52 52 58 C52 64 49 70 48 76 C47 82 48 88 50 94" stroke="white" stroke-width="1" fill="none" opacity="0.4"/>
+    <!-- small rounded head at tip of neck -->
+    <ellipse cx="50" cy="8" rx="10" ry="8" fill="#78b8e8" stroke="#2a70b0" stroke-width="1.5"/>
+    <!-- tiny mouth/cilia at head -->
+    <path d="M42 6 C44 2 48 0 52 2 C56 4 58 8 56 12" stroke="#2a70b0" stroke-width="1" fill="none"/>
+    <!-- teardrop-shaped body at base -->
+    <path d="M50 195 C36 192 24 184 20 172 C16 160 20 148 28 140 C36 132 46 128 50 120 C50 128 54 132 62 140 C70 148 74 160 70 172 C66 184 64 192 50 195Z" fill="#90c4ec" stroke="#3a80c0" stroke-width="1.5"/>
+    <!-- cilia on body -->
+    <g stroke="#2a70b0" stroke-width="0.8" opacity="0.6">
+      <line x1="22" y1="162" x2="14" y2="160"/><line x1="21" y1="150" x2="13" y2="148"/>
+      <line x1="25" y1="140" x2="18" y2="136"/><line x1="31" y1="132" x2="25" y2="127"/>
+      <line x1="78" y1="162" x2="86" y2="160"/><line x1="79" y1="150" x2="87" y2="148"/>
+      <line x1="75" y1="140" x2="82" y2="136"/><line x1="69" y1="132" x2="75" y2="127"/>
+    </g>
+    <!-- macronucleus inside body -->
+    <ellipse cx="50" cy="165" rx="14" ry="18" fill="#60a8d8" opacity="0.7"/>
+    <!-- contractile vacuole -->
+    <circle cx="50" cy="182" r="5" fill="none" stroke="#2a70b0" stroke-width="1" stroke-dasharray="2,1"/>
+  </svg>` },
+
+  // ══════════════════════════════════════════════════════════ ALGAE
+
+  diatom_round: { bg:'#e8f0d8', svg:`<svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Centric diatom: circular silica shell with radial ribs and pores -->
+    <!-- outer valve outline -->
+    <circle cx="80" cy="80" r="68" fill="#d4e8a0" stroke="#607830" stroke-width="2"/>
+    <!-- inner valve line -->
+    <circle cx="80" cy="80" r="60" fill="none" stroke="#608040" stroke-width="1" stroke-dasharray="4,2"/>
+    <!-- radial ribs — silica structure -->
+    <g stroke="#507030" stroke-width="1.2" opacity="0.8">
+      <line x1="80" y1="80" x2="80" y2="12"/><line x1="80" y1="80" x2="80" y2="148"/>
+      <line x1="80" y1="80" x2="12" y2="80"/><line x1="80" y1="80" x2="148" y2="80"/>
+      <line x1="80" y1="80" x2="32" y2="32"/><line x1="80" y1="80" x2="128" y2="128"/>
+      <line x1="80" y1="80" x2="128" y2="32"/><line x1="80" y1="80" x2="32" y2="128"/>
+      <line x1="80" y1="80" x2="17" y2="57"/><line x1="80" y1="80" x2="143" y2="103"/>
+      <line x1="80" y1="80" x2="103" y2="17"/><line x1="80" y1="80" x2="57" y2="143"/>
+      <line x1="80" y1="80" x2="143" y2="57"/><line x1="80" y1="80" x2="17" y2="103"/>
+      <line x1="80" y1="80" x2="57" y2="17"/><line x1="80" y1="80" x2="103" y2="143"/>
+    </g>
+    <!-- pore rings at intervals along ribs -->
+    <g fill="none" stroke="#507030" stroke-width="0.8">
+      <circle cx="80" cy="46" r="4"/><circle cx="80" cy="114" r="4"/>
+      <circle cx="46" cy="80" r="4"/><circle cx="114" cy="80" r="4"/>
+      <circle cx="56" cy="56" r="4"/><circle cx="104" cy="104" r="4"/>
+      <circle cx="104" cy="56" r="4"/><circle cx="56" cy="104" r="4"/>
+    </g>
+    <!-- central areola -->
+    <circle cx="80" cy="80" r="14" fill="#c8e090" stroke="#508040" stroke-width="1.5"/>
+    <circle cx="80" cy="80" r="6" fill="#a0c870" opacity="0.8"/>
+    <!-- golden-brown chloroplast tinge -->
+    <circle cx="80" cy="80" r="52" fill="#b8a040" opacity="0.08"/>
+    <!-- girdle band (side view suggestion) -->
+    <ellipse cx="80" cy="80" rx="68" ry="12" fill="none" stroke="#608040" stroke-width="1" opacity="0.3"/>
+  </svg>` },
+
+  diatom_pennate: { bg:'#e4eed8', svg:`<svg viewBox="0 0 80 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Pennate (boat-shaped) diatom: elongated with raphe line and lateral striae -->
+    <!-- outer valve — pointed at both ends like a boat -->
+    <path d="M40 195 C26 185 14 168 12 145 C10 122 16 98 24 80 C32 62 38 44 40 8 C42 44 48 62 56 80 C64 98 70 122 68 145 C66 168 54 185 40 195Z" fill="#c8dc90" stroke="#507030" stroke-width="1.5"/>
+    <!-- RAPHE — central longitudinal slit, key pennate diatom feature -->
+    <line x1="40" y1="190" x2="40" y2="12" stroke="#305020" stroke-width="1.8"/>
+    <!-- central nodule — thickening at center of raphe -->
+    <ellipse cx="40" cy="102" rx="6" ry="4" fill="#406030" opacity="0.7"/>
+    <!-- polar nodules at each tip -->
+    <ellipse cx="40" cy="22" rx="4" ry="3" fill="#406030" opacity="0.6"/>
+    <ellipse cx="40" cy="182" rx="4" ry="3" fill="#406030" opacity="0.6"/>
+    <!-- lateral striae — parallel ribs across the valve -->
+    <g stroke="#507030" stroke-width="0.9" opacity="0.7">
+      <line x1="14" y1="140" x2="40" y2="140"/><line x1="14" y1="132" x2="40" y2="132"/>
+      <line x1="13" y1="124" x2="40" y2="124"/><line x1="13" y1="116" x2="40" y2="116"/>
+      <line x1="14" y1="108" x2="34" y2="108"/><line x1="15" y1="100" x2="34" y2="100"/>
+      <line x1="15" y1="92" x2="34" y2="92"/><line x1="16" y1="84" x2="35" y2="84"/>
+      <line x1="18" y1="76" x2="36" y2="76"/><line x1="21" y1="68" x2="38" y2="68"/>
+      <line x1="25" y1="60" x2="39" y2="60"/><line x1="30" y1="52" x2="40" y2="52"/>
+      <line x1="35" y1="44" x2="40" y2="44"/><line x1="38" y1="36" x2="40" y2="36"/>
+      <line x1="66" y1="140" x2="40" y2="140"/><line x1="66" y1="132" x2="40" y2="132"/>
+      <line x1="67" y1="124" x2="40" y2="124"/><line x1="67" y1="116" x2="40" y2="116"/>
+      <line x1="65" y1="108" x2="46" y2="108"/><line x1="65" y1="100" x2="46" y2="100"/>
+      <line x1="65" y1="92" x2="46" y2="92"/><line x1="64" y1="84" x2="45" y2="84"/>
+      <line x1="62" y1="76" x2="44" y2="76"/><line x1="59" y1="68" x2="42" y2="68"/>
+      <line x1="55" y1="60" x2="41" y2="60"/><line x1="50" y1="52" x2="40" y2="52"/>
+    </g>
+    <!-- chloroplast plates (golden-brown) -->
+    <rect x="22" y="80" width="12" height="38" rx="3" fill="#a08828" opacity="0.45" transform="rotate(-5,28,99)"/>
+    <rect x="46" y="82" width="12" height="36" rx="3" fill="#a08828" opacity="0.45" transform="rotate(5,52,100)"/>
+  </svg>` },
+
+  spirogyra: { bg:'#d4f0d0', svg:`<svg viewBox="0 0 80 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Spirogyra: cylindrical cells in chain, spiral chloroplast inside each cell -->
+    <!-- cell walls — rectangular cells stacked -->
+    <rect x="14" y="8" width="52" height="206" rx="4" fill="#a8e098" stroke="#3a8030" stroke-width="1.5"/>
+    <!-- cell division lines -->
+    <line x1="14" y1="60" x2="66" y2="60" stroke="#3a8030" stroke-width="1.5"/>
+    <line x1="14" y1="112" x2="66" y2="112" stroke="#3a8030" stroke-width="1.5"/>
+    <line x1="14" y1="164" x2="66" y2="164" stroke="#3a8030" stroke-width="1.5"/>
+    <!-- SPIRAL CHLOROPLAST — the defining Spirogyra feature, one per cell -->
+    <!-- cell 1 (top) -->
+    <path d="M40 12 C50 18 56 28 52 38 C48 48 36 52 30 60" stroke="#208020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- cell 2 -->
+    <path d="M30 64 C20 70 16 82 22 92 C28 102 42 106 50 112" stroke="#208020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- cell 3 -->
+    <path d="M50 116 C60 122 64 134 58 144 C52 154 38 158 30 164" stroke="#208020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- cell 4 (bottom) -->
+    <path d="M30 168 C20 174 16 186 22 196 C26 202 34 208 40 212" stroke="#208020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- nuclei — central spot in each cell -->
+    <circle cx="40" cy="36" r="5" fill="#50b040" opacity="0.8"/>
+    <circle cx="40" cy="88" r="5" fill="#50b040" opacity="0.8"/>
+    <circle cx="40" cy="140" r="5" fill="#50b040" opacity="0.8"/>
+    <circle cx="40" cy="190" r="5" fill="#50b040" opacity="0.8"/>
+    <!-- cytoplasmic strands connecting nucleus to chloroplast -->
+    <line x1="40" y1="36" x2="44" y2="30" stroke="#50b040" stroke-width="0.8" opacity="0.6"/>
+  </svg>` },
+
+  volvox: { bg:'#d0f0d8', svg:`<svg viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Volvox: large hollow sphere of hundreds of cells, daughter colonies inside -->
+    <!-- outer sphere -->
+    <circle cx="90" cy="90" r="80" fill="#c0e8c0" stroke="#308038" stroke-width="2"/>
+    <!-- inner sphere surface (hollow) -->
+    <circle cx="90" cy="90" r="74" fill="none" stroke="#308038" stroke-width="0.8" stroke-dasharray="3,3"/>
+    <!-- individual cells around the sphere surface — tiny circles with flagella dots -->
+    <g fill="#58a858" stroke="#208828" stroke-width="0.8">
+      <circle cx="90" cy="12" r="4"/><circle cx="90" cy="168" r="4"/>
+      <circle cx="12" cy="90" r="4"/><circle cx="168" cy="90" r="4"/>
+      <circle cx="34" cy="34" r="4"/><circle cx="146" cy="146" r="4"/>
+      <circle cx="146" cy="34" r="4"/><circle cx="34" cy="146" r="4"/>
+      <circle cx="55" cy="16" r="3.5"/><circle cx="125" cy="164" r="3.5"/>
+      <circle cx="16" cy="55" r="3.5"/><circle cx="164" cy="125" r="3.5"/>
+      <circle cx="125" cy="16" r="3.5"/><circle cx="55" cy="164" r="3.5"/>
+      <circle cx="164" cy="55" r="3.5"/><circle cx="16" cy="125" r="3.5"/>
+      <circle cx="24" cy="76" r="3.5"/><circle cx="156" cy="104" r="3.5"/>
+      <circle cx="76" cy="24" r="3.5"/><circle cx="104" cy="156" r="3.5"/>
+      <circle cx="156" cy="76" r="3.5"/><circle cx="24" cy="104" r="3.5"/>
+      <circle cx="104" cy="24" r="3.5"/><circle cx="76" cy="156" r="3.5"/>
+    </g>
+    <!-- cytoplasmic connections between cells (ECM strands) -->
+    <circle cx="90" cy="90" r="74" fill="none" stroke="#80c080" stroke-width="0.5" opacity="0.4"/>
+    <!-- daughter colonies inside — smaller spheres -->
+    <circle cx="78" cy="72" r="22" fill="#90d090" stroke="#308838" stroke-width="1.2"/>
+    <circle cx="78" cy="72" r="16" fill="none" stroke="#308838" stroke-width="0.7" stroke-dasharray="2,2"/>
+    <g fill="#58a858" stroke="#208828" stroke-width="0.6">
+      <circle cx="78" cy="52" r="2.5"/><circle cx="78" cy="92" r="2.5"/>
+      <circle cx="58" cy="72" r="2.5"/><circle cx="98" cy="72" r="2.5"/>
+      <circle cx="64" cy="58" r="2.5"/><circle cx="92" cy="86" r="2.5"/>
+      <circle cx="92" cy="58" r="2.5"/><circle cx="64" cy="86" r="2.5"/>
+    </g>
+    <circle cx="112" cy="112" r="18" fill="#90d090" stroke="#308838" stroke-width="1.2"/>
+    <circle cx="112" cy="112" r="13" fill="none" stroke="#308838" stroke-width="0.7" stroke-dasharray="2,2"/>
+    <g fill="#58a858" stroke="#208828" stroke-width="0.6">
+      <circle cx="112" cy="96" r="2"/><circle cx="112" cy="128" r="2"/>
+      <circle cx="96" cy="112" r="2"/><circle cx="128" cy="112" r="2"/>
+      <circle cx="101" cy="101" r="2"/><circle cx="123" cy="123" r="2"/>
+    </g>
+  </svg>` },
+
+  oscillatoria: { bg:'#e0ecd8', svg:`<svg viewBox="0 0 100 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Oscillatoria: cyanobacterium — unbranched filament of disc-shaped cells, blue-green -->
+    <!-- filament — wide and oscillating/slightly wavy -->
+    <!-- cell segments stacked, each a disc -->
+    <g stroke="#204060" stroke-width="1.2">
+      <!-- outer walls -->
+      <rect x="28" y="10" width="44" height="200" rx="6" fill="#80b8a0" stroke="#307060" stroke-width="1.5"/>
+      <!-- cross walls between cells (frequent, regular) -->
+      <line x1="28" y1="32" x2="72" y2="32"/><line x1="28" y1="50" x2="72" y2="50"/>
+      <line x1="28" y1="68" x2="72" y2="68"/><line x1="28" y1="86" x2="72" y2="86"/>
+      <line x1="28" y1="104" x2="72" y2="104"/><line x1="28" y1="122" x2="72" y2="122"/>
+      <line x1="28" y1="140" x2="72" y2="140"/><line x1="28" y1="158" x2="72" y2="158"/>
+      <line x1="28" y1="176" x2="72" y2="176"/><line x1="28" y1="194" x2="72" y2="194"/>
+    </g>
+    <!-- granules at cell cross walls — characteristic of Oscillatoria -->
+    <g fill="#307060" opacity="0.6">
+      <circle cx="40" cy="32" r="2"/><circle cx="60" cy="32" r="2"/>
+      <circle cx="40" cy="68" r="2"/><circle cx="60" cy="68" r="2"/>
+      <circle cx="40" cy="104" r="2"/><circle cx="60" cy="104" r="2"/>
+      <circle cx="40" cy="140" r="2"/><circle cx="60" cy="140" r="2"/>
+      <circle cx="40" cy="176" r="2"/><circle cx="60" cy="176" r="2"/>
+    </g>
+    <!-- blue-green phycocyanin tinge overlay -->
+    <rect x="28" y="10" width="44" height="200" rx="6" fill="#2080a0" opacity="0.08"/>
+    <!-- oscillating wave motion hint (dashed arrow) -->
+    <path d="M80 60 C90 80 90 120 80 140" stroke="#307060" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+    <polygon points="78,138 84,146 72,146" fill="#307060" opacity="0.5"/>
+  </svg>` },
+
+  // ══════════════════════════════════════════════════════════ MICRO-ANIMALS
+
+  daphnia: { bg:'#e4f0f8', svg:`<svg viewBox="0 0 120 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Daphnia (water flea): transparent carapace, compound eye, brood pouch, long antennae -->
+    <!-- transparent carapace shell -->
+    <path d="M60 175 C36 168 18 150 14 128 C10 106 18 84 30 68 C38 58 48 52 60 46 C72 52 82 58 90 68 C102 84 110 106 106 128 C102 150 84 168 60 175Z" fill="none" stroke="#4a90c8" stroke-width="1.5" stroke-dasharray="5,2"/>
+    <!-- body inside carapace — slightly smaller -->
+    <path d="M60 168 C42 162 28 148 24 130 C20 112 26 92 36 76 C44 64 52 56 60 52 C68 56 76 64 84 76 C94 92 100 112 96 130 C92 148 78 162 60 168Z" fill="#c8e4f8" stroke="#3a80b8" stroke-width="1.2"/>
+    <!-- compound eye — large, black, single (distinctive!) -->
+    <circle cx="44" cy="64" r="10" fill="#101828"/>
+    <circle cx="44" cy="64" r="4" fill="#3060a0" opacity="0.5"/>
+    <circle cx="41" cy="61" r="2" fill="white" opacity="0.7"/>
+    <!-- rostrum (beak) -->
+    <path d="M42 74 C36 80 32 86 34 90" stroke="#2a70a8" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- 2 large biramous antennae for swimming — very prominent -->
+    <path d="M52 60 C44 48 34 36 20 24" stroke="#2a70a8" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M20 24 C14 18 10 12 8 6" stroke="#2a70a8" stroke-width="1.5" fill="none"/>
+    <path d="M20 24 C16 16 14 8 16 2" stroke="#2a70a8" stroke-width="1.5" fill="none"/>
+    <!-- second antenna branch -->
+    <path d="M52 60 C46 52 42 44 40 34" stroke="#2a70a8" stroke-width="1.5" fill="none"/>
+    <path d="M40 34 C38 26 38 18 40 10" stroke="#2a70a8" stroke-width="1.5" fill="none"/>
+    <path d="M40 34 C36 28 32 22 30 14" stroke="#2a70a8" stroke-width="1.5" fill="none"/>
+    <!-- 5 pairs of leaf-like thoracic limbs (phyllopods) -->
+    <g stroke="#3a80b8" stroke-width="1" fill="#a8d0f0" opacity="0.7">
+      <ellipse cx="50" cy="100" rx="14" ry="6" transform="rotate(-30,50,100)"/>
+      <ellipse cx="52" cy="115" rx="14" ry="6" transform="rotate(-25,52,115)"/>
+      <ellipse cx="54" cy="130" rx="13" ry="6" transform="rotate(-20,54,130)"/>
+      <ellipse cx="56" cy="144" rx="12" ry="5" transform="rotate(-15,56,144)"/>
+      <ellipse cx="58" cy="157" rx="10" ry="5" transform="rotate(-10,58,157)"/>
+    </g>
+    <!-- brood pouch — eggs/embryos inside carapace at back -->
+    <ellipse cx="72" cy="120" rx="16" ry="28" fill="#f0e060" stroke="#c0a820" stroke-width="1" opacity="0.6"/>
+    <circle cx="68" cy="112" r="6" fill="#e8d040" opacity="0.7"/>
+    <circle cx="76" cy="124" r="6" fill="#e8d040" opacity="0.7"/>
+    <circle cx="70" cy="132" r="5" fill="#e8d040" opacity="0.6"/>
+    <!-- tail spine -->
+    <path d="M60 175 C62 182 64 190 60 198" stroke="#3a80b8" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- gut visible through transparent body -->
+    <path d="M60 80 C58 95 58 115 60 135 C62 155 62 165 60 170" stroke="#906020" stroke-width="1.5" fill="none" opacity="0.4"/>
+    <!-- heart (beats visibly!) -->
+    <ellipse cx="62" cy="78" rx="7" ry="5" fill="#e05050" opacity="0.5"/>
+  </svg>` },
+
+  rotifer: { bg:'#e4eef8', svg:`<svg viewBox="0 0 120 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Bdelloid rotifer: corona of cilia (wheel), telescoping body segments, foot with toes -->
+    <!-- corona — two spinning wheel-like ciliary discs at top -->
+    <ellipse cx="60" cy="38" rx="44" ry="18" fill="#c0d8f8" stroke="#3a70c0" stroke-width="1.5"/>
+    <ellipse cx="40" cy="34" rx="18" ry="14" fill="#a0c4f0" stroke="#3a70c0" stroke-width="1.2"/>
+    <ellipse cx="80" cy="34" rx="18" ry="14" fill="#a0c4f0" stroke="#3a70c0" stroke-width="1.2"/>
+    <!-- cilia around corona wheels -->
+    <g stroke="#2a60b0" stroke-width="1" opacity="0.8">
+      <line x1="24" y1="30" x2="18" y2="22"/><line x1="30" y1="22" x2="26" y2="14"/>
+      <line x1="40" y1="20" x2="40" y2="10"/><line x1="50" y1="22" x2="52" y2="12"/>
+      <line x1="56" y1="30" x2="60" y2="22"/>
+      <line x1="64" y1="30" x2="68" y2="22"/><line x1="70" y1="22" x2="74" y2="12"/>
+      <line x1="80" y1="20" x2="80" y2="10"/><line x1="90" y1="22" x2="92" y2="12"/>
+      <line x1="96" y1="30" x2="102" y2="22"/>
+    </g>
+    <!-- body — cylindrical, telescoping segments visible -->
+    <path d="M20 52 C16 68 14 90 16 112 C18 130 24 148 30 160 L90 160 C96 148 102 130 104 112 C106 90 104 68 100 52Z" fill="#b8d4f4" stroke="#3a70c0" stroke-width="1.3"/>
+    <!-- segment lines (loricate / telescoping) -->
+    <line x1="18" y1="80" x2="102" y2="80" stroke="#3a70c0" stroke-width="0.9" stroke-dasharray="3,2"/>
+    <line x1="16" y1="108" x2="104" y2="108" stroke="#3a70c0" stroke-width="0.9" stroke-dasharray="3,2"/>
+    <line x1="18" y1="136" x2="102" y2="136" stroke="#3a70c0" stroke-width="0.9" stroke-dasharray="3,2"/>
+    <!-- mastax (grinding jaw) — visible inside body, characteristic -->
+    <ellipse cx="60" cy="65" rx="16" ry="12" fill="#78a8e0" stroke="#2a60b0" stroke-width="1.2"/>
+    <line x1="50" y1="65" x2="70" y2="65" stroke="#2a60b0" stroke-width="1.5"/>
+    <!-- stomach / digestive tract -->
+    <path d="M60 80 C56 92 56 110 60 125 C64 138 62 150 60 158" stroke="#5080c0" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <!-- germovitellarium (ovary) -->
+    <ellipse cx="60" cy="120" rx="18" ry="12" fill="#90b8e8" opacity="0.5"/>
+    <!-- foot — telescoping, with 2 toes at bottom -->
+    <path d="M30 160 C30 168 34 176 38 182 L82 182 C86 176 90 168 90 160" fill="#a8c8f0" stroke="#3a70c0" stroke-width="1.2"/>
+    <path d="M38 182 C34 188 30 196 28 200" stroke="#3a70c0" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M82 182 C86 188 90 196 92 200" stroke="#3a70c0" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- cement glands in toes -->
+    <circle cx="30" cy="198" r="3" fill="#3a70c0" opacity="0.6"/>
+    <circle cx="90" cy="198" r="3" fill="#3a70c0" opacity="0.6"/>
+  </svg>` },
+
+  tardigrade: { bg:'#f0e8d8', svg:`<svg viewBox="0 0 160 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Tardigrade (water bear): barrel-shaped, 4 pairs stubby legs with claws, tube mouth -->
+    <!-- main barrel body -->
+    <path d="M80 165 C52 162 28 148 18 128 C8 108 12 85 22 66 C32 48 50 34 68 26 C72 24 76 22 80 20 C84 22 88 24 92 26 C110 34 128 48 138 66 C148 85 152 108 142 128 C132 148 108 162 80 165Z" fill="#d4b880" stroke="#806030" stroke-width="1.8"/>
+    <!-- body segmentation lines (4 segments) -->
+    <line x1="32" y1="72" x2="128" y2="72" stroke="#806030" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+    <line x1="22" y1="102" x2="138" y2="102" stroke="#806030" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+    <line x1="24" y1="132" x2="136" y2="132" stroke="#806030" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+    <!-- 4 PAIRS of stubby legs with claws — the defining tardigrade feature -->
+    <!-- pair 1 -->
+    <path d="M36 80 C24 84 14 90 10 100" stroke="#705028" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M10 100 C6 104 4 106 2 110" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M10 100 C8 106 8 110 10 114" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M10 100 C12 106 14 110 12 114" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M124" y1="80" x2="136" y2="84" stroke="#705028"/>
+    <path d="M124 80 C136 84 146 90 150 100" stroke="#705028" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M150 100 C154 104 156 106 158 110" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M150 100 C152 106 152 110 150 114" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M150 100 C148 106 146 110 148 114" stroke="#705028" stroke-width="2" fill="none"/>
+    <!-- pair 2 -->
+    <path d="M28 110 C16 116 8 126 8 138" stroke="#705028" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M8 138 C4 144 2 148 0 152" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M8 138 C6 144 6 150 8 154" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M132 110 C144 116 152 126 152 138" stroke="#705028" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M152 138 C156 144 158 148 160 152" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M152 138 C154 144 154 150 152 154" stroke="#705028" stroke-width="2" fill="none"/>
+    <!-- pair 3 -->
+    <path d="M32 134 C22 142 16 154 18 164" stroke="#705028" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M128 134 C138 142 144 154 142 164" stroke="#705028" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <!-- pair 4 — terminal, pointing backward -->
+    <path d="M52 158 C44 166 38 172 36 178" stroke="#705028" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M36 178 C32 182 30 184 28 186" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M36 178 C34 184 34 186 36 188" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M108 158 C116 166 122 172 124 178" stroke="#705028" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M124 178 C128 182 130 184 132 186" stroke="#705028" stroke-width="2" fill="none"/>
+    <path d="M124 178 C126 184 126 186 124 188" stroke="#705028" stroke-width="2" fill="none"/>
+    <!-- stylet + mouth tube (buccal apparatus) — characteristic feature -->
+    <circle cx="80" cy="28" r="12" fill="#c0a060" stroke="#806030" stroke-width="1.5"/>
+    <circle cx="80" cy="28" r="6" fill="#a08040" opacity="0.8"/>
+    <!-- mouth tube -->
+    <line x1="80" y1="16" x2="80" y2="8" stroke="#806030" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- stylets visible -->
+    <line x1="76" y1="22" x2="72" y2="16" stroke="#604020" stroke-width="1.2"/>
+    <line x1="84" y1="22" x2="88" y2="16" stroke="#604020" stroke-width="1.2"/>
+    <!-- internal organs — visible through semi-transparent body -->
+    <ellipse cx="80" cy="90" rx="30" ry="16" fill="#c8a060" opacity="0.25"/>
+    <path d="M60 105 C62 118 64 130 65 142" stroke="#806030" stroke-width="1.2" fill="none" opacity="0.35"/>
+    <path d="M100 105 C98 118 96 130 95 142" stroke="#806030" stroke-width="1.2" fill="none" opacity="0.35"/>
+    <!-- eye spots -->
+    <circle cx="70" cy="34" r="4" fill="#201010" opacity="0.8"/>
+    <circle cx="90" cy="34" r="4" fill="#201010" opacity="0.8"/>
+  </svg>` },
+
+  copepod: { bg:'#dceef8', svg:`<svg viewBox="-20 -8 160 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Cyclopoid copepod: teardrop cephalothorax, segmented abdomen, long antennae, egg sacs -->
+    <!-- cephalothorax — large teardrop head+thorax -->
+    <path d="M60 110 C36 108 16 94 12 74 C8 54 20 34 36 22 C46 14 54 10 60 8 C66 10 74 14 84 22 C100 34 112 54 108 74 C104 94 84 108 60 110Z" fill="#b0d4f0" stroke="#3068a0" stroke-width="1.5"/>
+    <!-- segmented abdomen — narrowing segments -->
+    <path d="M60 110 C52 114 46 120 44 128 L76 128 C74 120 68 114 60 110Z" fill="#a0c8ec" stroke="#3068a0" stroke-width="1.2"/>
+    <path d="M44 128 C42 134 42 140 44 146 L76 146 C78 140 78 134 76 128Z" fill="#90bce8" stroke="#3068a0" stroke-width="1.2"/>
+    <path d="M44 146 C44 152 46 158 48 162 L72 162 C74 158 76 152 76 146Z" fill="#80b0e4" stroke="#3068a0" stroke-width="1.2"/>
+    <!-- furcal rami — two tail bristles -->
+    <path d="M52 162 C48 170 44 180 42 192" stroke="#3068a0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M68 162 C72 170 76 180 78 192" stroke="#3068a0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <!-- long furcal setae at tail end -->
+    <line x1="42" y1="192" x2="36" y2="208"/><line x1="42" y1="192" x2="42" y2="210"/><line x1="42" y1="192" x2="48" y2="208"/>
+    <line x1="78" y1="192" x2="72" y2="208"/><line x1="78" y1="192" x2="78" y2="210"/><line x1="78" y1="192" x2="84" y2="208"/>
+    <g stroke="#3068a0" stroke-width="1"/>
+    <!-- 2 very long first antennae — swept back -->
+    <path d="M28 32 C18 22 6 14 -4 8" stroke="#2058a0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M-4 8 C-10 4 -16 2 -20 -2" stroke="#2058a0" stroke-width="1.2" fill="none"/>
+    <path d="M92 32 C102 22 114 14 124 8" stroke="#2058a0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M124 8 C130 4 136 2 140 -2" stroke="#2058a0" stroke-width="1.2" fill="none"/>
+    <!-- swimming legs (5 pairs on thorax) -->
+    <g stroke="#3068a0" stroke-width="1.2" fill="none">
+      <path d="M24 60 C14 56 6 52 2 46"/><path d="M2 46 C0 42 0 38 2 34"/>
+      <path d="M96 60 C106 56 114 52 118 46"/><path d="M118 46 C120 42 120 38 118 34"/>
+      <path d="M20 76 C10 74 4 72 0 66"/>
+      <path d="M100 76 C110 74 116 72 120 66"/>
+      <path d="M18 90 C10 90 4 90 0 84"/>
+      <path d="M102 90 C110 90 116 90 120 84"/>
+    </g>
+    <!-- EGG SACS — paired sacs carried at base of abdomen, very characteristic -->
+    <ellipse cx="44" cy="118" rx="14" ry="20" fill="#f0e060" stroke="#c0a020" stroke-width="1.2" opacity="0.8"/>
+    <ellipse cx="76" cy="118" rx="14" ry="20" fill="#f0e060" stroke="#c0a020" stroke-width="1.2" opacity="0.8"/>
+    <!-- eggs inside sacs -->
+    <circle cx="42" cy="112" r="4" fill="#e8d030" opacity="0.7"/>
+    <circle cx="46" cy="122" r="4" fill="#e8d030" opacity="0.7"/>
+    <circle cx="40" cy="124" r="3.5" fill="#e8d030" opacity="0.6"/>
+    <circle cx="74" cy="112" r="4" fill="#e8d030" opacity="0.7"/>
+    <circle cx="78" cy="122" r="4" fill="#e8d030" opacity="0.7"/>
+    <!-- nauplius eye -->
+    <circle cx="60" cy="24" r="6" fill="#101828" opacity="0.8"/>
+    <circle cx="58" cy="22" r="2" fill="white" opacity="0.6"/>
+    <!-- gut -->
+    <path d="M60 30 C58 50 58 70 60 90" stroke="#205080" stroke-width="1.5" fill="none" opacity="0.4"/>
+  </svg>` },
+
+  nematode: { bg:'#e8f0dc', svg:`<svg viewBox="0 0 100 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Nematode: cylindrical roundworm, tapered ends, sinuous S-shape, cuticle -->
+    <!-- sinuous body in S-curve -->
+    <path d="M60 210 C68 198 72 184 70 170 C68 156 60 144 55 130 C50 116 48 102 52 88 C56 74 64 62 66 48 C68 34 64 20 58 10" stroke="#5a8838" stroke-width="16" fill="none" stroke-linecap="round"/>
+    <!-- lighter fill for body -->
+    <path d="M60 210 C68 198 72 184 70 170 C68 156 60 144 55 130 C50 116 48 102 52 88 C56 74 64 62 66 48 C68 34 64 20 58 10" stroke="#a8cc80" stroke-width="13" fill="none" stroke-linecap="round"/>
+    <!-- cuticle lines (annulation) -->
+    <path d="M60 210 C68 198 72 184 70 170 C68 156 60 144 55 130 C50 116 48 102 52 88 C56 74 64 62 66 48 C68 34 64 20 58 10" stroke="#5a8838" stroke-width="1" fill="none" stroke-linecap="round" stroke-dasharray="4,8"/>
+    <!-- internal structures — gut line -->
+    <path d="M59 205 C66 193 70 180 68 167 C66 154 58 142 53 129 C48 116 47 103 51 89 C55 75 63 63 65 49 C67 35 63 21 58 12" stroke="#3a6820" stroke-width="2.5" fill="none" opacity="0.4"/>
+    <!-- mouth / lips at anterior (tapered) end -->
+    <circle cx="58" cy="10" r="7" fill="#80b060" stroke="#4a7830" stroke-width="1.2"/>
+    <circle cx="58" cy="10" r="3.5" fill="#3a6028" opacity="0.7"/>
+    <!-- excretory pore on ventral side -->
+    <circle cx="52" cy="90" r="2.5" fill="#4a7830" opacity="0.6"/>
+    <!-- vulva (if female) — midpoint -->
+    <line x1="52" y1="130" x2="46" y2="130" stroke="#4a7830" stroke-width="1.2"/>
+    <!-- anus near posterior -->
+    <circle cx="62" cy="196" r="2" fill="#4a7830" opacity="0.5"/>
+    <!-- tail — pointed -->
+    <path d="M62 204 C63 208 62 212 60 216" stroke="#5a8838" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </svg>` },
+
+  // ══════════════════════════════════════════════════════════ BACTERIA
+
+  bacteria_cluster: { bg:'#f0e4f8', svg:`<svg viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Mixed bacteria showing different morphologies: cocci, bacilli, spirilla -->
+    <!-- label areas -->
+    <text x="12" y="168" font-size="8" fill="#5a1a7a" font-family="sans-serif" font-weight="600">Cocci</text>
+    <text x="68" y="168" font-size="8" fill="#5a1a7a" font-family="sans-serif" font-weight="600">Bacilli</text>
+    <text x="124" y="168" font-size="8" fill="#5a1a7a" font-family="sans-serif" font-weight="600">Spirilla</text>
+    <!-- dividing lines -->
+    <line x1="62" y1="12" x2="62" y2="160" stroke="#d0b0e8" stroke-width="0.8" stroke-dasharray="3,3"/>
+    <line x1="118" y1="12" x2="118" y2="160" stroke="#d0b0e8" stroke-width="0.8" stroke-dasharray="3,3"/>
+
+    <!-- COCCI — spherical bacteria in clusters (like Staphylococcus) and chains (Streptococcus) -->
+    <!-- cluster (Staphylococcus-style) -->
+    <g fill="#c080e0" stroke="#6030a0" stroke-width="1">
+      <circle cx="22" cy="40" r="8"/><circle cx="38" cy="36" r="8"/>
+      <circle cx="30" cy="52" r="8"/><circle cx="46" cy="50" r="8"/>
+      <circle cx="18" cy="56" r="7"/><circle cx="40" cy="64" r="7"/>
+      <circle cx="26" cy="68" r="7"/>
+    </g>
+    <!-- chain (Streptococcus-style) -->
+    <g fill="#d090f0" stroke="#6030a0" stroke-width="1">
+      <circle cx="30" cy="100" r="7"/><circle cx="30" cy="115" r="7"/>
+      <circle cx="30" cy="130" r="7"/><circle cx="30" cy="145" r="7"/>
+    </g>
+    <!-- diplococcus pair -->
+    <g fill="#b870d8" stroke="#6030a0" stroke-width="1">
+      <circle cx="48" cy="115" r="7"/><circle cx="55" cy="107" r="7"/>
+    </g>
+
+    <!-- BACILLI — rod-shaped bacteria, some with flagella -->
+    <!-- single rods -->
+    <g fill="#a060d8" stroke="#5020a0" stroke-width="1">
+      <rect x="74" y="30" width="12" height="28" rx="6" transform="rotate(-15,80,44)"/>
+      <rect x="88" y="50" width="12" height="24" rx="6" transform="rotate(20,94,62)"/>
+      <rect x="72" y="70" width="10" height="22" rx="5" transform="rotate(-5,77,81)"/>
+      <rect x="90" y="82" width="10" height="26" rx="5" transform="rotate(30,95,95)"/>
+      <rect x="76" y="104" width="10" height="22" rx="5" transform="rotate(-20,81,115)"/>
+    </g>
+    <!-- flagella on one bacillus -->
+    <path d="M82 32 C76 24 72 18 74 12" stroke="#5020a0" stroke-width="0.8" fill="none"/>
+    <path d="M82 32 C88 24 90 16 86 10" stroke="#5020a0" stroke-width="0.8" fill="none"/>
+    <!-- dividing bacillus -->
+    <g fill="#b878e8" stroke="#5020a0" stroke-width="1">
+      <rect x="78" y="128" width="10" height="14" rx="5"/>
+      <rect x="78" y="143" width="10" height="14" rx="5"/>
+    </g>
+
+    <!-- SPIRILLA — helical/corkscrew shaped -->
+    <path d="M136 20 C142 26 148 32 142 40 C136 48 128 52 130 60 C132 68 140 72 138 80 C136 88 128 90 128 98 C128 106 136 110 136 118 C136 126 128 130 128 138 C128 146 136 150 136 158" stroke="#8040c0" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M136 20 C130 26 124 32 130 40 C136 48 144 52 142 60 C140 68 132 72 134 80 C136 88 144 90 144 98 C144 106 136 110 136 118 C136 126 144 130 144 138 C144 146 136 150 136 158" stroke="#a060d8" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <!-- flagella tufts at ends of spirillum -->
+    <path d="M136 20 C132 12 130 6 134 2" stroke="#8040c0" stroke-width="1" fill="none"/>
+    <path d="M136 20 C140 12 142 6 138 2" stroke="#8040c0" stroke-width="1" fill="none"/>
+    <path d="M136 158 C132 164 130 170 134 174" stroke="#8040c0" stroke-width="1" fill="none"/>
+    <path d="M136 158 C140 164 142 170 138 174" stroke="#8040c0" stroke-width="1" fill="none"/>
+  </svg>` },
+
+  anabaena: { bg:'#dce8f0', svg:`<svg viewBox="0 0 90 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Anabaena: cyanobacterium — chain of rounded cells with larger heterocysts and akinetes -->
+    <!-- slightly curved filament -->
+    <!-- vegetative cells — regular size beads -->
+    <g fill="#70b0d0" stroke="#2060a0" stroke-width="1.2">
+      <circle cx="45" cy="18" r="10"/>
+      <circle cx="45" cy="38" r="10"/>
+      <circle cx="43" cy="58" r="10"/>
+      <!-- HETEROCYST — larger, thick-walled, pale: fixes nitrogen, key ID feature -->
+      <circle cx="41" cy="78" r="13" fill="#d8f0f8" stroke="#2060a0" stroke-width="2"/>
+      <circle cx="41" cy="78" r="8" fill="none" stroke="#2060a0" stroke-width="1"/>
+      <circle cx="41" cy="78" r="3" fill="#2060a0" opacity="0.4"/>
+      <circle cx="40" cy="100" r="10"/>
+      <circle cx="40" cy="120" r="10"/>
+      <circle cx="42" cy="140" r="10"/>
+      <!-- AKINETE — very large resting spore, granular: another key ID feature -->
+      <ellipse cx="44" cy="164" rx="14" ry="16" fill="#9098e0" stroke="#3040b0" stroke-width="2"/>
+      <g fill="#5060c0" opacity="0.5">
+        <circle cx="40" cy="158" r="2"/><circle cx="48" cy="160" r="2"/>
+        <circle cx="38" cy="166" r="2"/><circle cx="50" cy="168" r="2"/>
+        <circle cx="42" cy="173" r="2"/>
+      </g>
+      <circle cx="46" cy="186" r="10"/>
+      <circle cx="47" cy="206" r="10"/>
+    </g>
+    <!-- labels -->
+    <line x1="54" y1="78" x2="74" y2="68" stroke="#2060a0" stroke-width="0.8"/>
+    <text x="55" y="66" font-size="7" fill="#2060a0" font-family="sans-serif">Heterocyst</text>
+    <line x1="58" y1="164" x2="76" y2="154" stroke="#3040b0" stroke-width="0.8"/>
+    <text x="58" y="152" font-size="7" fill="#3040b0" font-family="sans-serif">Akinete</text>
+  </svg>` },
+
+  // ══════════════════════════════════════════════════════════ MACRO-INVERTEBRATES
+
+  pond_snail: { bg:'#ede0c8', svg:`<svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Pond snail: tightly coiled dextral (right-handed) spiral shell, soft body with tentacles -->
+    <!-- shell — 4-whorled spiral, pointed apex -->
+    <path d="M110 155 C90 158 68 152 52 140 C36 128 26 110 24 90 C22 70 30 50 44 36 C58 22 78 14 98 14 C118 14 138 22 152 36 C166 50 174 70 172 90 C170 110 160 128 144 140 C136 146 128 152 118 155Z" fill="#c8a870" stroke="#8a6830" stroke-width="2"/>
+    <!-- inner whorls -->
+    <path d="M110 148 C94 150 76 144 63 133 C50 122 43 106 44 90 C45 74 53 59 65 49 C77 39 93 34 108 35 C123 36 138 43 148 54 C158 65 163 80 161 95 C159 110 151 124 139 133 C128 142 119 147 110 148Z" fill="#b89860" stroke="#8a6830" stroke-width="1.3"/>
+    <path d="M108 138 C96 140 82 135 73 126 C64 117 60 104 62 91 C64 78 71 66 82 59 C93 52 107 50 119 55 C131 60 140 71 142 84 C144 97 139 111 130 120 C121 129 114 137 108 138Z" fill="#a88850" stroke="#7a5820" stroke-width="1"/>
+    <path d="M106 125 C98 127 88 123 82 116 C76 109 74 99 77 90 C80 81 87 74 96 71 C105 68 115 71 121 78 C127 85 128 95 124 104 C120 113 113 123 106 125Z" fill="#987840" stroke="#7a5820" stroke-width="1"/>
+    <!-- shell apex — tight coil at top-right -->
+    <circle cx="118" cy="60" r="10" fill="#886830" stroke="#6a4810" stroke-width="1"/>
+    <circle cx="116" cy="58" r="5" fill="#786028" stroke="#5a3808" stroke-width="0.8"/>
+    <!-- growth ridges on outer whorl -->
+    <path d="M44 90 C43 98 44 106 47 114" stroke="#7a5820" stroke-width="0.8" fill="none" opacity="0.5"/>
+    <path d="M28 80 C27 90 28 100 32 110" stroke="#7a5820" stroke-width="0.8" fill="none" opacity="0.4"/>
+    <!-- body / foot emerging from aperture -->
+    <path d="M52 140 C44 148 38 158 36 168 C50 165 64 162 76 158 C88 154 96 150 104 148" fill="#a06840" stroke="#7a4820" stroke-width="1.3"/>
+    <!-- muscular foot -->
+    <path d="M36 168 C50 172 80 172 104 165 C120 160 130 155 135 152" fill="#b07848" stroke="#7a4820" stroke-width="1.3"/>
+    <!-- head with two pairs of tentacles -->
+    <ellipse cx="44" cy="148" rx="10" ry="7" fill="#a06840" stroke="#7a4820" stroke-width="1.2"/>
+    <!-- longer upper tentacles with eyes at tips -->
+    <path d="M40 142 C36 132 32 124 28 116" stroke="#7a4820" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="28" cy="116" r="4" fill="#201008"/>
+    <circle cx="27" cy="115" r="1.5" fill="white" opacity="0.6"/>
+    <path d="M48 141 C50 131 52 122 52 114" stroke="#7a4820" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="52" cy="114" r="4" fill="#201008"/>
+    <circle cx="51" cy="113" r="1.5" fill="white" opacity="0.6"/>
+    <!-- shorter lower tentacles (sensory) -->
+    <path d="M38 146 C34 142 30 139 28 136" stroke="#7a4820" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M50 146 C52 143 54 140 54 137" stroke="#7a4820" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- mantle edge -->
+    <path d="M52 140 C56 136 62 134 68 135" stroke="#8a5830" stroke-width="1" fill="none"/>
+  </svg>` },
+
+  water_boatman: { bg:'#d0e4f0', svg:`<svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Water boatman (Corixidae): oval flattened body, oar-like hind legs, cross-hatched back -->
+    <!-- body — oval, flattened, widest at middle -->
+    <path d="M100 158 C72 156 48 146 34 130 C20 114 18 92 26 74 C34 56 52 42 74 34 C86 30 94 26 100 24 C106 26 114 30 126 34 C148 42 166 56 174 74 C182 92 180 114 166 130 C152 146 128 156 100 158Z" fill="#5a7840" stroke="#3a5020" stroke-width="1.8"/>
+    <!-- pronotal plate — characteristic cross-hatched pattern on back -->
+    <path d="M100 50 C80 52 62 60 52 72 C42 84 42 100 52 112 C62 124 80 132 100 134 C120 132 138 124 148 112 C158 100 158 84 148 72 C138 60 120 52 100 50Z" fill="#6a8848" stroke="#4a6030" stroke-width="1"/>
+    <!-- cross-hatch lines — key ID feature of Corixidae -->
+    <g stroke="#3a5028" stroke-width="0.7" opacity="0.6">
+      <line x1="54" y1="80" x2="146" y2="80"/><line x1="50" y1="88" x2="150" y2="88"/>
+      <line x1="46" y1="96" x2="154" y2="96"/><line x1="46" y1="104" x2="154" y2="104"/>
+      <line x1="48" y1="112" x2="152" y2="112"/><line x1="54" y1="120" x2="146" y2="120"/>
+      <line x1="64" y1="128" x2="136" y2="128"/>
+    </g>
+    <!-- scutellum — triangular plate between wing bases -->
+    <path d="M84 52 L100 50 L116 52 L100 76Z" fill="#4a6830" stroke="#3a5020" stroke-width="1"/>
+    <!-- wings visible through elytra outline -->
+    <path d="M52 72 C48 80 46 96 48 112" stroke="#8aaa60" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <path d="M148 72 C152 80 154 96 152 112" stroke="#8aaa60" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <!-- head — small, with large eyes -->
+    <ellipse cx="100" cy="34" rx="22" ry="14" fill="#4a6030" stroke="#3a4820" stroke-width="1.5"/>
+    <!-- large compound eyes -->
+    <ellipse cx="84" cy="32" rx="8" ry="9" fill="#1a2010" stroke="#3a4820" stroke-width="1"/>
+    <ellipse cx="116" cy="32" rx="8" ry="9" fill="#1a2010" stroke="#3a4820" stroke-width="1"/>
+    <circle cx="82" cy="30" r="2.5" fill="white" opacity="0.4"/>
+    <circle cx="114" cy="30" r="2.5" fill="white" opacity="0.4"/>
+    <!-- short beak (rostrum) -->
+    <path d="M100 42 C100 48 100 52 100 56" stroke="#3a4820" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- FRONT LEGS — short, scooped (palae) for feeding -->
+    <path d="M72 44 C60 38 50 34 42 32" stroke="#3a5020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M42 32 C38 30 36 28 36 26" stroke="#3a5020" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M128 44 C140 38 150 34 158 32" stroke="#3a5020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M158 32 C162 30 164 28 164 26" stroke="#3a5020" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- MID LEGS — medium, clinging -->
+    <path d="M60 80 C46 82 36 86 24 86" stroke="#3a5020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M24 86 C18 86 14 88 12 92" stroke="#3a5020" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M140 80 C154 82 164 86 176 86" stroke="#3a5020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M176 86 C182 86 186 88 188 92" stroke="#3a5020" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- HIND LEGS — long OAR-LIKE, fringed with hairs — the defining feature -->
+    <path d="M66 130 C50 138 34 148 16 154" stroke="#3a5020" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <!-- rowing hairs on hind leg -->
+    <g stroke="#3a5020" stroke-width="1" opacity="0.8">
+      <line x1="56" y1="134" x2="53" y2="128"/><line x1="50" y1="138" x2="46" y2="132"/>
+      <line x1="44" y1="142" x2="40" y2="136"/><line x1="38" y1="146" x2="34" y2="140"/>
+      <line x1="30" y1="150" x2="26" y2="144"/><line x1="24" y1="153" x2="20" y2="147"/>
+    </g>
+    <path d="M134 130 C150 138 166 148 184 154" stroke="#3a5020" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <g stroke="#3a5020" stroke-width="1" opacity="0.8">
+      <line x1="144" y1="134" x2="147" y2="128"/><line x1="150" y1="138" x2="154" y2="132"/>
+      <line x1="156" y1="142" x2="160" y2="136"/><line x1="162" y1="146" x2="166" y2="140"/>
+      <line x1="170" y1="150" x2="174" y2="144"/>
+    </g>
+    <!-- air bubble underneath — breathes from surface -->
+    <ellipse cx="100" cy="150" rx="20" ry="6" fill="white" opacity="0.25" stroke="white" stroke-width="0.8"/>
+  </svg>` },
+
+  mayfly_larva: { bg:'#e4d8c0', svg:`<svg viewBox="0 -28 160 275" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Mayfly larva (Ephemeroptera): 3 tails, plate-like gills along abdomen, large wing pads -->
+    <!-- abdomen — segmented, tapered -->
+    <path d="M80 220 C68 218 56 212 50 202 C44 192 44 180 46 168 C48 156 52 144 52 132 C52 120 50 108 50 96 C50 84 52 74 56 66 C62 56 70 50 80 48 C90 50 98 56 104 66 C108 74 110 84 110 96 C110 108 108 120 108 132 C108 144 112 156 114 168 C116 180 116 192 110 202 C104 212 92 218 80 220Z" fill="#c8a868" stroke="#8a6830" stroke-width="1.5"/>
+    <!-- abdominal segments -->
+    <g stroke="#7a5820" stroke-width="1" opacity="0.7">
+      <line x1="50" y1="100" x2="110" y2="100"/><line x1="50" y1="114" x2="110" y2="114"/>
+      <line x1="50" y1="128" x2="110" y2="128"/><line x1="50" y1="142" x2="110" y2="142"/>
+      <line x1="50" y1="156" x2="112" y2="156"/><line x1="50" y1="170" x2="114" y2="170"/>
+      <line x1="52" y1="184" x2="114" y2="184"/><line x1="56" y1="198" x2="110" y2="198"/>
+    </g>
+    <!-- LEAF-LIKE GILLS along each side of abdomen — key mayfly ID feature -->
+    <g fill="#a0d0a0" stroke="#408040" stroke-width="1" opacity="0.85">
+      <!-- left gills -->
+      <ellipse cx="36" cy="107" rx="14" ry="7" transform="rotate(-20,36,107)"/>
+      <ellipse cx="34" cy="121" rx="14" ry="7" transform="rotate(-20,34,121)"/>
+      <ellipse cx="33" cy="135" rx="14" ry="7" transform="rotate(-20,33,135)"/>
+      <ellipse cx="34" cy="149" rx="13" ry="6" transform="rotate(-20,34,149)"/>
+      <ellipse cx="36" cy="163" rx="12" ry="6" transform="rotate(-20,36,163)"/>
+      <ellipse cx="39" cy="177" rx="11" ry="5" transform="rotate(-20,39,177)"/>
+      <!-- right gills -->
+      <ellipse cx="124" cy="107" rx="14" ry="7" transform="rotate(20,124,107)"/>
+      <ellipse cx="126" cy="121" rx="14" ry="7" transform="rotate(20,126,121)"/>
+      <ellipse cx="127" cy="135" rx="14" ry="7" transform="rotate(20,127,135)"/>
+      <ellipse cx="126" cy="149" rx="13" ry="6" transform="rotate(20,126,149)"/>
+      <ellipse cx="124" cy="163" rx="12" ry="6" transform="rotate(20,124,163)"/>
+      <ellipse cx="121" cy="177" rx="11" ry="5" transform="rotate(20,121,177)"/>
+    </g>
+    <!-- thorax — wider, with legs -->
+    <path d="M80 48 C64 46 50 44 42 40 C36 36 34 30 36 24 C40 16 52 12 66 10 C72 8 76 6 80 6 C84 6 88 8 94 10 C108 12 120 16 124 24 C126 30 124 36 118 40 C110 44 96 46 80 48Z" fill="#b89858" stroke="#8a6830" stroke-width="1.5"/>
+    <!-- WING PADS — dark pads on thorax, promise of future wings -->
+    <path d="M56 36 C52 30 50 22 54 16 C60 20 62 28 60 36Z" fill="#5a4020" stroke="#3a2810" stroke-width="1"/>
+    <path d="M104 36 C108 30 110 22 106 16 C100 20 98 28 100 36Z" fill="#5a4020" stroke="#3a2810" stroke-width="1"/>
+    <!-- 3 pairs of legs -->
+    <path d="M52 30 C40 28 28 30 16 34" stroke="#7a5820" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M16 34 C10 38 6 44 8 50" stroke="#7a5820" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M48 40 C36 42 24 46 14 52" stroke="#7a5820" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M14 52 C8 56 4 62 6 68" stroke="#7a5820" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M50 48 C38 52 26 58 16 66" stroke="#7a5820" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M108 30 C120 28 132 30 144 34" stroke="#7a5820" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M144 34 C150 38 154 44 152 50" stroke="#7a5820" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M112 40 C124 42 136 46 146 52" stroke="#7a5820" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M146 52 C152 56 156 62 154 68" stroke="#7a5820" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M110 48 C122 52 134 58 144 66" stroke="#7a5820" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- head — large eyes, antennae -->
+    <ellipse cx="80" cy="8" rx="18" ry="12" fill="#a07840" stroke="#7a5820" stroke-width="1.5"/>
+    <ellipse cx="68" cy="6" rx="8" ry="8" fill="#180808" stroke="#7a5820" stroke-width="1"/>
+    <ellipse cx="92" cy="6" rx="8" ry="8" fill="#180808" stroke="#7a5820" stroke-width="1"/>
+    <!-- antennae — long and thread-like -->
+    <path d="M72 2 C66 -6 60 -14 56 -22" stroke="#7a5820" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M88 2 C94 -6 100 -14 104 -22" stroke="#7a5820" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- 3 TAILS (cerci + median) — the definitive mayfly feature -->
+    <path d="M72 220 C66 228 62 236 60 246" stroke="#9a7840" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M80 222 C80 230 80 238 80 248" stroke="#9a7840" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M88 220 C94 228 98 236 100 246" stroke="#9a7840" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- fine hairs on tails -->
+    <g stroke="#9a7840" stroke-width="0.7" opacity="0.6">
+      <line x1="62" y1="230" x2="58" y2="228"/><line x1="61" y1="237" x2="57" y2="235"/>
+      <line x1="80" y1="232" x2="76" y2="230"/><line x1="80" y1="240" x2="76" y2="238"/>
+      <line x1="98" y1="230" x2="102" y2="228"/><line x1="99" y1="237" x2="103" y2="235"/>
+    </g>
+  </svg>` },
+
+  dragonfly_larva: { bg:'#d4e8d0', svg:`<svg viewBox="0 -22 200 245" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Dragonfly larva (nymph): stout body, large eyes, hinged jaw mask, no tails -->
+    <!-- abdomen — broad, flattened oval, leaf-shaped in damselfly style here -->
+    <path d="M100 200 C80 198 62 190 52 176 C42 162 40 146 42 130 C44 114 50 100 52 86 C54 72 52 62 56 54 C62 44 72 38 84 36 C90 34 96 32 100 30 C104 32 110 34 116 36 C128 38 138 44 144 54 C148 62 146 72 148 86 C150 100 156 114 158 130 C160 146 158 162 148 176 C138 190 120 198 100 200Z" fill="#6a8858" stroke="#3a5830" stroke-width="1.8"/>
+    <!-- abdominal segments -->
+    <g stroke="#3a5030" stroke-width="1" opacity="0.65">
+      <line x1="44" y1="110" x2="156" y2="110"/><line x1="42" y1="124" x2="158" y2="124"/>
+      <line x1="42" y1="138" x2="158" y2="138"/><line x1="43" y1="152" x2="157" y2="152"/>
+      <line x1="46" y1="166" x2="154" y2="166"/><line x1="52" y1="180" x2="148" y2="180"/>
+      <line x1="60" y1="192" x2="140" y2="192"/>
+    </g>
+    <!-- lateral abdominal spines — dragonfly nymph diagnostic -->
+    <g stroke="#3a5030" stroke-width="1.5" fill="none">
+      <path d="M44 124 C36 126 30 128 26 132"/><path d="M156 124 C164 126 170 128 174 132"/>
+      <path d="M42 138 C34 141 28 144 24 148"/><path d="M158 138 C166 141 172 144 176 148"/>
+      <path d="M43 152 C35 156 30 160 26 164"/><path d="M157 152 C165 156 170 160 174 164"/>
+    </g>
+    <!-- thorax — wide, robust -->
+    <path d="M100 30 C80 28 60 30 48 38 C40 44 38 54 42 62 C46 70 56 74 68 74 C76 74 84 72 88 68 C92 64 96 58 100 54 C104 58 108 64 112 68 C116 72 124 74 132 74 C144 74 154 70 158 62 C162 54 160 44 152 38 C140 30 120 28 100 30Z" fill="#789868" stroke="#3a5830" stroke-width="1.5"/>
+    <!-- WING PADS — prominent, strapped across back -->
+    <path d="M68 44 C60 36 52 28 50 18 C58 22 66 32 72 42Z" fill="#2a4020" stroke="#1a3010" stroke-width="1.2"/>
+    <path d="M80 38 C76 28 76 18 80 10 C86 16 86 28 84 38Z" fill="#2a4020" stroke="#1a3010" stroke-width="1.2"/>
+    <path d="M132 44 C140 36 148 28 150 18 C142 22 134 32 128 42Z" fill="#2a4020" stroke="#1a3010" stroke-width="1.2"/>
+    <path d="M120 38 C124 28 124 18 120 10 C114 16 114 28 116 38Z" fill="#2a4020" stroke="#1a3010" stroke-width="1.2"/>
+    <!-- 3 pairs of spiny legs -->
+    <path d="M58 50 C46 46 34 46 22 50" stroke="#3a5030" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M22 50 C14 52 8 58 6 66" stroke="#3a5030" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M54 62 C42 60 30 62 18 68" stroke="#3a5030" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M18 68 C12 72 8 80 8 88" stroke="#3a5030" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M52 74 C40 74 28 78 16 86" stroke="#3a5030" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M142 50 C154 46 166 46 178 50" stroke="#3a5030" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M178 50 C186 52 192 58 194 66" stroke="#3a5030" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M146 62 C158 60 170 62 182 68" stroke="#3a5030" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M182 68 C188 72 192 80 192 88" stroke="#3a5030" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M148 74 C160 74 172 78 184 86" stroke="#3a5030" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- head — large, square, enormous compound eyes -->
+    <rect x="64" y="-4" width="72" height="38" rx="10" fill="#4a6040" stroke="#3a5030" stroke-width="1.8"/>
+    <!-- huge compound eyes — nearly touch in middle for dragonfly nymph -->
+    <ellipse cx="76" cy="10" rx="16" ry="16" fill="#0a1808" stroke="#3a5030" stroke-width="1"/>
+    <ellipse cx="124" cy="10" rx="16" ry="16" fill="#0a1808" stroke="#3a5030" stroke-width="1"/>
+    <circle cx="72" cy="6" r="4" fill="white" opacity="0.25"/>
+    <circle cx="120" cy="6" r="4" fill="white" opacity="0.25"/>
+    <!-- PREHENSILE MASK (labium) — hinged jaw, folded under head — most dramatic dragonfly feature -->
+    <path d="M82 34 C88 40 100 44 112 40 C118 34 118 26 112 22 C106 18 94 18 88 22 C84 26 82 30 82 34Z" fill="#6a8040" stroke="#3a5020" stroke-width="1.2"/>
+    <!-- mask palps (clawed graspers) -->
+    <path d="M84 36 C78 42 72 46 68 50" stroke="#3a5020" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M68 50 C64 54 62 58 64 62" stroke="#3a5020" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M116 36 C122 42 128 46 132 50" stroke="#3a5020" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M132 50 C136 54 138 58 136 62" stroke="#3a5020" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- short antennae -->
+    <path d="M72 -2 C66 -8 60 -12 56 -16" stroke="#3a5030" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M128 -2 C134 -8 140 -12 144 -16" stroke="#3a5030" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </svg>` },
+
+  caddisfly_larva: { bg:'#e0d4b8', svg:`<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Caddisfly larva in case: caterpillar-like body inside a tube case of sticks/sand -->
+    <!-- portable case — tube of debris, rough texture -->
+    <path d="M170 100 C168 80 160 62 146 50 C132 38 114 32 96 32 C78 32 60 38 46 50 C32 62 24 80 22 100 C24 120 32 138 46 150 C60 162 78 168 96 168 C114 168 132 162 146 150 C160 138 168 120 170 100Z" fill="#a08858" stroke="#7a6030" stroke-width="2"/>
+    <!-- debris on case — sticks and sand grains, random texture -->
+    <g fill="none" stroke="#5a4018" stroke-width="1.5" stroke-linecap="round" opacity="0.8">
+      <!-- sticks -->
+      <line x1="30" y1="78" x2="52" y2="68"/><line x1="24" y1="100" x2="48" y2="98"/>
+      <line x1="28" y1="120" x2="50" y2="114"/><line x1="40" y1="140" x2="58" y2="132"/>
+      <line x1="60" y1="158" x2="72" y2="148"/><line x1="88" y1="166" x2="90" y2="154"/>
+      <line x1="108" y1="164" x2="112" y2="152"/><line x1="130" y1="154" x2="138" y2="144"/>
+      <line x1="150" y1="136" x2="154" y2="124"/><line x1="162" y1="114" x2="166" y2="102"/>
+      <line x1="162" y1="88" x2="158" y2="76"/><line x1="148" y1="62" x2="140" y2="52"/>
+      <line x1="126" y1="40" x2="114" y2="36"/><line x1="100" y1="34" x2="96" y2="28"/>
+    </g>
+    <!-- sand grain dots -->
+    <g fill="#8a6828" opacity="0.6">
+      <circle cx="36" cy="88" r="3"/><circle cx="42" cy="108" r="2.5"/><circle cx="46" cy="128" r="3"/>
+      <circle cx="56" cy="148" r="2.5"/><circle cx="72" cy="160" r="3"/><circle cx="96" cy="166" r="2.5"/>
+      <circle cx="118" cy="160" r="3"/><circle cx="140" cy="148" r="2.5"/><circle cx="156" cy="130" r="3"/>
+      <circle cx="162" cy="108" r="2.5"/><circle cx="158" cy="84" r="3"/><circle cx="146" cy="60" r="2.5"/>
+      <circle cx="124" cy="42" r="3"/><circle cx="100" cy="36" r="2.5"/>
+    </g>
+    <!-- larva body emerging from case -->
+    <path d="M60 108 C56 100 54 90 56 80 C58 70 64 62 72 56 C78 50 86 46 96 44 C106 42 114 46 118 54" fill="#d4c090" stroke="#8a7030" stroke-width="1.5"/>
+    <!-- head emerging — hard sclerotized head capsule -->
+    <ellipse cx="74" cy="62" rx="24" ry="20" fill="#4a3818" stroke="#2a2008" stroke-width="2"/>
+    <ellipse cx="66" cy="58" rx="7" ry="7" fill="#0a0808" stroke="#2a2008" stroke-width="1"/>
+    <ellipse cx="82" cy="58" rx="7" ry="7" fill="#0a0808" stroke="#2a2008" stroke-width="1"/>
+    <circle cx="64" cy="56" r="2" fill="white" opacity="0.4"/>
+    <circle cx="80" cy="56" r="2" fill="white" opacity="0.4"/>
+    <!-- antennae — tiny, close to eyes -->
+    <path d="M62 52 C58 46 56 40 56 34" stroke="#2a2008" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    <path d="M78 50 C78 44 80 38 82 32" stroke="#2a2008" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    <!-- 3 pairs of walking legs visible at front of case -->
+    <path d="M60 74 C48 70 38 70 28 74" stroke="#5a4020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M28 74 C22 78 18 84 20 90" stroke="#5a4020" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M58 84 C46 82 36 84 26 90" stroke="#5a4020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M26 90 C20 96 16 104 18 110" stroke="#5a4020" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M58 94 C46 94 36 98 26 106" stroke="#5a4020" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- prolegs with hooks gripping case opening -->
+    <path d="M58 106 C52 108 48 112 46 118" stroke="#5a4020" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="46" cy="120" r="3" fill="#3a2810"/>
+    <!-- silk gland producing silken lining -->
+    <path d="M90 52 C96 54 100 58 100 64" stroke="#c0c0a0" stroke-width="1" fill="none" opacity="0.5" stroke-dasharray="2,2"/>
+  </svg>` },
+
+  water_mite: { bg:'#f0e0d0', svg:`<svg viewBox="-12 0 204 185" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Water mite (Hydrachnidia): round red body, 4 pairs legs, no segments visible -->
+    <!-- body — nearly spherical, bright red -->
+    <circle cx="90" cy="86" r="62" fill="#e03020" stroke="#a01808" stroke-width="2"/>
+    <!-- sclerotized plates on body surface -->
+    <ellipse cx="90" cy="70" rx="30" ry="18" fill="#c01810" opacity="0.4" stroke="#a01808" stroke-width="1"/>
+    <ellipse cx="90" cy="102" rx="28" ry="16" fill="#c01810" opacity="0.3"/>
+    <!-- sensory setae (hairs) all over body -->
+    <g stroke="#801008" stroke-width="0.8" opacity="0.6">
+      <line x1="90" y1="24" x2="90" y2="16"/><line x1="114" y1="30" x2="120" y2="24"/>
+      <line x1="134" y1="48" x2="142" y2="44"/><line x1="148" y1="70" x2="156" y2="68"/>
+      <line x1="150" y1="94" x2="158" y2="94"/><line x1="142" y1="118" x2="150" y2="122"/>
+      <line x1="122" y1="136" x2="128" y2="142"/><line x1="98" y1="148" x2="100" y2="156"/>
+      <line x1="74" y1="148" x2="72" y2="156"/><line x1="54" y1="138" x2="48" y2="144"/>
+      <line x1="36" y1="120" x2="28" y2="124"/><line x1="28" y1="96" x2="20" y2="96"/>
+      <line x1="30" y1="72" x2="22" y2="68"/><line x1="44" y1="50" x2="38" y2="44"/>
+      <line x1="64" y1="28" x2="60" y2="20"/><line x1="66" y1="30" x2="58" y2="22"/>
+    </g>
+    <!-- capitulum (mouthparts) — small, at front -->
+    <ellipse cx="90" cy="38" rx="14" ry="10" fill="#c01810" stroke="#a01808" stroke-width="1.2"/>
+    <path d="M84 42 C84 48 84 54 84 60" stroke="#801008" stroke-width="1" fill="none"/>
+    <path d="M96 42 C96 48 96 54 96 60" stroke="#801008" stroke-width="1" fill="none"/>
+    <!-- chelicerae (piercing mouthparts) -->
+    <path d="M88 28 C86 22 84 16 86 10" stroke="#801008" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M92 28 C94 22 96 16 94 10" stroke="#801008" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- 4 PAIRS of long swimming legs — arachnid, not insect -->
+    <!-- pair 1 -->
+    <path d="M42 60 C28 50 14 44 4 42" stroke="#a01808" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <g stroke="#a01808" stroke-width="0.9" opacity="0.7"><line x1="28" y1="50" x2="26" y2="44"/><line x1="20" y1="47" x2="18" y2="41"/></g>
+    <path d="M138 60 C152 50 166 44 176 42" stroke="#a01808" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <g stroke="#a01808" stroke-width="0.9" opacity="0.7"><line x1="152" y1="50" x2="154" y2="44"/><line x1="160" y1="47" x2="162" y2="41"/></g>
+    <!-- pair 2 -->
+    <path d="M32 80 C16 76 4 72 -4 68" stroke="#a01808" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <g stroke="#a01808" stroke-width="0.9" opacity="0.7"><line x1="16" y1="76" x2="14" y2="70"/><line x1="6" y1="72" x2="4" y2="66"/></g>
+    <path d="M148 80 C164 76 176 72 184 68" stroke="#a01808" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <g stroke="#a01808" stroke-width="0.9" opacity="0.7"><line x1="164" y1="76" x2="166" y2="70"/><line x1="174" y1="72" x2="176" y2="66"/></g>
+    <!-- pair 3 -->
+    <path d="M30 102 C14 102 2 106 -6 112" stroke="#a01808" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M150 102 C166 102 178 106 186 112" stroke="#a01808" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- pair 4 -->
+    <path d="M36 122 C20 128 8 138 2 148" stroke="#a01808" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M144 122 C160 128 172 138 178 148" stroke="#a01808" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- swimming hairs on legs -->
+    <g stroke="#a01808" stroke-width="0.8" opacity="0.5">
+      <line x1="6" y1="108" x2="4" y2="102"/><line x1="-2" y1="114" x2="-4" y2="108"/>
+      <line x1="176" y1="108" x2="178" y2="102"/><line x1="182" y1="114" x2="184" y2="108"/>
+    </g>
+    <!-- eyes — two pairs, set widely apart -->
+    <circle cx="72" cy="52" r="6" fill="#201008" stroke="#a01808" stroke-width="1"/>
+    <circle cx="108" cy="52" r="6" fill="#201008" stroke="#a01808" stroke-width="1"/>
+    <circle cx="70" cy="50" r="2" fill="white" opacity="0.5"/>
+    <circle cx="106" cy="50" r="2" fill="white" opacity="0.5"/>
+  </svg>` },
+
+  mosquito_larva: { bg:'#d8ecf4', svg:`<svg viewBox="0 0 120 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Mosquito larva: hanging at surface, siphon tube, hairy mouth brushes, segmented -->
+    <!-- water surface line -->
+    <path d="M0 48 C20 44 40 46 60 48 C80 50 100 48 120 46" stroke="#4a88b0" stroke-width="1.5" fill="none"/>
+    <!-- surface tension ripple -->
+    <path d="M0 50 C20 46 40 48 60 50 C80 52 100 50 120 48" stroke="#6aaac8" stroke-width="0.8" fill="none" opacity="0.5"/>
+    <!-- SIPHON TUBE at tail, breaking surface — most distinctive feature -->
+    <path d="M60 46 C58 40 56 34 56 28 C56 22 58 16 60 10" stroke="#8a6030" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- spiracles at siphon tip (breathes air) -->
+    <circle cx="60" cy="10" r="6" fill="#5a3818" stroke="#3a1808" stroke-width="1.2"/>
+    <!-- abdomen — segmented, hanging downward from surface -->
+    <path d="M60 48 C54 56 50 66 48 78 C46 90 46 102 48 114 C50 126 54 136 56 148 C58 160 58 172 56 182" fill="none" stroke="#3a8898" stroke-width="12" stroke-linecap="round"/>
+    <!-- lighter fill on abdomen -->
+    <path d="M60 50 C54 58 50 68 48 80 C46 92 46 104 48 116 C50 128 54 138 56 150 C58 162 58 172 57 180" fill="none" stroke="#7abcd0" stroke-width="9" stroke-linecap="round"/>
+    <!-- segment lines on abdomen -->
+    <g stroke="#2a7888" stroke-width="1" opacity="0.6">
+      <line x1="47" y1="80" x2="62" y2="82"/><line x1="46" y1="96" x2="61" y2="96"/>
+      <line x1="46" y1="112" x2="62" y2="110"/><line x1="48" y1="128" x2="62" y2="124"/>
+      <line x1="50" y1="144" x2="63" y2="140"/><line x1="54" y1="160" x2="64" y2="155"/>
+    </g>
+    <!-- lateral hair tufts on abdomen segments -->
+    <g stroke="#2a7888" stroke-width="0.8" opacity="0.7">
+      <line x1="46" y1="88" x2="38" y2="84"/><line x1="46" y1="88" x2="38" y2="92"/>
+      <line x1="46" y1="104" x2="38" y2="100"/><line x1="46" y1="104" x2="38" y2="108"/>
+      <line x1="46" y1="120" x2="38" y2="116"/><line x1="46" y1="120" x2="38" y2="124"/>
+      <line x1="47" y1="136" x2="39" y2="132"/><line x1="47" y1="136" x2="39" y2="140"/>
+    </g>
+    <!-- anal brush/gills at very end -->
+    <g stroke="#2a7888" stroke-width="1.2" fill="none">
+      <path d="M54 180 C50 186 46 192 44 198"/><path d="M56 182 C54 190 52 198 52 204"/>
+      <path d="M58 182 C60 190 60 198 58 204"/><path d="M60 180 C64 186 68 192 68 196"/>
+    </g>
+    <!-- thorax — large, swollen -->
+    <ellipse cx="58" cy="54" rx="22" ry="16" fill="#5aac9a" stroke="#2a7868" stroke-width="1.5"/>
+    <!-- head — large, box-shaped, hanging below surface -->
+    <rect x="38" y="60" width="42" height="36" rx="8" fill="#3a7888" stroke="#1a5060" stroke-width="1.8"/>
+    <!-- large compound eyes -->
+    <circle cx="50" cy="74" r="9" fill="#0a1820" stroke="#1a5060" stroke-width="1"/>
+    <circle cx="70" cy="74" r="9" fill="#0a1820" stroke="#1a5060" stroke-width="1"/>
+    <circle cx="48" cy="72" r="3" fill="white" opacity="0.3"/>
+    <circle cx="68" cy="72" r="3" fill="white" opacity="0.3"/>
+    <!-- MOUTH BRUSHES — fan-like feeding fans, key mosquito larva feature -->
+    <path d="M46 88 C40 96 34 102 28 106" stroke="#2a6050" stroke-width="1.5" fill="none"/>
+    <path d="M48 88 C44 96 40 104 36 108" stroke="#2a6050" stroke-width="1.5" fill="none"/>
+    <path d="M50 88 C48 96 46 104 44 110" stroke="#2a6050" stroke-width="1.5" fill="none"/>
+    <path d="M52 88 C52 96 52 104 52 110" stroke="#2a6050" stroke-width="1.5" fill="none"/>
+    <path d="M54 88 C56 96 58 104 60 110" stroke="#2a6050" stroke-width="1.5" fill="none"/>
+    <path d="M56 88 C60 96 64 102 68 106" stroke="#2a6050" stroke-width="1.5" fill="none"/>
+    <!-- antennae -->
+    <path d="M48 64 C42 56 38 48 36 40" stroke="#1a5060" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M36 40 C34 36 32 34 30 30" stroke="#1a5060" stroke-width="1.2" fill="none"/>
+    <path d="M70 64 C76 56 80 48 82 40" stroke="#1a5060" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M82 40 C84 36 86 34 88 30" stroke="#1a5060" stroke-width="1.2" fill="none"/>
+  </svg>` },
+
+  freshwater_shrimp: { bg:'#d8eee0', svg:`<svg viewBox="-10 -10 260 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Freshwater shrimp (Gammarus / scud): laterally compressed, curved, many legs -->
+    <!-- body — strongly arched/curved (laterally compressed) -->
+    <path d="M210 80 C204 60 192 44 174 34 C156 24 134 20 112 22 C90 24 68 32 50 46 C32 60 20 78 18 96 C16 110 22 122 32 130 C44 138 60 140 76 138 C92 136 106 130 116 120 C126 110 132 98 140 88 C148 78 158 70 170 66 C182 62 196 64 206 72Z" fill="#88c898" stroke="#3a7848" stroke-width="1.8"/>
+    <!-- body segments — regular and many -->
+    <g stroke="#3a6838" stroke-width="0.9" opacity="0.6">
+      <path d="M196 54 C190 50 182 48 174 48"/><path d="M178 38 C170 34 160 32 150 32"/>
+      <path d="M152 26 C142 24 132 22 122 22"/><path d="M122 22 C110 22 100 24 90 28"/>
+      <path d="M86 32 C76 38 66 46 58 56"/><path d="M52 62 C44 72 38 84 36 96"/>
+      <path d="M36 108 C38 118 44 128 52 134"/>
+    </g>
+    <!-- PLEOPODS — feathery swimming legs under abdomen -->
+    <g stroke="#3a7848" stroke-width="1.2" fill="none" opacity="0.8">
+      <path d="M64 128 C60 138 56 148 52 156"/><path d="M68 130 C64 140 62 150 60 158"/>
+      <path d="M80 132 C78 142 76 152 74 160"/><path d="M90 132 C90 142 90 152 90 160"/>
+      <path d="M100 130 C102 140 104 150 106 158"/>
+      <!-- pleopod hairs -->
+      <line x1="54" y1="150" x2="48" y2="148"/><line x1="54" y1="150" x2="50" y2="154"/>
+      <line x1="62" y1="152" x2="56" y2="150"/><line x1="76" y1="156" x2="70" y2="154"/>
+    </g>
+    <!-- PEREOPODS — 5 pairs of walking/grasping legs -->
+    <g stroke="#3a7848" stroke-width="2" fill="none" stroke-linecap="round">
+      <path d="M120 36 C116 26 114 16 118 8"/><path d="M108 30 C104 20 100 10 102 2"/>
+      <path d="M96 28 C90 18 84 10 84 2"/><path d="M82 32 C74 24 66 16 62 10"/>
+      <path d="M70 40 C60 34 50 28 44 24"/>
+    </g>
+    <!-- gnathopods — front clawed legs -->
+    <path d="M130 44 C136 34 142 24 150 16" stroke="#3a7848" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M150 16 C154 12 156 8 154 4" stroke="#3a7848" stroke-width="2" fill="none"/>
+    <path d="M154 4 C158 8 160 12 158 16" stroke="#3a7848" stroke-width="1.5" fill="none"/>
+    <path d="M142 50 C150 42 158 34 166 28" stroke="#3a7848" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M166 28 C170 24 172 20 170 16" stroke="#3a7848" stroke-width="2" fill="none"/>
+    <path d="M170 16 C174 20 176 24 174 28" stroke="#3a7848" stroke-width="1.5" fill="none"/>
+    <!-- head — small, with compound eyes and antennae -->
+    <ellipse cx="200" cy="74" rx="18" ry="14" fill="#5aaa78" stroke="#3a7848" stroke-width="1.5"/>
+    <!-- compound eyes — prominent -->
+    <circle cx="208" cy="68" r="7" fill="#101808" stroke="#3a7848" stroke-width="1"/>
+    <circle cx="206" cy="66" r="2.5" fill="white" opacity="0.4"/>
+    <!-- 2 pairs of antennae — one long, one short -->
+    <path d="M214 66 C222 58 230 50 236 42" stroke="#3a7848" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M236 42 C238 36 238 30 236 24" stroke="#3a7848" stroke-width="1.2" fill="none"/>
+    <path d="M212 72 C220 68 228 66 236 66" stroke="#3a7848" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- uropods (tail fan) -->
+    <path d="M20 98 C12 94 6 90 2 84" stroke="#3a7848" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M2 84 C-2 80 -2 74 2 70" stroke="#3a7848" stroke-width="1.5" fill="none"/>
+    <path d="M18 106 C10 106 4 108 0 112" stroke="#3a7848" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- internal eggs visible in brood pouch (if female) -->
+    <ellipse cx="100" cy="90" rx="14" ry="10" fill="#d8e860" opacity="0.35" stroke="#a0a820" stroke-width="0.8"/>
+  </svg>` },
+
+};
+
+// ─── MACRO-INVERTEBRATE DATA ─────────────────────────────────────────────────
+const macro = [
+  {
+    key:'pond_snail', name:'Pond Snail', latin:'Lymnaea / Physa spp.',
+    badge:'Mollusc · Gastropod', badgeType:'macro',
+    size:'5–40 mm', mag:'Naked eye', movement:'Slow gliding on foot',
+    freq:'Very Common',
+    id:'Coiled shell — Lymnaea spirals to a pointed apex (dextral/right-handed); Physa spirals left-handed (sinistral). Body is a soft muscular foot with a distinct head bearing TWO PAIRS of tentacles: longer upper pair with eyes at the tips, shorter lower pair for smell/touch. Leaves a slime trail. Breathes air — watch it come to the surface periodically.',
+    note:'Common on pond plants and glass. Physa is smaller with a left-coiling shell. Lymnaea has a long pointed spire. Both are excellent indicators of water quality.',
+    search:'Lymnaea pond snail identification freshwater'
+  },
+  {
+    key:'water_boatman', name:'Water Boatman', latin:'Corixidae family',
+    badge:'Insect · Hemiptera', badgeType:'macro',
+    size:'5–12 mm', mag:'Naked eye', movement:'Jerky rowing strokes, swims right-side up',
+    freq:'Very Common',
+    id:'Oval, flattened, olive-brown with fine cross-hatching pattern on the back (pronotal strigil lines). SWIMS RIGHT-SIDE UP (unlike backswimmer which swims upside-down). Hind legs are long, oar-like, fringed with hairs for rowing. Short, scooped front legs used for scraping algae. Carries an air bubble under the wings for breathing. Does NOT bite.',
+    note:'Distinguished from the similar backswimmer by swimming right-side up and having a flattened (not keeled) back. Harmless — does not bite humans.',
+    search:'water boatman Corixidae pond identification'
+  },
+  {
+    key:'mayfly_larva', name:'Mayfly Larva', latin:'Ephemeroptera (various)',
+    badge:'Insect · Ephemeroptera', badgeType:'macro',
+    size:'5–30 mm', mag:'Naked eye / hand lens',movement:'Darting swimmer or bottom crawler',
+    freq:'Common',
+    id:'THREE tails (two cerci + one median terminal filament) — this is the single most reliable ID feature. Oval plate-like GILLS along each side of the abdomen — they may flutter visibly. Large wing pads on thorax. 6 legs with single tarsal claw each. Found clinging to rocks and plants. Excellent water quality indicator.',
+    note:'Presence indicates clean, well-oxygenated water. 3 tails = mayfly. 2 tails = stonefly. 0 tails with mask = dragonfly. One of the best pollution indicator species.',
+    search:'mayfly larva nymph Ephemeroptera identification pond'
+  },
+  {
+    key:'dragonfly_larva', name:'Dragonfly Larva', latin:'Anisoptera (various)',
+    badge:'Insect · Odonata', badgeType:'macro',
+    size:'15–50 mm', mag:'Naked eye', movement:'Jet propulsion (expels water from rectum)',
+    freq:'Common',
+    id:'Stout, wide body — no tails at all (damselfly has 3 leaf-shaped tail gills). ENORMOUS compound eyes dominating the head. KEY FEATURE: the LABIAL MASK — a hinged jaw that folds under the head and can shoot forward at lightning speed to catch prey. Large wing pads. Breathes through rectal gills — jet propels itself by squirting water.',
+    note:'Voracious ambush predator — will bite if handled. The folded labial mask under the head is unmistakable at close range. Lives 1–5 years as a larva before emerging.',
+    search:'dragonfly nymph larva labial mask identification'
+  },
+  {
+    key:'caddisfly_larva', name:'Caddisfly Larva', latin:'Trichoptera (various)',
+    badge:'Insect · Trichoptera', badgeType:'macro',
+    size:'5–30 mm (case up to 50 mm)', mag:'Naked eye / hand lens', movement:'Slow crawl dragging case',
+    freq:'Common',
+    id:'Look for a PORTABLE CASE — a tube built from sand grains, sticks, leaf fragments, or snail shells, glued with silk. The caterpillar-like larva lives inside and only extends its head and front legs. Hard dark head capsule. 6 legs with strong claws. Anal hooks grip the case interior. Some species spin silk nets instead of building cases.',
+    note:'Each species builds a characteristic case style — some use tiny stones in perfect rings, others only sticks. An excellent pollution indicator. Handle the case gently — the larva will retract instantly.',
+    search:'caddisfly larva case Trichoptera identification'
+  },
+  {
+    key:'water_mite', name:'Water Mite', latin:'Hydrachnidia (various)',
+    badge:'Arachnid · Acari', badgeType:'macro',
+    size:'0.5–8 mm', mag:'Hand lens / 10–40×', movement:'Erratic fast swimming, 8 legs',
+    freq:'Common',
+    id:'Round to oval body, often BRIGHT RED (sometimes orange, yellow, green or blue). 8 legs — it\'s an arachnid, not an insect. No body segmentation visible (unlike insects). Legs often fringed with swimming hairs. Small mouthparts (capitulum) at front. Two pairs of eyes set wide apart. Moves with a fast, erratic swimming motion — very different from any insect larva.',
+    note:'The bright red color and round body with 8 legs makes them unmistakable. Many are parasitic on water insects as larvae. Some are predatory on other invertebrates as adults.',
+    search:'water mite Hydrachnidia red pond identification'
+  },
+  {
+    key:'mosquito_larva', name:'Mosquito Larva', latin:'Culex / Aedes spp.',
+    badge:'Insect · Diptera', badgeType:'macro',
+    size:'4–12 mm', mag:'Naked eye', movement:'Jerky wriggling, hangs at surface',
+    freq:'Very Common',
+    id:'Hangs just below the water surface, tail-up. KEY FEATURE: the SIPHON TUBE — a short breathing tube at the tail end that punctures the water surface film. Large swollen thorax, distinct segmented abdomen. Fan-like MOUTH BRUSHES sweep bacteria into the mouth. Wriggles vigorously in a J-shape when disturbed and dives. No legs at all.',
+    note:'Found in ANY standing water including buckets and gutters. The upside-down hanging posture at the surface is unmistakable. Wriggles madly when disturbed — hence the common name "wriggler".',
+    search:'mosquito larva Culex siphon surface identification'
+  },
+  {
+    key:'freshwater_shrimp', name:'Freshwater Shrimp (Scud)', latin:'Gammarus pulex',
+    badge:'Crustacean · Amphipod', badgeType:'macro',
+    size:'10–25 mm', mag:'Naked eye', movement:'Rapid side-on swimming or crawling',
+    freq:'Very Common',
+    id:'Strongly curved/arched body, LATERALLY COMPRESSED (flat side-to-side like a comma). Swims on its side. Many legs in two groups: pereopods (walking legs, pointing down) and pleopods (feathery swimming legs under abdomen). Two pairs of antennae — one longer than the other. Semi-transparent; internal organs sometimes visible. Often mating pairs seen (male carried female).',
+    note:'Not a true shrimp but an amphipod crustacean. Key pollution indicator — abundant in clean chalk streams and fast-running water. The curved body swimming sideways is completely distinctive.',
+    search:'Gammarus pulex freshwater shrimp amphipod identification'
+  },
+];
+const protozoa = [
+  {
+    key:'paramecium', name:'Paramecium', latin:'Paramecium caudatum',
+    badge:'Protozoa · Ciliate', badgeType:'proto',
+    size:'150–300 µm', mag:'100–400×', movement:'Fast darting, rotates slowly',
+    freq:'Very Common',
+    id:'Slipper or shoe-shaped — widest about 1/3 from the front, tapered bluntly at both ends. Look for the oral groove: a diagonal channel running from the front-left toward the center. Two contractile vacuoles (clear pulsing bubbles) — one at each end. Covered in thousands of cilia (looks finely fuzzy all over). Moves rapidly in straight lines.',
+    note:'One of the most common pond organisms. Often the first protozoan beginners spot due to its size and speed.',
+    search:'Paramecium caudatum microscope'
+  },
+  {
+    key:'amoeba', name:'Amoeba', latin:'Amoeba proteus',
+    badge:'Protozoa · Sarcodine', badgeType:'proto',
+    size:'250–750 µm', mag:'100–400×', movement:'Slow flowing/gliding',
+    freq:'Common',
+    id:'Completely irregular, ever-changing shape. Look for pseudopods — blunt finger-like extensions of cytoplasm that flow outward and retract. The cell looks like a slowly crawling blob. One large granular nucleus visible inside. You can watch it engulf food particles. No fixed shape ever.',
+    note:'Easiest to find in bottom sediment or near decaying matter. Patience required — they move very slowly.',
+    search:'Amoeba proteus microscope pseudopods'
+  },
+  {
+    key:'euglena', name:'Euglena', latin:'Euglena viridis',
+    badge:'Protozoa · Flagellate', badgeType:'proto',
+    size:'40–80 µm', mag:'100–400×', movement:'Spinning corkscrew rotation',
+    freq:'Very Common',
+    id:'Spindle-shaped, bright green from chloroplasts. Look for the red eyespot (stigma) — a small bright red-orange dot near the front. Moves with a spinning, corkscrew-like rotation via a single long flagellum at the front. Body can change shape (metaboly). Green color fades in dark.',
+    note:'Turns water green in large numbers. Both plant-like (photosynthesis) and animal-like (can eat). Great beginner organism.',
+    search:'Euglena viridis microscope green eyespot'
+  },
+  {
+    key:'vorticella', name:'Vorticella', latin:'Vorticella sp.',
+    badge:'Protozoa · Ciliate', badgeType:'proto',
+    size:'50–150 µm bell', mag:'100–400×', movement:'Attached; stalk coils spring-like',
+    freq:'Common',
+    id:'Bell or wine-glass shaped body on a thin coiled stalk, attached to surfaces (plants, debris). The stalk suddenly and dramatically SPRINGS/coils when disturbed — one of the most striking behaviors in microscopy. A ring of cilia at the mouth creates a vortex to draw food in. Often colonial.',
+    note:'Look on the surface of aquatic plants and filamentous algae. The sudden spring-back of the stalk is unmistakable.',
+    search:'Vorticella microscope coiled stalk'
+  },
+  {
+    key:'stentor', name:'Stentor', latin:'Stentor coeruleus',
+    badge:'Protozoa · Ciliate', badgeType:'proto',
+    size:'500–2000 µm', mag:'40–100×', movement:'Trumpet shape, extends and contracts',
+    freq:'Occasional',
+    id:'One of the LARGEST protozoa — sometimes visible to the naked eye as a blue-grey speck. Trumpet or vase-shaped when extended; contracts to a blob when disturbed. Distinctive blue-grey color (Stentor coeruleus) from pigment granules. Beaded (moniliform) macronucleus — looks like a chain of sausages inside the cell.',
+    note:'Can be seen without a microscope in good conditions. The blue color and large size make it unmistakable.',
+    search:'Stentor coeruleus microscope blue ciliate'
+  },
+  {
+    key:'lacrymaria', name:'Lacrymaria', latin:'Lacrymaria olor',
+    badge:'Protozoa · Ciliate', badgeType:'proto',
+    size:'100–500 µm (neck extends to 7×)', mag:'100–400×', movement:'Neck extends wildly in all directions',
+    freq:'Occasional',
+    id:'Teardrop-shaped body with an extraordinarily long, extensible neck — the neck can stretch to 7 times the body length and bends in any direction to hunt prey. Like watching a living periscope. Small rounded "head" at neck tip. Body stays relatively stationary while the neck probes.',
+    note:'One of the most dramatic organisms to observe. The extending and retracting neck is unlike anything else in the pond.',
+    search:'Lacrymaria olor extensible neck microscope'
+  },
+];
+
+const algae = [
+  {
+    key:'diatom_round', name:'Centric Diatom', latin:'Cyclotella / Coscinodiscus spp.',
+    badge:'Algae · Diatom', badgeType:'algae',
+    size:'10–500 µm', mag:'100–400×', movement:'None (passive drift)',
+    freq:'Very Common',
+    id:'Circular (like a coin or petri dish), golden-brown in color. Intricate radial pattern of ribs and pores — looks like a decorative window or mandala. The silica shell (frustule) has two halves (valves) that fit together like a pillbox. Under polarized light, they glow brilliantly. No chlorophyll green — distinctly golden/amber.',
+    note:'Diatoms are responsible for ~25% of Earth\'s oxygen. Their glass shells persist forever in sediment. Extremely common in any pond.',
+    search:'centric diatom Cyclotella microscope frustule'
+  },
+  {
+    key:'diatom_pennate', name:'Pennate Diatom', latin:'Navicula / Pinnularia spp.',
+    badge:'Algae · Diatom', badgeType:'algae',
+    size:'20–200 µm', mag:'100–400×', movement:'Slow gliding (raphe motility)',
+    freq:'Very Common',
+    id:'Elongated, boat-shaped or lance-shaped (like a canoe). Bilateral symmetry with a central lengthwise line called the RAPHE — used for gliding movement. Regular parallel lateral striae (ribs) crossing the raphe. Golden-brown chloroplast plates. Can glide slowly along surfaces — the only diatoms that move.',
+    note:'The raphe (central slit) is the key ID feature. Many species are beautifully ornamented — worth high magnification.',
+    search:'pennate diatom Navicula raphe microscope'
+  },
+  {
+    key:'spirogyra', name:'Spirogyra', latin:'Spirogyra sp.',
+    badge:'Algae · Green Alga', badgeType:'algae',
+    size:'Cells 10–100 µm wide; chains cm-long', mag:'40–200×', movement:'None',
+    freq:'Very Common',
+    id:'Long green filaments made of rectangular cells joined end-to-end. The DEFINITIVE feature: each cell contains a beautiful spiral ribbon chloroplast — one or more elegant spiraling green ribbons running the length of each cell. Looks like a tiny green candy-cane inside each cell. Forms silky green mats in ponds.',
+    note:'The spiral chloroplast is completely unmistakable and beautiful at 100×. Forms the silky green \'pond slime\' you can feel with your fingers.',
+    search:'Spirogyra spiral chloroplast microscope'
+  },
+  {
+    key:'volvox', name:'Volvox', latin:'Volvox globator',
+    badge:'Algae · Green Alga', badgeType:'algae',
+    size:'100–500 µm diameter sphere', mag:'40–100×', movement:'Slow rolling sphere',
+    freq:'Occasional',
+    id:'A perfect hollow green sphere — looks like a miniature green planet. The sphere\'s surface is covered in hundreds of tiny individual Chlamydomonas-like cells all connected by cytoplasmic strands. Inside, look for smaller daughter spheres (daughter colonies) — this is the key ID feature. Rolls slowly and gracefully.',
+    note:'One of the most spectacular organisms in pond water. Represents the evolution of multicellularity — individual cells cooperate as a single organism.',
+    search:'Volvox globator daughter colonies microscope'
+  },
+  {
+    key:'oscillatoria', name:'Oscillatoria', latin:'Oscillatoria sp.',
+    badge:'Bacteria · Cyanobacteria', badgeType:'algae',
+    size:'Filaments many mm long; cells 5–20 µm wide', mag:'100–400×', movement:'Slow oscillating/gliding rotation',
+    freq:'Common',
+    id:'Wide blue-green filaments made of disc-shaped cells stacked like poker chips. Very straight or slightly wavy. The MOVEMENT is distinctive: filaments slowly rotate and oscillate (sway) — this is what gives the genus its name. No visible nucleus (prokaryote). Often dark granules at cell cross-walls. Blue-green color from phycocyanin.',
+    note:'A cyanobacterium, not a true alga — no nucleus. Responsible for many harmful algal blooms in warm nutrient-rich ponds. The oscillating movement at 100× is mesmerizing.',
+    search:'Oscillatoria cyanobacteria filament oscillating microscope'
+  },
+];
+
+const animals = [
+  {
+    key:'daphnia', name:'Daphnia (Water Flea)', latin:'Daphnia pulex',
+    badge:'Micro-Animal · Crustacean', badgeType:'animal',
+    size:'0.5–5 mm', mag:'40–100×', movement:'Jerky hopping/jumping',
+    freq:'Very Common',
+    id:'Looks like a tiny shrimp in a transparent shell. KEY FEATURES: single large compound eye (black dot near the front that rotates). Transparent body lets you see the heart beating, gut, and embryos in the brood pouch (yellow-green sac on the back). Two large branched antennae used for swimming — create jerky hopping motion. Long tail spine at the back.',
+    note:'Easiest micro-animal to find and observe. At 40× you can watch the heart beat. Females can reproduce asexually — all-female populations common.',
+    search:'Daphnia pulex microscope transparent heart beating'
+  },
+  {
+    key:'rotifer', name:'Rotifer', latin:'Philodina / Bdelloidea',
+    badge:'Micro-Animal · Rotifer', badgeType:'animal',
+    size:'100–500 µm', mag:'100–200×', movement:'Tumbling somersaults; cilia wheel spins',
+    freq:'Very Common',
+    id:'Look for two spinning wheel-like crowns of cilia at the front (the corona) — creates the illusion of spinning wheels, giving rotifers their name ("wheel-bearers"). Inside, a complex jaw apparatus called the MASTAX is visible grinding food — watch for rhythmic chewing motion. Telescoping body segments. Two "toes" at the tail end with sticky cement glands.',
+    note:'Extremely common in any pond sample. The spinning corona and visible mastax grinding food are unmistakable once you know what to look for.',
+    search:'rotifer corona mastax microscope wheel spinning'
+  },
+  {
+    key:'tardigrade', name:'Tardigrade (Water Bear)', latin:'Ramazzottius / Macrobiotus spp.',
+    badge:'Micro-Animal · Tardigrade', badgeType:'animal',
+    size:'100–1500 µm', mag:'40–200×', movement:'Slow lumbering walk on 8 legs',
+    freq:'Uncommon (look in moss)',
+    id:'The most distinctive micro-animal — looks exactly like a tiny fat 8-legged bear. Barrel-shaped body with 4 pairs of stubby legs ending in claws. A tube-like mouth with stylets (needles) used to pierce plant cells. Semi-transparent body shows internal organs. Lumbers slowly and methodically. Look for them by squeezing water from aquatic mosses.',
+    note:'Nearly indestructible — survives vacuum of space, extreme radiation, boiling and freezing. Best found by squeezing wet moss over a petri dish.',
+    search:'tardigrade water bear microscope 8 legs'
+  },
+  {
+    key:'copepod', name:'Copepod', latin:'Cyclops sp.',
+    badge:'Micro-Animal · Crustacean', badgeType:'animal',
+    size:'0.5–3 mm', mag:'40–100×', movement:'Rapid jerky hops',
+    freq:'Very Common',
+    id:'Teardrop-shaped body — large rounded cephalothorax (head+thorax) narrowing sharply to a segmented abdomen. KEY ID: females carry ONE OR TWO distinctive egg sacs (yellow-green pouches) on each side of the abdomen base — like carrying two shopping bags. Single red nauplius eye. Very long first antennae swept back along the body. Tail has 2 long bristled furcal rami.',
+    note:'Cyclops is the most common genus — named for the single median eye. The paired egg sacs are unmistakable. Moves in rapid hops with pauses in between.',
+    search:'Cyclops copepod egg sacs microscope'
+  },
+  {
+    key:'nematode', name:'Nematode (Roundworm)', latin:'Various genera',
+    badge:'Micro-Animal · Nematode', badgeType:'animal',
+    size:'0.1–2 mm', mag:'100–400×', movement:'Thrashing S-shaped wriggling',
+    freq:'Common',
+    id:'Cylindrical, unsegmented, tapered at both ends (like a smooth thread). The body is surrounded by a tough cuticle that may appear finely ringed. Moves in a characteristic sinusoidal/S-shaped thrashing motion — looks like a tiny whipping thread. Body cavity visible. Some have a distinct mouth/pharynx visible at the blunt anterior end.',
+    note:'Found in sediment and decaying matter. Often the fastest-moving visible organism in a slide. Thrashing motion is completely distinctive.',
+    search:'nematode roundworm freshwater microscope thrashing'
+  },
+];
+
+const bacteria = [
+  {
+    key:'bacteria_cluster', name:'Mixed Bacteria', latin:'Various (cocci, bacilli, spirilla)',
+    badge:'Bacteria · Prokaryote', badgeType:'bacteria',
+    size:'0.5–5 µm', mag:'400–1000×', movement:'Brownian shimmy or tumbling',
+    freq:'Ubiquitous',
+    id:'At 400× bacteria appear as tiny moving dots. At 1000× (oil immersion) you can distinguish: COCCI (spheres) — in clusters (Staphylococcus-like), chains (Streptococcus-like), or pairs; BACILLI (rods) — may have flagella for movement; SPIRILLA (helical/corkscrew) — rotate as they move. Brownian motion (random vibration) affects non-motile cells too.',
+    note:'Need at least 400× to see shape, 1000× for detail. A phase-contrast microscope dramatically improves visibility of these near-transparent cells.',
+    search:'pond water bacteria microscope 1000x oil immersion'
+  },
+  {
+    key:'anabaena', name:'Anabaena', latin:'Anabaena sp.',
+    badge:'Bacteria · Cyanobacteria', badgeType:'bacteria',
+    size:'Cells 4–12 µm; chains visible', mag:'100–400×', movement:'None or very slow',
+    freq:'Common',
+    id:'Chain of rounded blue-green cells (like a bead necklace). KEY ID FEATURES: HETEROCYSTS — occasional larger, pale/colorless, thick-walled cells in the chain that fix nitrogen; AKINETES — very large, oval, granular resting spores that form next to heterocysts. No true nucleus (prokaryote). Blue-green to olive-green color. May produce harmful toxins in blooms.',
+    note:'Heterocysts and akinetes make Anabaena unmistakable from other filamentous cyanobacteria. A common bloom-forming organism in nutrient-rich ponds.',
+    search:'Anabaena heterocyst akinete microscope cyanobacteria'
+  },
+];
+
+function padSVG(svgStr) {
+  // Parse viewBox, shrink content to 78% centred, giving ~11% breathing room on each side
+  return svgStr.replace(/<svg([^>]*)viewBox="(\d+) (\d+) (\d+) (\d+)"/, (m, attrs, x, y, w, h) => {
+    const pw = Math.round(w * 0.14);
+    const ph = Math.round(h * 0.14);
+    const nw = +w + pw * 2;
+    const nh = +h + ph * 2;
+    return `<svg${attrs}viewBox="${-pw} ${-ph} ${nw} ${nh}"`;
+  });
+}
+
+function googleURL(q) {
+  return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
+}
+
+function buildCards(organisms, containerId) {
+  const container = document.getElementById(containerId);
+  organisms.forEach((org, i) => {
+    const data = MICROBES[org.key] || { bg:'#e0eaf0', svg:'<svg viewBox="0 0 120 180"></svg>' };
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = (i * 0.05) + 's';
+    card.innerHTML = `
+      <div class="card-micro-box" style="background:${data.bg}">
+        ${data.svg}
+        <span class="mag-badge">${org.mag}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${org.name}</div>
+        <div class="card-latin">${org.latin}</div>
+        <span class="badge badge-${org.badgeType}">${org.badge}</span>
+        <div class="id-strip">
+          <strong>🔍 What to Look For</strong>
+          ${org.id}
+        </div>
+        <a class="google-link" href="${googleURL(org.search)}" target="_blank" rel="noopener">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          See real photos
+        </a>
+        <div class="card-row"><span class="card-label">Size</span><span class="card-val">${org.size}</span></div>
+        <div class="card-row"><span class="card-label">Movement</span><span class="card-val">${org.movement}</span></div>
+        <div class="card-row"><span class="card-label">Frequency</span><span class="card-val">${org.freq}</span></div>
+        <div class="card-note">${org.note}</div>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+buildCards(protozoa,  'protozoa-cards');
+buildCards(algae,    'algae-cards');
+buildCards(animals,  'animals-cards');
+buildCards(macro,    'macro-cards');
+buildCards(bacteria, 'bacteria-cards');
+
+function showTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
