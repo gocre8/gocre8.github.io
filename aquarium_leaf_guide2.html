@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquarium Leaf & Botanical Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Courier+Prime&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:    #222222;
+    --bg:     #f4f6f9;
+    --line:   #eaeaea;
+    --accent: #2a4a82;
+    --muted:  #888888;
+    --card:   #ffffff;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); font-family:'Jost',sans-serif; font-weight:300; font-size:14px; line-height:1.65; }
+
+  .page-header { padding:52px 48px 40px; border-bottom:1px solid var(--line); }
+  .page-title { font-size:22px; font-weight:400; letter-spacing:0.01em; margin-bottom:12px; }
+  .page-description { font-size:13.5px; font-weight:300; line-height:1.7; max-width:560px; }
+
+  .tabs { display:flex; border-bottom:1px solid var(--line); padding:0 48px; overflow-x:auto; }
+  .tab { font-family:'Jost',sans-serif; font-size:11px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); background:none; border:none; border-bottom:2px solid transparent; padding:11px 20px 11px 0; margin-bottom:-1px; cursor:pointer; white-space:nowrap; transition:color 0.15s; }
+  .tab:hover { color:var(--ink); }
+  .tab.active { color:var(--ink); border-bottom-color:var(--ink); }
+
+  .section { display:none; padding:44px 48px; max-width:1320px; margin:0 auto; }
+  .section.active { display:block; }
+  .section-title { font-size:15px; font-weight:400; margin-bottom:6px; }
+  .section-sub { font-size:12.5px; color:var(--muted); font-style:italic; margin-bottom:32px; font-weight:300; }
+
+  .cards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+
+  .card { background:var(--card); display:flex; flex-direction:column; animation:fadeUp 0.3s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
+
+  .card-art { width:100%; aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--line); overflow:hidden; padding:20px; }
+  .card-art svg { max-width:68%; max-height:68%; width:auto; height:auto; }
+
+  .card-body { padding:18px 20px 20px; flex:1; display:flex; flex-direction:column; gap:10px; }
+  .card-name  { font-size:15px; font-weight:400; }
+  .card-latin { font-size:12px; font-style:italic; color:var(--muted); margin-top:-6px; }
+  .card-tag   { font-size:10px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+
+  .card-id { font-size:12.5px; font-weight:300; line-height:1.6; border-top:1px solid var(--line); padding-top:10px; }
+  .card-id-label { font-size:10px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+
+  .card-data { font-size:12px; color:var(--muted); border-top:1px solid var(--line); padding-top:10px; font-family:'Courier Prime',monospace; line-height:1.9; }
+  .card-data span { color:var(--ink); font-family:'Jost',sans-serif; font-weight:400; font-size:12px; }
+
+  .card-link { font-size:11.5px; color:var(--accent); text-decoration:none; letter-spacing:0.02em; }
+  .card-link:hover { text-decoration:underline; }
+  .card-note { font-size:12px; font-style:italic; color:var(--muted); border-top:1px solid var(--line); padding-top:10px; line-height:1.55; }
+
+  .prose-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:40px; }
+  @media(max-width:700px){ .prose-grid { grid-template-columns:1fr; } }
+  .prose-box { background:var(--card); padding:28px 30px; }
+  .prose-box h3 { font-size:11px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+  .prose-box p  { font-size:13px; font-weight:300; line-height:1.7; margin-bottom:10px; }
+  .prose-box p:last-child { margin-bottom:0; }
+  .prose-box ul { list-style:none; padding:0; }
+  .prose-box li { font-size:13px; font-weight:300; line-height:1.6; padding:6px 0; border-bottom:1px solid var(--line); display:flex; gap:10px; }
+  .prose-box li:last-child { border-bottom:none; }
+  .prose-box li strong { font-weight:500; }
+
+  .data-table { width:100%; border-collapse:collapse; font-size:12.5px; background:var(--card); border:1px solid var(--line); margin-bottom:36px; }
+  .data-table th { background:var(--ink); color:white; font-weight:500; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; padding:11px 14px; text-align:left; font-family:'Jost',sans-serif; }
+  .data-table td { padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; font-weight:300; }
+  .data-table tr:last-child td { border-bottom:none; }
+  .data-table tr:nth-child(even) td { background:#f9fafb; }
+  .free-tag { font-size:10px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; background:var(--line); color:var(--ink); padding:2px 7px; }
+
+  .sub-label { font-size:11px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin:36px 0 16px; }
+  .sub-label:first-child { margin-top:0; }
+
+  .why-intro { font-size:13.5px; font-weight:300; line-height:1.75; max-width:640px; margin-bottom:36px; }
+  .why-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:40px; }
+  .why-card { background:var(--card); padding:24px 26px; }
+  .why-card-num   { font-family:'Courier Prime',monospace; font-size:11px; color:var(--muted); margin-bottom:8px; }
+  .why-card-title { font-size:14px; font-weight:400; margin-bottom:8px; }
+  .why-card-body  { font-size:12.5px; font-weight:300; line-height:1.65; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">Aquarium Leaf & Botanical Guide</div>
+  <div class="page-description">A field reference for leaves, seed pods, and botanicals used in natural aquariums — what each one does, how to identify it in the wild, and where to source it.</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('general',this)">General Leaves</button>
+  <button class="tab" onclick="showTab('nyc',this)">NYC Forageable</button>
+  <button class="tab" onclick="showTab('why',this)">Why Botanicals</button>
+  <button class="tab" onclick="showTab('foraging',this)">Foraging Guide</button>
+  <button class="tab" onclick="showTab('buy',this)">Where to Buy</button>
+</div>
+
+<div id="tab-general" class="section active">
+  <div class="section-title">General Aquarium Leaves</div>
+  <div class="section-sub">Widely used botanicals — most purchased online or at specialty stores. Click "see real photos" on any card to open a Google Image search.</div>
+  <div class="cards-grid" id="general-cards"></div>
+</div>
+
+<div id="tab-nyc" class="section">
+  <div class="section-title">NYC Forageable Leaves</div>
+  <div class="section-sub">All found in New York City parks — free, local, aquarium-safe. Collect naturally fallen dry leaves only. Use the identification notes and photo links to confirm species before collecting.</div>
+  <div class="cards-grid" id="nyc-cards"></div>
+</div>
+
+<div id="tab-why" class="section">
+  <div class="section-title">Why Botanicals</div>
+  <div class="section-sub">What leaf litter and seed pods actually do in a natural aquarium — and why variety matters.</div>
+
+  <div class="why-intro">Leaves and seed pods do far more than make a tank look natural. As they break down they feed the microbial base of the entire food web — the biofilm, fungi, and microorganisms that shrimp, scuds, snails, and fry graze on continuously. A tank with leaf litter running is a tank that feeds itself.</div>
+
+  <div class="sub-label">Four functions</div>
+  <div class="why-grid">
+    <div class="why-card"><div class="why-card-num">01</div><div class="why-card-title">Food</div><div class="why-card-body">Decomposing leaves support the growth of biofilm, fungi, and microorganisms — the foundation of the food web for shrimp, scuds, snails, fry, and other microfauna. The leaf itself is food long before it fully disappears.</div></div>
+    <div class="why-card"><div class="why-card-num">02</div><div class="why-card-title">Shelter</div><div class="why-card-body">Leaf litter provides essential cover and structure. Invertebrates use it to hide from predators, forage for food, and lay eggs. In tanks without fish, a deep litter bed is a breeding colony in itself.</div></div>
+    <div class="why-card"><div class="why-card-num">03</div><div class="why-card-title">Water Conditioning</div><div class="why-card-body">Leaves release tannins and humic acids that lower pH, inhibit harmful bacteria and fungi, and mimic the blackwater environments that many fish and invertebrates evolved in. Different species release different tannin compounds — variety matters.</div></div>
+    <div class="why-card"><div class="why-card-num">04</div><div class="why-card-title">Behavioral Enrichment</div><div class="why-card-body">Fish, shrimp, isopods, and snails exhibit more natural foraging, hiding, and scavenging behavior when surrounded by botanicals. Reduced stress, more activity, better color.</div></div>
+  </div>
+
+  <div class="sub-label">Why use a variety</div>
+  <div class="prose-grid" style="margin-bottom:40px;">
+    <div class="prose-box">
+      <h3>Different tannins</h3>
+      <p>Each leaf species releases different tannin compounds, believed to be beneficial in different ways. No single species covers everything — a mix of leaves fills the gaps. This is why hobbyists who use only catappa are missing something.</p>
+      <p>A diverse litter also more closely replicates what actually happens in stream environments, where dozens of species shed into the water over a season.</p>
+    </div>
+    <div class="prose-box">
+      <h3>Staggered breakdown</h3>
+      <p>Different leaves decompose at different rates. Maple breaks down in weeks; magnolia persists for nearly a year. A mixed litter provides a continuous, steady food source rather than one big pulse followed by nothing.</p>
+      <p>Seed pods break down even more slowly than the toughest leaves, holding their structure for months and providing lasting biofilm surface area long after the leaves are gone.</p>
+    </div>
+  </div>
+
+  <div class="sub-label">Leaves vs. seed pods</div>
+  <table class="data-table">
+    <thead><tr><th>Material</th><th>Breakdown</th><th>Primary function</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Maple, Mulberry</td><td>2–4 weeks</td><td>Fast food source, quick tannin burst</td><td>Good for kickstarting a new tank</td></tr>
+      <tr><td>Cottonwood, Red Maple, Silver Maple</td><td>2–6 weeks</td><td>Food + moderate tannins</td><td>Phillips Fish Works personal favorites</td></tr>
+      <tr><td>Oak, Beech, Black Cherry</td><td>3–6 months</td><td>Lasting structure + tannins</td><td>Best free-forage leaves</td></tr>
+      <tr><td>Magnolia</td><td>6–12 months</td><td>Long-term structure + shelter</td><td>Most durable aquarium leaf</td></tr>
+      <tr><td>Sweetgum pods, Alder cones</td><td>6+ months</td><td>Biofilm surface + structure</td><td>Shrimp love them; won't go soft</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sub-label">Water chemistry</div>
+  <div class="prose-grid">
+    <div class="prose-box">
+      <h3>Tannins lower pH</h3>
+      <p>As leaves break down, the chemical reaction consumes minerals from the water column, gradually lowering alkalinity (KH) and pH. In a heavily planted litter tank, this can happen faster than expected.</p>
+      <p>If pH drops too low, add crushed coral, aragonite sand, or seashells to buffer it back up. Test KH regularly if running a deep litter bed.</p>
+    </div>
+    <div class="prose-box">
+      <h3>Managing tannin color</h3>
+      <p>Dry leaves added directly will darken the water. To reduce darkening, soak or briefly boil leaves first to pre-release tannins before adding them to the tank.</p>
+      <p>If the water gets too dark after the fact, a partial water change or activated carbon in the filter will clear it. Both are reversible — there's no need to avoid leaves out of caution.</p>
+    </div>
+  </div>
+</div>
+
+<div id="tab-foraging" class="section">
+  <div class="section-title">NYC Foraging Guide</div>
+  <div class="section-sub">How to safely collect, dry, and prepare local leaves for your aquarium.</div>
+  <div class="prose-grid" style="margin-bottom:36px;">
+    <div class="prose-box">
+      <h3>Do this</h3>
+      <ul>
+        <li><span>—</span> Collect only naturally fallen, dry brown leaves — not green ones still attached</li>
+        <li><span>—</span> Stay 50+ feet from busy roads to avoid exhaust and pollution</li>
+        <li><span>—</span> Best collection window: October–November after the first frost</li>
+        <li><span>—</span> Store in dry paper bags or breathable mesh — never sealed plastic</li>
+        <li><span>—</span> Air dry 2–4 weeks, or oven dry at 200°F for one hour</li>
+        <li><span>—</span> Rinse briefly before adding to tank; soak 24–48 hrs to soften the initial tannin burst if needed</li>
+        <li><span>—</span> Add slowly and in small amounts — in small tanks or jars even a modest shift matters</li>
+      </ul>
+    </div>
+    <div class="prose-box">
+      <h3>Avoid these</h3>
+      <ul>
+        <li><span>—</span> <strong>Black Walnut</strong> — toxic juglone, lethal to fish</li>
+        <li><span>—</span> <strong>Yew (Taxus)</strong> — highly toxic, common as a hedge plant</li>
+        <li><span>—</span> <strong>Horse Chestnut</strong> — toxic saponins</li>
+        <li><span>—</span> <strong>Privet</strong> — common hedge, toxic to fish</li>
+        <li><span>—</span> <strong>Oleander</strong> — extremely toxic</li>
+        <li><span>—</span> Green or waxy leaves still attached to the tree</li>
+        <li><span>—</span> Boiling leaves — it removes the beneficial tannins</li>
+      </ul>
+    </div>
+  </div>
+  <div class="sub-label">Best NYC parks for foraging</div>
+  <table class="data-table">
+    <thead><tr><th>Park</th><th>Borough</th><th>Best Leaves</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Central Park</td><td>Manhattan</td><td>Red/Silver Maple, Sycamore, Elm, Oak</td><td>North Woods and Ramble area are best</td></tr>
+      <tr><td>Prospect Park</td><td>Brooklyn</td><td>Red/Silver Maple, Oak, Beech, Cherry</td><td>Long Meadow edges and Ravine section</td></tr>
+      <tr><td>Inwood Hill Park</td><td>Manhattan</td><td>American Beech, Oak, Maple, Cherry</td><td>One of the last old-growth forests in NYC</td></tr>
+      <tr><td>Van Cortlandt Park</td><td>Bronx</td><td>Oak, Beech, Alder, Maple, Sweetgum</td><td>Near Tibbetts Brook for alder finds</td></tr>
+      <tr><td>Staten Island Greenbelt</td><td>Staten Island</td><td>Oak, Beech, Alder, Sweetgum, Sycamore</td><td>Most diverse foraging in all five boroughs</td></tr>
+      <tr><td>Jamaica Bay / Gateway NRA</td><td>Queens / Brooklyn</td><td>Sweetgum, Oak, Cherry, Alder</td><td>Freshwater edges — great for alder cones</td></tr>
+      <tr><td>Pelham Bay Park</td><td>Bronx</td><td>Oak, Maple, Beech, Sweetgum, Hawthorn</td><td>Largest NYC park — very diverse</td></tr>
+      <tr><td>Alley Pond Park</td><td>Queens</td><td>Sweetgum, Oak, Maple, Alder</td><td>Freshwater wetland — great alder cones</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="tab-buy" class="section">
+  <div class="section-title">Where to Buy</div>
+  <div class="section-sub">Cheapest options first. Prices are estimates and may vary.</div>
+  <table class="data-table">
+    <thead><tr><th>Retailer</th><th>Product</th><th>Qty</th><th>Est. Price</th><th>Shipping</th><th>Per Leaf</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Free / Forage</td><td>Oak, Beech, Maple, Magnolia, Alder</td><td>Unlimited</td><td><span class="free-tag">Free</span></td><td>N/A</td><td>$0.00</td><td>NYC parks have all of these</td></tr>
+      <tr><td>Phillips Fish Works</td><td>Maple, Red Oak, Cottonwood (dry, 20-pack)</td><td>20</td><td>~$5.99</td><td>Paid</td><td>~$0.30</td><td>phillipsfishworks.com — pesticide-free, aquarium-prepared</td></tr>
+      <tr><td>Amazon</td><td>LeonBach Catappa 5–8"</td><td>100</td><td>~$8–$10</td><td>Free (Prime)</td><td>~$0.09</td><td>Best catappa bulk value</td></tr>
+      <tr><td>Amazon</td><td>JungleAquashrimp Guava Leaves</td><td>200</td><td>~$10–$12</td><td>Free (Prime)</td><td>~$0.05</td><td>Best bulk value for guava</td></tr>
+      <tr><td>Amazon</td><td>SunGrow Mini Catappa</td><td>50</td><td>~$6</td><td>Free (Prime)</td><td>~$0.12</td><td>Great for small tanks and bettas</td></tr>
+      <tr><td>Walmart.com</td><td>Catappa Leaves (various)</td><td>10</td><td>~$5.59</td><td>Free over threshold</td><td>~$0.56</td><td>Search "aquarium catappa leaves"</td></tr>
+      <tr><td>eBay</td><td>Catappa Leaves (bulk)</td><td>50+</td><td>Varies</td><td>Often free</td><td>Often cheapest</td><td>Filter by free shipping</td></tr>
+      <tr><td>Betta Botanicals</td><td>Catappa, Loquat, Jackfruit, Guava</td><td>Varies</td><td>Varies</td><td>Paid</td><td>Mid-range</td><td>bettabotanicals.com — sustainably sourced</td></tr>
+      <tr><td>Aquarium Co-Op</td><td>Catappa Leaves</td><td>Varies</td><td>Varies</td><td>Paid</td><td>Mid-range</td><td>aquariumcoop.com — reliable quality</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+const LEAVES = {
+
+  catappa: { bg:'#edf2e6', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 158 C26 143 8 114 8 82 C8 50 22 22 50 8 C78 22 92 50 92 82 C92 114 74 143 50 158Z" fill="#6ea86a" stroke="#4a7848" stroke-width="1.3"/>
+    <path d="M48 9 Q50 2 52 9" fill="#4a7848" stroke="none"/>
+    <path d="M50 158 C34 148 16 126 12 100" stroke="#b06040" stroke-width="2.5" fill="none" opacity="0.35"/>
+    <path d="M50 158 C66 148 84 126 88 100" stroke="#b06040" stroke-width="2.5" fill="none" opacity="0.35"/>
+    <line x1="50" y1="158" x2="50" y2="9" stroke="#3a5e30" stroke-width="2"/>
+    <line x1="50" y1="136" x2="20" y2="112" stroke="#3a5e30" stroke-width="0.9"/><line x1="50" y1="118" x2="15" y2="96" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="100" x2="14" y2="80" stroke="#3a5e30" stroke-width="0.9"/><line x1="50" y1="82" x2="16" y2="64" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="64" x2="22" y2="48" stroke="#3a5e30" stroke-width="0.9"/><line x1="50" y1="48" x2="32" y2="35" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="136" x2="80" y2="112" stroke="#3a5e30" stroke-width="0.9"/><line x1="50" y1="118" x2="85" y2="96" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="100" x2="86" y2="80" stroke="#3a5e30" stroke-width="0.9"/><line x1="50" y1="82" x2="84" y2="64" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="64" x2="78" y2="48" stroke="#3a5e30" stroke-width="0.9"/><line x1="50" y1="48" x2="68" y2="35" stroke="#3a5e30" stroke-width="0.9"/>
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  guava: { bg:'#edf0e6', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 155 C29 142 13 116 13 84 C13 54 28 27 50 14 C72 27 87 54 87 84 C87 116 71 142 50 155Z" fill="#9aba80" stroke="#628a50" stroke-width="1.2"/>
+    <path d="M13 84 C12 76 14 70 13 62 C12 54 14 48 14 42" stroke="#628a50" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <path d="M87 84 C88 76 86 70 87 62 C88 54 86 48 86 42" stroke="#628a50" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <ellipse cx="50" cy="84" rx="20" ry="48" fill="#c8ddb0" opacity="0.22"/>
+    <line x1="50" y1="155" x2="50" y2="14" stroke="#3e6830" stroke-width="2.8"/>
+    <line x1="50" y1="135" x2="28" y2="118" stroke="#3e6830" stroke-width="1.1"/><line x1="50" y1="118" x2="22" y2="102" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="101" x2="20" y2="86" stroke="#3e6830" stroke-width="1.1"/><line x1="50" y1="84" x2="20" y2="71" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="67" x2="23" y2="55" stroke="#3e6830" stroke-width="1.1"/><line x1="50" y1="50" x2="28" y2="40" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="35" x2="36" y2="27" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="135" x2="72" y2="118" stroke="#3e6830" stroke-width="1.1"/><line x1="50" y1="118" x2="78" y2="102" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="101" x2="80" y2="86" stroke="#3e6830" stroke-width="1.1"/><line x1="50" y1="84" x2="80" y2="71" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="67" x2="77" y2="55" stroke="#3e6830" stroke-width="1.1"/><line x1="50" y1="50" x2="72" y2="40" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="35" x2="64" y2="27" stroke="#3e6830" stroke-width="1.1"/>
+    <line x1="50" y1="155" x2="50" y2="170" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  oak: { bg:'#f0ecdf', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 158 C50 158 40 150 32 142 C24 134 27 126 19 122 C11 118 7 125 7 117 C7 109 15 105 16 97 C17 89 9 83 12 75 C15 67 25 69 27 61 C29 53 21 43 26 35 C30 28 39 32 43 26 C45 22 48 15 50 10 C52 15 55 22 57 26 C61 32 70 28 74 35 C79 43 71 53 73 61 C75 69 85 67 88 75 C91 83 83 89 84 97 C85 105 93 109 93 117 C93 125 89 118 81 122 C73 126 76 134 68 142 C60 150 50 158 50 158Z" fill="#96b065" stroke="#607840" stroke-width="1.2"/>
+    <line x1="50" y1="158" x2="50" y2="11" stroke="#486030" stroke-width="2"/>
+    <line x1="50" y1="136" x2="26" y2="122" stroke="#486030" stroke-width="1"/><line x1="50" y1="112" x2="14" y2="98" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="86" x2="14" y2="74" stroke="#486030" stroke-width="1"/><line x1="50" y1="60" x2="26" y2="46" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="38" x2="40" y2="28" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="136" x2="74" y2="122" stroke="#486030" stroke-width="1"/><line x1="50" y1="112" x2="86" y2="98" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="86" x2="86" y2="74" stroke="#486030" stroke-width="1"/><line x1="50" y1="60" x2="74" y2="46" stroke="#486030" stroke-width="1"/>
+    <line x1="50" y1="38" x2="60" y2="28" stroke="#486030" stroke-width="1"/>
+    <ellipse cx="50" cy="160" rx="5" ry="3" fill="#8a7040" opacity="0.4"/>
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  magnolia: { bg:'#e8ede0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 162 C22 148 5 120 5 86 C5 52 22 22 50 8 C78 22 95 52 95 86 C95 120 78 148 50 162Z" fill="#527a48" stroke="#3a5a34" stroke-width="1.5"/>
+    <ellipse cx="40" cy="55" rx="10" ry="18" fill="white" opacity="0.12" transform="rotate(-15,40,55)"/>
+    <path d="M50 162 C36 152 22 136 14 116 C8 100 6 88 6 76" stroke="#a06030" stroke-width="5" fill="none" opacity="0.28"/>
+    <path d="M50 162 C64 152 78 136 86 116 C92 100 94 88 94 76" stroke="#a06030" stroke-width="5" fill="none" opacity="0.28"/>
+    <line x1="50" y1="162" x2="50" y2="9" stroke="#2a4820" stroke-width="3.5"/>
+    <path d="M50 138 Q30 128 18 118" stroke="#2a4820" stroke-width="1.3" fill="none"/><path d="M50 115 Q28 105 14 96" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 90 Q28 82 14 74" stroke="#2a4820" stroke-width="1.3" fill="none"/><path d="M50 66 Q30 58 18 52" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 44 Q34 38 24 33" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 138 Q70 128 82 118" stroke="#2a4820" stroke-width="1.3" fill="none"/><path d="M50 115 Q72 105 86 96" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 90 Q72 82 86 74" stroke="#2a4820" stroke-width="1.3" fill="none"/><path d="M50 66 Q70 58 82 52" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <path d="M50 44 Q66 38 76 33" stroke="#2a4820" stroke-width="1.3" fill="none"/>
+    <line x1="50" y1="162" x2="50" y2="175" stroke="#8B5030" stroke-width="3"/>
+  </svg>` },
+
+  loquat: { bg:'#e8f0e0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 158 C47 154 40 148 36 138 C31 128 30 118 30 108 L27 100 L30 95 L28 86 L30 78 L27 70 L30 62 L28 54 L30 46 L28 38 L32 30 L36 20 L40 12 L50 8 L60 12 L64 20 L68 30 L72 38 L70 46 L72 54 L70 62 L73 70 L70 78 L72 86 L70 95 L73 100 L70 108 C70 118 69 128 64 138 C60 148 53 154 50 158Z" fill="#7db865" stroke="#4e8040" stroke-width="1.1"/>
+    <ellipse cx="38" cy="75" rx="5" ry="8" fill="#90c878" opacity="0.3"/><ellipse cx="62" cy="75" rx="5" ry="8" fill="#90c878" opacity="0.3"/>
+    <ellipse cx="38" cy="105" rx="5" ry="8" fill="#90c878" opacity="0.3"/><ellipse cx="62" cy="105" rx="5" ry="8" fill="#90c878" opacity="0.3"/>
+    <line x1="50" y1="158" x2="50" y2="9" stroke="#386828" stroke-width="2.5"/>
+    <line x1="50" y1="136" x2="32" y2="118" stroke="#386828" stroke-width="1.2"/><line x1="50" y1="118" x2="31" y2="100" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="100" x2="31" y2="83" stroke="#386828" stroke-width="1.2"/><line x1="50" y1="82" x2="32" y2="66" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="64" x2="33" y2="50" stroke="#386828" stroke-width="1.2"/><line x1="50" y1="46" x2="36" y2="34" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="136" x2="68" y2="118" stroke="#386828" stroke-width="1.2"/><line x1="50" y1="118" x2="69" y2="100" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="100" x2="69" y2="83" stroke="#386828" stroke-width="1.2"/><line x1="50" y1="82" x2="68" y2="66" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="64" x2="67" y2="50" stroke="#386828" stroke-width="1.2"/><line x1="50" y1="46" x2="64" y2="34" stroke="#386828" stroke-width="1.2"/>
+    <line x1="50" y1="158" x2="50" y2="173" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  jackfruit: { bg:'#e6ede0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 155 C26 140 10 112 10 82 C10 52 26 24 50 12 C74 24 90 52 90 82 C90 112 74 140 50 155Z" fill="#3a6848" stroke="#285038" stroke-width="1.5"/>
+    <ellipse cx="38" cy="60" rx="10" ry="24" fill="white" opacity="0.1" transform="rotate(-10,38,60)"/>
+    <line x1="50" y1="155" x2="50" y2="13" stroke="#183828" stroke-width="3"/>
+    <circle cx="46" cy="140" r="2.5" fill="white" opacity="0.5"/><circle cx="52" cy="132" r="2" fill="white" opacity="0.4"/>
+    <line x1="50" y1="130" x2="24" y2="112" stroke="#183828" stroke-width="1.1"/><line x1="50" y1="110" x2="18" y2="92" stroke="#183828" stroke-width="1.1"/>
+    <line x1="50" y1="90" x2="18" y2="74" stroke="#183828" stroke-width="1.1"/><line x1="50" y1="70" x2="22" y2="56" stroke="#183828" stroke-width="1.1"/>
+    <line x1="50" y1="52" x2="32" y2="40" stroke="#183828" stroke-width="1.1"/>
+    <line x1="50" y1="130" x2="76" y2="112" stroke="#183828" stroke-width="1.1"/><line x1="50" y1="110" x2="82" y2="92" stroke="#183828" stroke-width="1.1"/>
+    <line x1="50" y1="90" x2="82" y2="74" stroke="#183828" stroke-width="1.1"/><line x1="50" y1="70" x2="78" y2="56" stroke="#183828" stroke-width="1.1"/>
+    <line x1="50" y1="52" x2="68" y2="40" stroke="#183828" stroke-width="1.1"/>
+    <line x1="50" y1="155" x2="50" y2="170" stroke="#8B5030" stroke-width="2.8"/>
+  </svg>` },
+
+  beech: { bg:'#f0ece0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 155 C45 151 35 142 27 131 C19 120 16 108 14 94 C12 80 14 66 18 54 C22 40 30 26 39 18 C43 14 47 9 50 7 C53 9 57 14 61 18 C70 26 78 40 82 54 C86 66 88 80 86 94 C84 108 81 120 73 131 C65 142 55 151 50 155Z" fill="#b8c880" stroke="#708848" stroke-width="1.1"/>
+    <path d="M86 94 C87 108 82 120 74 131" stroke="#c8a060" stroke-width="2.5" fill="none" opacity="0.3"/>
+    <line x1="50" y1="155" x2="50" y2="8" stroke="#4a6030" stroke-width="1.8"/>
+    <line x1="50" y1="140" x2="19" y2="127" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="127" x2="16" y2="115" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="114" x2="14" y2="103" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="101" x2="14" y2="91" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="88" x2="15" y2="79" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="75" x2="16" y2="67" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="62" x2="19" y2="55" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="49" x2="23" y2="43" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="37" x2="30" y2="32" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="26" x2="38" y2="22" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="140" x2="81" y2="127" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="127" x2="84" y2="115" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="114" x2="86" y2="103" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="101" x2="86" y2="91" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="88" x2="85" y2="79" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="75" x2="84" y2="67" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="62" x2="81" y2="55" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="49" x2="77" y2="43" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="37" x2="70" y2="32" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="26" x2="62" y2="22" stroke="#4a6030" stroke-width="0.9"/>
+    <path d="M19 127 L16 124 M16 115 L13 112 M14 103 L11 100 M14 91 L11 88 M15 79 L12 76 M16 67 L13 64 M19 55 L16 52 M23 43 L20 40 M30 32 L27 29" stroke="#4a6030" stroke-width="0.8" fill="none"/>
+    <path d="M81 127 L84 124 M84 115 L87 112 M86 103 L89 100 M86 91 L89 88 M85 79 L88 76 M84 67 L87 64 M81 55 L84 52 M77 43 L80 40 M70 32 L73 29" stroke="#4a6030" stroke-width="0.8" fill="none"/>
+    <line x1="50" y1="155" x2="50" y2="170" stroke="#8B5020" stroke-width="2.2"/>
+  </svg>` },
+
+  mulberry: { bg:'#ede8e0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 148 C32 136 15 114 12 88 C9 62 22 38 38 22 C42 16 46 10 50 8 C54 10 60 16 68 24 C76 32 84 44 86 60 C88 76 84 92 78 104 C88 108 94 116 92 124 C90 132 82 136 74 134 C68 142 60 148 50 148Z" fill="#9ab870" stroke="#607840" stroke-width="1.2"/>
+    <circle cx="35" cy="80" r="2" fill="#789060" opacity="0.4"/><circle cx="42" cy="65" r="1.5" fill="#789060" opacity="0.35"/><circle cx="40" cy="95" r="1.8" fill="#789060" opacity="0.35"/>
+    <line x1="50" y1="148" x2="50" y2="9" stroke="#3e5e28" stroke-width="2"/>
+    <path d="M50 120 C38 114 26 106 18 96" stroke="#3e5e28" stroke-width="1" fill="none"/><path d="M50 96 C38 90 26 82 18 72" stroke="#3e5e28" stroke-width="1" fill="none"/>
+    <path d="M50 72 C40 66 30 58 24 48" stroke="#3e5e28" stroke-width="1" fill="none"/><path d="M50 50 C44 44 38 36 36 26" stroke="#3e5e28" stroke-width="1" fill="none"/>
+    <path d="M50 120 C60 114 70 106 78 96" stroke="#3e5e28" stroke-width="1" fill="none"/><path d="M50 96 C60 90 70 82 78 72" stroke="#3e5e28" stroke-width="1" fill="none"/>
+    <path d="M50 72 C58 66 66 58 70 50" stroke="#3e5e28" stroke-width="1" fill="none"/>
+    <line x1="50" y1="148" x2="50" y2="163" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  cottonwood: { bg:'#edf2e6', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 152 C30 140 12 116 10 88 C8 60 22 34 38 20 C42 15 46 10 50 8 C54 10 58 15 62 20 C78 34 92 60 90 88 C88 116 70 140 50 152Z" fill="#8aba68" stroke="#5a8038" stroke-width="1.3"/>
+    <line x1="50" y1="152" x2="50" y2="9" stroke="#3a6020" stroke-width="2"/>
+    <line x1="50" y1="130" x2="22" y2="108" stroke="#3a6020" stroke-width="0.9"/><line x1="50" y1="110" x2="16" y2="88" stroke="#3a6020" stroke-width="0.9"/>
+    <line x1="50" y1="90" x2="16" y2="70" stroke="#3a6020" stroke-width="0.9"/><line x1="50" y1="70" x2="22" y2="52" stroke="#3a6020" stroke-width="0.9"/>
+    <line x1="50" y1="50" x2="32" y2="34" stroke="#3a6020" stroke-width="0.9"/><line x1="50" y1="32" x2="40" y2="22" stroke="#3a6020" stroke-width="0.9"/>
+    <line x1="50" y1="130" x2="78" y2="108" stroke="#3a6020" stroke-width="0.9"/><line x1="50" y1="110" x2="84" y2="88" stroke="#3a6020" stroke-width="0.9"/>
+    <line x1="50" y1="90" x2="84" y2="70" stroke="#3a6020" stroke-width="0.9"/><line x1="50" y1="70" x2="78" y2="52" stroke="#3a6020" stroke-width="0.9"/>
+    <line x1="50" y1="50" x2="68" y2="34" stroke="#3a6020" stroke-width="0.9"/><line x1="50" y1="32" x2="60" y2="22" stroke="#3a6020" stroke-width="0.9"/>
+    <line x1="50" y1="152" x2="50" y2="175" stroke="#8B6030" stroke-width="2"/>
+    <line x1="45" y1="165" x2="55" y2="165" stroke="#8B6030" stroke-width="1" opacity="0.5"/>
+  </svg>` },
+
+  redmaple: { bg:'#f5ede8', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 150 C48 145 44 140 40 135 C36 130 32 126 28 122 C24 118 18 117 14 113 C10 109 10 104 13 100 C16 96 21 94 23 90 C25 86 24 81 25 76 C26 71 28 67 32 64 C36 61 38 57 38 52 C38 47 36 41 38 36 C40 31 44 24 50 11 C56 24 60 31 62 36 C64 41 62 47 62 52 C62 57 64 61 68 64 C72 67 74 71 75 76 C76 81 75 86 77 90 C79 94 84 96 87 100 C90 104 90 109 86 113 C82 117 76 118 72 122 C68 126 64 130 60 135 C56 140 52 145 50 150Z" fill="#c87878" stroke="#904040" stroke-width="1.2"/>
+    <line x1="50" y1="150" x2="50" y2="12" stroke="#8b2020" stroke-width="1.8"/>
+    <path d="M50 95 C40 89 30 84 16 80" stroke="#8b2020" stroke-width="1.1" fill="none"/>
+    <path d="M50 95 C60 89 70 84 84 80" stroke="#8b2020" stroke-width="1.1" fill="none"/>
+    <path d="M50 96 C44 107 37 116 28 124" stroke="#8b2020" stroke-width="1.1" fill="none"/>
+    <path d="M50 96 C56 107 63 116 72 124" stroke="#8b2020" stroke-width="1.1" fill="none"/>
+    <line x1="50" y1="150" x2="50" y2="168" stroke="#cc2020" stroke-width="3.5"/>
+  </svg>` },
+
+  silvermaple: { bg:'#ecebf5', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 152 C48 147 45 142 43 137 C41 132 40 128 37 125 C34 122 29 121 26 117 C23 113 23 108 26 104 C29 100 34 99 36 95 C38 91 37 86 38 81 C35 76 29 73 31 67 C33 61 40 60 42 55 C40 49 36 43 38 37 C40 31 45 23 50 9 C55 23 60 31 62 37 C64 43 60 49 58 55 C60 60 67 61 69 67 C71 73 65 76 62 81 C63 86 62 91 64 95 C66 99 71 100 74 104 C77 108 77 113 74 117 C71 121 66 122 63 125 C60 128 59 132 57 137 C55 142 52 147 50 152Z" fill="#8890c8" stroke="#4858a0" stroke-width="1.2"/>
+    <path d="M50 152 C48 145 44 138 42 132 C39 126 38 120 36 115 C34 110 30 107 31 101 C32 95 37 93 38 88 C36 82 31 78 32 71 C33 64 40 62 42 57 C41 51 38 44 40 37 C42 30 46 22 50 10" fill="#d0d8f0" opacity="0.5"/>
+    <line x1="50" y1="152" x2="50" y2="10" stroke="#303880" stroke-width="1.8"/>
+    <path d="M50 96 C40 90 30 85 18 82" stroke="#303880" stroke-width="1.1" fill="none"/>
+    <path d="M50 96 C60 90 70 85 82 82" stroke="#303880" stroke-width="1.1" fill="none"/>
+    <path d="M50 97 C44 108 38 118 30 126" stroke="#303880" stroke-width="1.1" fill="none"/>
+    <path d="M50 97 C56 108 62 118 70 126" stroke="#303880" stroke-width="1.1" fill="none"/>
+    <line x1="50" y1="152" x2="50" y2="167" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  redoak: { bg:'#f0e8d8', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 158 C50 158 40 150 32 140 C24 130 26 122 18 116 C10 110 7 116 7 108 C7 100 15 96 15 88 C15 80 7 74 10 66 C13 58 23 60 25 52 C27 44 18 32 24 24 C28 18 38 22 42 16 L50 6 L58 16 C62 22 72 18 76 24 C82 32 73 44 75 52 C77 60 87 58 90 66 C93 74 85 80 85 88 C85 96 93 100 93 108 C93 116 90 110 82 116 C74 122 76 130 68 140 C60 150 50 158 50 158Z" fill="#c09850" stroke="#806020" stroke-width="1.2"/>
+    <line x1="50" y1="7" x2="50" y2="0" stroke="#806020" stroke-width="1.2"/><line x1="24" y1="25" x2="20" y2="19" stroke="#806020" stroke-width="1.2"/>
+    <line x1="76" y1="25" x2="80" y2="19" stroke="#806020" stroke-width="1.2"/><line x1="8" y1="108" x2="2" y2="106" stroke="#806020" stroke-width="1.2"/>
+    <line x1="92" y1="108" x2="98" y2="106" stroke="#806020" stroke-width="1.2"/><line x1="18" y1="116" x2="13" y2="112" stroke="#806020" stroke-width="1.2"/>
+    <line x1="82" y1="116" x2="87" y2="112" stroke="#806020" stroke-width="1.2"/>
+    <line x1="50" y1="158" x2="50" y2="7" stroke="#604010" stroke-width="2"/>
+    <line x1="50" y1="134" x2="24" y2="118" stroke="#604010" stroke-width="1"/><line x1="50" y1="108" x2="12" y2="94" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="80" x2="14" y2="68" stroke="#604010" stroke-width="1"/><line x1="50" y1="52" x2="24" y2="40" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="134" x2="76" y2="118" stroke="#604010" stroke-width="1"/><line x1="50" y1="108" x2="88" y2="94" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="80" x2="86" y2="68" stroke="#604010" stroke-width="1"/><line x1="50" y1="52" x2="76" y2="40" stroke="#604010" stroke-width="1"/>
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  whiteoak: { bg:'#eaeee0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 158 C50 158 38 150 30 140 C22 130 25 122 17 118 C9 114 7 120 7 112 C7 104 15 100 16 92 C17 84 9 78 13 70 C17 62 27 64 29 56 C31 48 23 40 29 32 C33 26 41 30 45 24 C47 20 49 13 50 11 C51 13 53 20 55 24 C59 30 67 26 71 32 C77 40 69 48 71 56 C73 64 83 62 87 70 C91 78 83 84 84 92 C85 100 93 104 93 112 C93 120 91 114 83 118 C75 122 78 130 70 140 C62 150 50 158 50 158Z" fill="#7aaa58" stroke="#4a7838" stroke-width="1.2"/>
+    <ellipse cx="50" cy="35" rx="14" ry="20" fill="#6898c0" opacity="0.12"/>
+    <line x1="50" y1="158" x2="50" y2="12" stroke="#3a6028" stroke-width="2"/>
+    <line x1="50" y1="134" x2="26" y2="120" stroke="#3a6028" stroke-width="1"/><line x1="50" y1="110" x2="15" y2="96" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="85" x2="16" y2="72" stroke="#3a6028" stroke-width="1"/><line x1="50" y1="60" x2="28" y2="48" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="38" x2="40" y2="28" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="134" x2="74" y2="120" stroke="#3a6028" stroke-width="1"/><line x1="50" y1="110" x2="85" y2="96" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="85" x2="84" y2="72" stroke="#3a6028" stroke-width="1"/><line x1="50" y1="60" x2="72" y2="48" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="38" x2="60" y2="28" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="158" x2="50" y2="172" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  ambeech: { bg:'#f0ead8', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 155 C45 151 35 142 27 131 C19 120 16 108 14 94 C12 80 14 66 18 54 C22 40 30 26 39 18 C43 14 47 9 50 7 C53 9 57 14 61 18 C70 26 78 40 82 54 C86 66 88 80 86 94 C84 108 81 120 73 131 C65 142 55 151 50 155Z" fill="#b8c880" stroke="#708848" stroke-width="1.1"/>
+    <path d="M86 94 C87 108 82 120 74 131" stroke="#c8a060" stroke-width="2.5" fill="none" opacity="0.3"/>
+    <line x1="50" y1="155" x2="50" y2="8" stroke="#4a6030" stroke-width="1.8"/>
+    <line x1="50" y1="140" x2="19" y2="127" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="127" x2="16" y2="115" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="114" x2="14" y2="103" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="101" x2="14" y2="91" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="88" x2="15" y2="79" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="75" x2="16" y2="67" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="62" x2="19" y2="55" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="49" x2="23" y2="43" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="37" x2="30" y2="32" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="26" x2="38" y2="22" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="140" x2="81" y2="127" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="127" x2="84" y2="115" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="114" x2="86" y2="103" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="101" x2="86" y2="91" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="88" x2="85" y2="79" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="75" x2="84" y2="67" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="62" x2="81" y2="55" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="49" x2="77" y2="43" stroke="#4a6030" stroke-width="0.9"/>
+    <line x1="50" y1="37" x2="70" y2="32" stroke="#4a6030" stroke-width="0.9"/><line x1="50" y1="26" x2="62" y2="22" stroke="#4a6030" stroke-width="0.9"/>
+    <path d="M19 127 L16 124 M16 115 L13 112 M14 103 L11 100 M14 91 L11 88 M15 79 L12 76 M16 67 L13 64 M19 55 L16 52 M23 43 L20 40 M30 32 L27 29" stroke="#4a6030" stroke-width="0.8" fill="none"/>
+    <path d="M81 127 L84 124 M84 115 L87 112 M86 103 L89 100 M86 91 L89 88 M85 79 L88 76 M84 67 L87 64 M81 55 L84 52 M77 43 L80 40 M70 32 L73 29" stroke="#4a6030" stroke-width="0.8" fill="none"/>
+    <line x1="50" y1="155" x2="50" y2="170" stroke="#8B5020" stroke-width="2.2"/>
+  </svg>` },
+
+  hawthorn: { bg:'#e6f0e0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 138 C50 138 42 130 36 122 C30 114 32 107 24 103 C16 99 13 106 13 99 C13 92 20 89 22 83 C24 77 18 72 22 66 C26 60 34 63 37 57 C40 51 36 42 42 36 C44 31 48 24 50 14 C52 24 56 31 58 36 C64 42 60 51 63 57 C66 63 74 60 78 66 C82 72 76 77 78 83 C80 89 87 92 87 99 C87 106 84 99 76 103 C68 107 70 114 64 122 C58 130 50 138 50 138Z" fill="#58a040" stroke="#387028" stroke-width="1.1"/>
+    <ellipse cx="40" cy="55" rx="6" ry="14" fill="white" opacity="0.2" transform="rotate(-15,40,55)"/>
+    <line x1="50" y1="138" x2="50" y2="162" stroke="#4a3018" stroke-width="2.5"/>
+    <line x1="50" y1="150" x2="43" y2="144" stroke="#4a3018" stroke-width="1.5"/>
+    <line x1="50" y1="156" x2="57" y2="150" stroke="#4a3018" stroke-width="1.5"/>
+    <line x1="50" y1="108" x2="28" y2="96" stroke="#387028" stroke-width="1"/><line x1="50" y1="86" x2="24" y2="74" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="65" x2="30" y2="55" stroke="#387028" stroke-width="1"/><line x1="50" y1="47" x2="38" y2="38" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="108" x2="72" y2="96" stroke="#387028" stroke-width="1"/><line x1="50" y1="86" x2="76" y2="74" stroke="#387028" stroke-width="1"/>
+    <line x1="50" y1="65" x2="70" y2="55" stroke="#387028" stroke-width="1"/><line x1="50" y1="47" x2="62" y2="38" stroke="#387028" stroke-width="1"/>
+    <line x1="8" y1="158" x2="28" y2="158" stroke="#aaaaaa" stroke-width="1"/>
+    <text x="18" y="166" font-size="6" fill="#aaaaaa" text-anchor="middle">~2–3"</text>
+  </svg>` },
+
+  blackcherry: { bg:'#e4ede0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 158 C40 150 25 134 19 114 C13 94 13 72 21 54 C27 40 37 22 50 10 C63 22 73 40 79 54 C87 72 87 94 81 114 C75 134 60 150 50 158Z" fill="#4e9858" stroke="#307040" stroke-width="1.1"/>
+    <ellipse cx="40" cy="60" rx="7" ry="22" fill="white" opacity="0.15" transform="rotate(-8,40,60)"/>
+    <circle cx="44" cy="148" r="2.5" fill="#cc3030" opacity="0.85"/>
+    <circle cx="56" cy="148" r="2.5" fill="#cc3030" opacity="0.85"/>
+    <line x1="50" y1="158" x2="50" y2="11" stroke="#205830" stroke-width="2"/>
+    <line x1="50" y1="138" x2="26" y2="120" stroke="#205830" stroke-width="0.9"/><line x1="50" y1="118" x2="20" y2="100" stroke="#205830" stroke-width="0.9"/>
+    <line x1="50" y1="98" x2="18" y2="80" stroke="#205830" stroke-width="0.9"/><line x1="50" y1="78" x2="20" y2="62" stroke="#205830" stroke-width="0.9"/>
+    <line x1="50" y1="58" x2="26" y2="44" stroke="#205830" stroke-width="0.9"/><line x1="50" y1="40" x2="36" y2="28" stroke="#205830" stroke-width="0.9"/>
+    <line x1="50" y1="138" x2="74" y2="120" stroke="#205830" stroke-width="0.9"/><line x1="50" y1="118" x2="80" y2="100" stroke="#205830" stroke-width="0.9"/>
+    <line x1="50" y1="98" x2="82" y2="80" stroke="#205830" stroke-width="0.9"/><line x1="50" y1="78" x2="80" y2="62" stroke="#205830" stroke-width="0.9"/>
+    <line x1="50" y1="58" x2="74" y2="44" stroke="#205830" stroke-width="0.9"/><line x1="50" y1="40" x2="64" y2="28" stroke="#205830" stroke-width="0.9"/>
+    <line x1="50" y1="158" x2="50" y2="173" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  elm: { bg:'#eaeee8', svg:`<svg viewBox="0 0 110 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M58 155 C44 145 28 126 20 104 C12 82 14 58 24 40 C32 26 42 14 52 8 C56 12 62 20 68 32 C78 50 84 72 82 94 C80 116 72 138 60 152Z" fill="#8ab860" stroke="#5a8038" stroke-width="1.2"/>
+    <path d="M52 8 C46 12 38 20 30 32 C22 46 16 64 18 84 C20 100 26 116 36 132" fill="#7aaa50" stroke="#5a8038" stroke-width="1.2"/>
+    <line x1="56" y1="155" x2="52" y2="9" stroke="#3a6028" stroke-width="2"/>
+    <line x1="54" y1="130" x2="28" y2="112" stroke="#3a6028" stroke-width="1"/><line x1="52" y1="108" x2="22" y2="92" stroke="#3a6028" stroke-width="1"/>
+    <line x1="50" y1="86" x2="20" y2="72" stroke="#3a6028" stroke-width="1"/><line x1="50" y1="64" x2="24" y2="52" stroke="#3a6028" stroke-width="1"/>
+    <line x1="52" y1="44" x2="32" y2="34" stroke="#3a6028" stroke-width="1"/>
+    <line x1="56" y1="130" x2="76" y2="112" stroke="#3a6028" stroke-width="1"/><line x1="58" y1="108" x2="80" y2="92" stroke="#3a6028" stroke-width="1"/>
+    <line x1="58" y1="86" x2="80" y2="70" stroke="#3a6028" stroke-width="1"/><line x1="56" y1="64" x2="76" y2="52" stroke="#3a6028" stroke-width="1"/>
+    <line x1="55" y1="155" x2="55" y2="170" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  sweetgum: { bg:'#edf0e6', svg:`<svg viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M60 160 C56 152 50 144 44 138 C38 132 32 130 26 126 C22 122 20 116 24 112 C28 108 34 108 38 106 C34 100 28 96 26 90 C24 84 28 78 34 78 C40 78 44 82 46 80 C44 74 40 66 44 60 C48 54 56 56 60 58 C64 56 72 54 76 60 C80 66 76 74 74 80 C76 82 80 78 86 78 C92 78 96 84 94 90 C92 96 86 100 82 106 C86 108 92 108 96 112 C100 116 98 122 94 126 C88 130 82 132 76 138 C70 144 64 152 60 160Z" fill="#88b055" stroke="#507030" stroke-width="1.3"/>
+    <line x1="60" y1="160" x2="60" y2="58" stroke="#3a5820" stroke-width="2"/>
+    <path d="M60 110 C48 104 36 98 26 92" stroke="#3a5820" stroke-width="1.1" fill="none"/>
+    <path d="M60 110 C72 104 84 98 94 92" stroke="#3a5820" stroke-width="1.1" fill="none"/>
+    <path d="M60 112 C52 124 44 134 36 142" stroke="#3a5820" stroke-width="1.1" fill="none"/>
+    <path d="M60 112 C68 124 76 134 84 142" stroke="#3a5820" stroke-width="1.1" fill="none"/>
+    <circle cx="100" cy="150" r="11" fill="#8a5828" stroke="#6a3810" stroke-width="1"/>
+    <g stroke="#6a3810" stroke-width="1" stroke-linecap="round">
+      <line x1="100" y1="139" x2="100" y2="135"/><line x1="100" y1="161" x2="100" y2="165"/>
+      <line x1="89" y1="150" x2="85" y2="150"/><line x1="111" y1="150" x2="115" y2="150"/>
+      <line x1="92" y1="142" x2="89" y2="139"/><line x1="108" y1="158" x2="111" y2="161"/>
+      <line x1="108" y1="142" x2="111" y2="139"/><line x1="92" y1="158" x2="89" y2="161"/>
+    </g>
+    <line x1="60" y1="160" x2="60" y2="176" stroke="#8B6030" stroke-width="2.2"/>
+  </svg>` },
+
+  alder: { bg:'#e6ede0', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 148 C32 136 14 114 12 88 C10 62 24 38 38 24 C42 18 46 12 50 10 C54 12 58 18 62 24 C76 38 90 62 88 88 C86 114 68 136 50 148Z" fill="#70b860" stroke="#488040" stroke-width="1.1"/>
+    <path d="M46 12 C48 6 50 4 50 4 C50 4 52 6 54 12" fill="none" stroke="#488040" stroke-width="1.3"/>
+    <path d="M48 10 L50 14 L52 10" fill="none" stroke="#488040" stroke-width="1.3"/>
+    <circle cx="44" cy="136" r="1.5" fill="#306820" opacity="0.5"/><circle cx="56" cy="136" r="1.5" fill="#306820" opacity="0.5"/>
+    <path d="M13 95 L9 92 L14 94 M13 75 L9 72 L14 74 M15 56 L11 53 L16 55" stroke="#488040" stroke-width="0.7" fill="none"/>
+    <path d="M87 95 L91 92 L86 94 M87 75 L91 72 L86 74 M85 56 L89 53 L84 55" stroke="#488040" stroke-width="0.7" fill="none"/>
+    <line x1="50" y1="148" x2="50" y2="10" stroke="#306828" stroke-width="2"/>
+    <line x1="50" y1="124" x2="24" y2="108" stroke="#306828" stroke-width="1"/><line x1="50" y1="104" x2="17" y2="89" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="84" x2="16" y2="70" stroke="#306828" stroke-width="1"/><line x1="50" y1="64" x2="20" y2="52" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="44" x2="30" y2="34" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="124" x2="76" y2="108" stroke="#306828" stroke-width="1"/><line x1="50" y1="104" x2="83" y2="89" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="84" x2="84" y2="70" stroke="#306828" stroke-width="1"/><line x1="50" y1="64" x2="80" y2="52" stroke="#306828" stroke-width="1"/>
+    <line x1="50" y1="44" x2="70" y2="34" stroke="#306828" stroke-width="1"/>
+    <ellipse cx="82" cy="130" rx="8" ry="12" fill="#7a5030" stroke="#5a3818" stroke-width="1"/>
+    <line x1="74" y1="126" x2="90" y2="126" stroke="#5a3818" stroke-width="0.8"/><line x1="74" y1="130" x2="90" y2="130" stroke="#5a3818" stroke-width="0.8"/>
+    <line x1="74" y1="134" x2="90" y2="134" stroke="#5a3818" stroke-width="0.8"/>
+    <line x1="82" y1="118" x2="82" y2="115" stroke="#5a3818" stroke-width="1.2"/>
+    <text x="82" y="148" font-size="5.5" fill="#5a3818" text-anchor="middle">cone</text>
+    <line x1="50" y1="148" x2="50" y2="163" stroke="#8B5030" stroke-width="2.2"/>
+  </svg>` },
+
+  sycamore: { bg:'#eaf0e4', svg:`<svg viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 148 C47 144 43 140 40 136 C37 132 34 129 30 127 C26 125 21 126 18 122 C15 118 16 113 19 110 C22 107 27 106 29 103 C31 100 30 96 28 93 C26 90 22 89 20 85 C18 81 19 76 22 74 C25 72 30 73 33 71 C36 69 37 65 37 61 C37 57 35 52 37 47 C39 42 43 35 50 11 C57 35 61 42 63 47 C65 52 63 57 63 61 C63 65 64 69 67 71 C70 73 75 72 78 74 C81 76 82 81 80 85 C78 89 74 90 72 93 C70 96 69 100 71 103 C73 106 78 107 81 110 C84 113 85 118 82 122 C79 126 74 125 70 127 C66 129 63 132 60 136 C57 140 53 144 50 148Z" fill="#90b870" stroke="#5a7a40" stroke-width="1.2"/>
+    <line x1="50" y1="148" x2="50" y2="12" stroke="#406828" stroke-width="2"/>
+    <path d="M50 100 C40 94 30 88 18 84" stroke="#406828" stroke-width="1.1" fill="none"/>
+    <path d="M50 100 C60 94 70 88 82 84" stroke="#406828" stroke-width="1.1" fill="none"/>
+    <path d="M50 102 C44 112 38 122 30 130" stroke="#406828" stroke-width="1.1" fill="none"/>
+    <path d="M50 102 C56 112 62 122 70 130" stroke="#406828" stroke-width="1.1" fill="none"/>
+    <line x1="50" y1="148" x2="50" y2="172" stroke="#8B6030" stroke-width="3.5"/>
+    <path d="M47 152 Q50 156 53 152 Q56 156 53 161 Q56 165 53 170" stroke="#c8a060" stroke-width="1.2" fill="none"/>
+    <path d="M47 160 Q44 164 47 169" stroke="#c8a060" stroke-width="1.2" fill="none"/>
+    <line x1="6" y1="162" x2="30" y2="162" stroke="#aaaaaa" stroke-width="1"/>
+    <text x="18" y="170" font-size="6" fill="#aaaaaa" text-anchor="middle">~4–9"</text>
+  </svg>` },
+
+};
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+
+const generalLeaves = [
+  { key:'catappa',   name:'Catappa',   latin:'Terminalia catappa',        tag:'Leaf · Tropical',    duration:'1–2 months',    tannins:'high',        shrimp:'yes', best:'Bettas, Apistogramma, discus, shrimp, fry',   id:'Large obovate leaf widest near the tip. Blunt apex with a small drip-tip. Wedge-shaped base. Often shows red or orange tinge along edges. 10–15 prominent parallel veins per side.', note:'The most widely used aquarium leaf. Lowers pH, antibacterial and antifungal.', search:'Terminalia catappa leaf aquarium' },
+  { key:'guava',     name:'Guava',     latin:'Psidium guajava',           tag:'Leaf · Tropical',    duration:'2–3 months',    tannins:'medium',      shrimp:'yes', best:'Shrimp, nano fish, bettas',                   id:'Elliptic, dull matte surface — not glossy. Veins deeply sunken giving a puckered look between them. Pale green underside. Edges slightly wavy. Faint fruity smell when fresh.', note:'Slower breakdown, lighter tint. Rich in polyphenols and flavonoids.', search:'Psidium guajava leaf identification' },
+  { key:'oak',       name:'Oak',       latin:'Quercus spp.',              tag:'Leaf · Deciduous',   duration:'3–6 months',    tannins:'medium–high', shrimp:'yes', best:'Most freshwater fish, shrimp, crayfish',      id:'Classically lobed. White oak has rounded lobe tips; red oak has pointed bristle-tipped lobes. 7–9 lobes. Waxy feel on upper surface. Often retains dead brown leaves on the tree through winter.', note:'Free to collect in autumn. One of the most durable leaf litter materials.', search:'oak leaf aquarium safe identification' },
+  { key:'magnolia',  name:'Magnolia',  latin:'Magnolia grandiflora',      tag:'Leaf · Evergreen',   duration:'6–12 months',   tannins:'low–medium',  shrimp:'yes', best:'Bottom dwellers, shrimp, plecos',             id:'Very large (8–12"), thick and leathery, no teeth or lobes. Upper side very glossy dark green. Underside has a distinctive rusty-brown felty coating. Very stout midrib. Feels stiff and heavy.', note:'Most durable of all aquarium leaves. Use only dried brown leaves, not green.', search:'Magnolia grandiflora leaf aquarium' },
+  { key:'loquat',    name:'Loquat',    latin:'Eriobotrya japonica',       tag:'Leaf · Subtropical', duration:'3–5 months',    tannins:'medium',      shrimp:'yes', best:'Shrimp, snails, nano fish',                  id:'Long, narrow, lance-shaped. Coarse sharp teeth along margins. Surface wrinkled and puckered between veins. Feels like rough leather. Whitish-woolly underside. Veins deeply impressed on upper side.', note:'Rich in potassium, calcium, magnesium, and iron.', search:'Eriobotrya japonica loquat leaf identification' },
+  { key:'jackfruit', name:'Jackfruit', latin:'Artocarpus heterophyllus', tag:'Leaf · Tropical',    duration:'2–4 months',    tannins:'medium',      shrimp:'yes', best:'Shrimp, small fish, snails',                 id:'Thick, stiff, very dark glossy green. Obovate — wider near tip. Completely smooth margins with no teeth. High gloss like patent leather. White latex drips from midrib when fresh.', note:'Harder and more fibrous than catappa. Long-lasting biofilm grazing surface.', search:'Artocarpus heterophyllus jackfruit leaf' },
+  { key:'beech',     name:'Beech',     latin:'Fagus spp.',                tag:'Leaf · Deciduous',   duration:'2–4 months',    tannins:'medium',      shrimp:'yes', best:'Most freshwater fish, shrimp',               id:'Ovate, silky smooth when fresh, papery thin when dry. Parallel veins very regular (9–14 pairs), each ending in a single small tooth at the margin. Often holds dead tan leaves on the tree all winter.', note:'Moderate golden tint. Keeps its shape beautifully as it breaks down.', search:'Fagus beech leaf aquarium identification' },
+  { key:'mulberry',  name:'Mulberry',  latin:'Morus spp.',                tag:'Leaf · Deciduous',   duration:'2–4 weeks',     tannins:'low–medium',  shrimp:'yes', best:'Shrimp, snails, herbivorous fish',            id:'Heart-shaped base, pointed apex. Same tree produces unlobed, mitten-shaped, and fully lobed leaves. Rough sandpaper texture on upper surface. Irregularly toothed margins.', note:'Breaks down fastest of all. Very nutritious for shrimp and snails.', search:'Morus mulberry leaf aquarium identification' },
+];
+
+const nycLeaves = [
+  { key:'cottonwood',  name:'Cottonwood',     latin:'Populus deltoides',        tag:'Leaf · NYC Native', duration:'3–6 weeks',                      tannins:'moderate',    shrimp:'yes', best:'Shrimp, scuds, snails, isopods, fry',    id:'Broadly triangular to heart-shaped with a flat or slightly indented base. Finely toothed edges. Petiole is notably long and flat — causes the leaf to tremble in any breeze. Surfaces hairless, somewhat glossy.', note:'A personal favorite of Phillips Fish Works. Widely loved by shrimp, scuds, snails, and isopods.', search:'Populus deltoides cottonwood leaf identification' },
+  { key:'redmaple',    name:'Red Maple',      latin:'Acer rubrum',              tag:'Leaf · NYC Native', duration:'1–2 weeks',                      tannins:'low',         shrimp:'yes', best:'Shrimp, snails, nano fish, otos',        id:'5 lobes with pointed tips and V-shaped sinuses. Key ID: bright red petiole — very distinctive. Whitish-pale underside. Leaves turn scarlet in fall. Sinuses shallower than silver maple.', note:'Very common in all NYC parks. Fast breakdown creates great biofilm quickly.', search:'Acer rubrum red maple leaf identification' },
+  { key:'silvermaple', name:'Silver Maple',   latin:'Acer saccharinum',         tag:'Leaf · NYC Native', duration:'1–2 weeks',                      tannins:'low',         shrimp:'yes', best:'Shrimp, snails, fry, nano fish',         id:'5 lobes with deeply cut sinuses almost reaching the midrib — much deeper than red maple. Key ID: brilliant silver-white underside very obvious when wind blows. Edges more jagged and toothed.', note:'Abundant in Prospect Park and Central Park.', search:'Acer saccharinum silver maple leaf identification' },
+  { key:'redoak',      name:'Red Oak',        latin:'Quercus rubra',            tag:'Leaf · NYC Native', duration:'3–6 months',                     tannins:'high',        shrimp:'yes', best:'Most freshwater fish, shrimp, bettas',   id:'7–11 lobes with pointed tips, each ending in a tiny bristle-tip. Sinuses U-shaped, moderately deep. Matte surface. Turns deep red to brown in fall. Acorns take two years to mature.', note:'Best free alternative to catappa. Pointed bristle-tipped lobes are the key ID feature.', search:'Quercus rubra red oak leaf identification' },
+  { key:'whiteoak',    name:'White Oak',      latin:'Quercus alba',             tag:'Leaf · NYC Native', duration:'3–6 months',                     tannins:'high',        shrimp:'yes', best:'Most freshwater fish, shrimp',           id:'7–9 lobes with fully rounded tips — no bristles at all. Bluish-green upper surface with pale whitish underside. Upper lobes usually widest. Acorns mature in one year unlike red oak.', note:'Rounded lobe tips (no bristles) is the key distinction from red oak.', search:'Quercus alba white oak leaf identification' },
+  { key:'ambeech',     name:'American Beech', latin:'Fagus grandifolia',        tag:'Leaf · NYC Native', duration:'4–6+ months',                    tannins:'low–medium',  shrimp:'yes', best:'Most freshwater fish, shrimp',           id:'Ovate-oblong, papery thin when dry. Key ID: very regular parallel veins (9–14 pairs) each ending in a small sharp forward-pointing tooth. Holds dead tan leaves on the tree all winter. Silvery-grey smooth bark.', note:'Inwood Hill Park has excellent specimens. Keeps shape beautifully in tanks.', search:'Fagus grandifolia American beech leaf identification' },
+  { key:'hawthorn',    name:'Hawthorn',       latin:'Crataegus spp.',           tag:'Leaf · NYC Native', duration:'2–3 months',                     tannins:'medium',      shrimp:'yes', best:'Nano fish, shrimp, bettas',              id:'Small leaf — only 2–3". Deeply lobed with 3–7 pointed lobes and toothed margins, like a tiny deeply-cut oak. Very glossy upper surface. Key ID: found on thorny-branched trees with sharp 1–2" thorns along stems.', note:'Perfect size for nano tanks. Always check the branch for thorns to confirm ID.', search:'Crataegus hawthorn leaf identification NYC' },
+  { key:'blackcherry', name:'Black Cherry',   latin:'Prunus serotina',          tag:'Leaf · NYC Native', duration:'2–3 months',                     tannins:'medium–high', shrimp:'yes', best:'Bettas, blackwater fish, shrimp',        id:'Narrowly elliptic, dark glossy green. Very finely serrated margins with tiny forward-curved teeth. Key ID: 1–2 small reddish glands at the base of the blade where it meets the petiole. Crushed leaves smell of bitter almonds.', note:'Leaves only — remove all fruit and stems. Red glands at leaf base are the key ID feature.', search:'Prunus serotina black cherry leaf identification' },
+  { key:'elm',         name:'American Elm',   latin:'Ulmus americana',          tag:'Leaf · NYC Native', duration:'1–2 months',                     tannins:'low–medium',  shrimp:'yes', best:'Shrimp, most freshwater fish',           id:'Oval to oblong. Key ID: strongly asymmetric base — one side attaches noticeably higher on the stem than the other. Double-serrated margins. Rough sandpaper texture on upper surface. Classic vase-shaped tree canopy.', note:'The asymmetric base is unmistakable. Found on vase-shaped trees throughout NYC.', search:'Ulmus americana elm leaf identification' },
+  { key:'sweetgum',    name:'Sweetgum',       latin:'Liquidambar styraciflua',  tag:'Leaf + Pod · NYC',  duration:'Leaves 2–3 mo · pods 6+ mo',     tannins:'medium',      shrimp:'yes', best:'Shrimp, nano fish, snails',              id:'Unmistakable 5–7 pointed star shape with a heart-shaped base. Finely toothed along each lobe. Glossy. Resinous fragrance when crushed. Key ID: spiky brown ball seed pods (gumballs) on the ground beneath the tree.', note:'Star shape is unmistakable. Collect the seed pods too — shrimp love them and they last for months.', search:'Liquidambar sweetgum leaf pod identification' },
+  { key:'alder',       name:'Alder',          latin:'Alnus serrulata',          tag:'Leaf + Cone · NYC', duration:'Leaves 1–2 mo · cones 6+ mo',    tannins:'medium–high', shrimp:'yes', best:'All freshwater fish, shrimp, bettas',    id:'Oval leaf with a notched — emarginate — tip: a small dip at the apex rather than a point. Doubly-toothed margins, dark green. Sticky when young. Found near water. Small woody oval cones persist year-round on branches.', note:'Look for the small woody cones — both leaves and cones are aquarium-safe and long-lasting.', search:'Alnus serrulata alder leaf cone identification' },
+  { key:'sycamore',    name:'Sycamore',       latin:'Platanus occidentalis',    tag:'Leaf · NYC Native', duration:'2–4 months',                     tannins:'low–medium',  shrimp:'yes', best:'Most freshwater fish, larger tanks',      id:'Very large (4–9"), broadly 3–5 lobed with shallower sinuses than maple. Coarsely toothed lobes. Base is flat rather than heart-shaped. Key ID: the tree has unmistakable peeling bark in cream, tan, and grey jigsaw-puzzle patches.', note:'Look for the peeling jigsaw-bark trunk to confirm ID from a distance.', search:'Platanus occidentalis sycamore leaf identification' },
+];
+
+function googleURL(q) { return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q); }
+
+function buildCards(leaves, containerId) {
+  const container = document.getElementById(containerId);
+  leaves.forEach((leaf, i) => {
+    const data = LEAVES[leaf.key] || { bg:'#eef1f5', svg:'<svg viewBox="0 0 100 170"></svg>' };
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = (i * 0.04) + 's';
+    card.innerHTML = `
+      <div class="card-art" style="background:${data.bg}">${data.svg}</div>
+      <div class="card-body">
+        <div><div class="card-name">${leaf.name}</div><div class="card-latin">${leaf.latin}</div></div>
+        <div class="card-tag">${leaf.tag}</div>
+        <div class="card-id"><div class="card-id-label">How to identify</div>${leaf.id}</div>
+        <div class="card-data">duration — <span>${leaf.duration}</span><br>tannins — <span>${leaf.tannins}</span><br>shrimp safe — <span>${leaf.shrimp}</span><br>best for — <span>${leaf.best}</span></div>
+        <a class="card-link" href="${googleURL(leaf.search)}" target="_blank" rel="noopener">see real photos →</a>
+        <div class="card-note">${leaf.note}</div>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+buildCards(generalLeaves, 'general-cards');
+buildCards(nycLeaves,     'nyc-cards');
+
+function showTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

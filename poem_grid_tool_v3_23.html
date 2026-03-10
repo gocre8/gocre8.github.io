@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phonetic Grid Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;1,300&family=Courier+Prime:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<script>
+const PROXY_URL = 'https://anthropic-proxy.gocre8.workers.dev';
+</script>
+<style>
+
+:root {
+  --white:       #ffffff;
+  --bg:          #f4f6f9;
+  --surface-alt: #eff1f4;
+  --ink:         #222222;
+  --ink-soft:    #666666;
+  --ink-ghost:   #aaaaaa;
+  --line:        #eaeaea;
+  --border:      #e0e3e8;
+  --border-soft: #eceef2;
+  --accent:      #2a4a82;
+  --accent-pale: #e5ecf7;
+  --ok:   #1a5c2a;
+  --err:  #8a1010;
+  --font-logo: 'Raleway', sans-serif;
+  --font-ui:   'Jost', sans-serif;
+  --font-mono: 'Courier Prime', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 0 60px;
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.tool-header {
+  width: 100%;
+  max-width: 1220px;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.tool-header h1 {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 1.3rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-align: left;
+}
+.subtitle {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-style: italic;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+  margin-top: 3px;
+  text-align: left;
+}
+
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
+  width: 100%;
+  max-width: 1220px;
+  padding: 0 24px;
+  gap: 0;
+}
+.tab-btn {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  padding: 8px 22px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  position: relative; bottom: -1px;
+  width: auto;
+}
+.tab-btn:hover { background: var(--surface-alt); color: var(--ink); }
+.tab-btn.active {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--line);
+  border-bottom-color: var(--white);
+}
+.tab-panel { display: none; width: 100%; padding: 0 24px; max-width: 1220px; }
+.tab-panel.active { display: block; }
+
+.ocr-wrap {
+  max-width: 920px; width: 100%; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.ocr-section {
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 14px 16px;
+}
+.ocr-section h3 {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 9px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.ocr-section p {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin-bottom: 9px;
+}
+.ocr-section input[type=text],
+.ocr-section input[type=password] {
+  width: 100%;
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 0.85rem;
+  padding: 7px 10px;
+  border-radius: 3px;
+  margin-bottom: 7px;
+}
+.ocr-section input[type=text]:focus,
+.ocr-section input[type=password]:focus {
+  outline: none; border-color: var(--accent);
+}
+.ocr-section input[type=file] { display: none; }
+
+.ocr-btn {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  width: auto;
+}
+.ocr-btn:hover { background: var(--accent-pale); color: var(--ink); border-color: var(--accent); }
+.ocr-btn:disabled { color: var(--ink-ghost); border-color: var(--border-soft); cursor: not-allowed; background: transparent; }
+.ocr-btn.primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.ocr-btn.primary:hover { background: #3a3a3a; }
+.ocr-btn.go-grid { background: var(--ink); color: var(--white); border-color: var(--ink); font-size: 11px; padding: 8px 22px; }
+.ocr-btn.go-grid:hover { background: #3a3a3a; }
+
+.status-msg { font-size: 0.76rem; font-style: italic; color: var(--ink-soft); margin-top: 7px; }
+.status-msg.error { color: var(--err); }
+.status-msg.ok { color: var(--ok); }
+
+/* spinner */
+.spinner {
+  display: inline-block; width: 13px; height: 13px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+  vertical-align: middle; margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.canvas-tabs { display: flex; gap: 5px; margin-bottom: 10px; }
+.cv-tab { font-size: 10px; padding: 5px 13px; border-radius: 3px; }
+.cv-tab.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+#ocrCanvasWrap {
+  position: relative; border: 1px solid var(--border);
+  border-radius: 3px; overflow: auto; max-height: 520px;
+}
+#ocrCanvasWrap canvas { display: block; }
+
+/* Line editor */
+.line-editor { display: flex; flex-direction: column; gap: 6px; }
+.line-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.line-num { font-size: 10px; color: var(--ink-ghost); width: 20px; text-align: right; flex-shrink: 0; font-family: var(--font-mono); }
+.line-row input[type=text] {
+  flex: 1; background: var(--white); border: 1px solid var(--border);
+  color: var(--ink); font-family: var(--font-ui); font-weight: 300;
+  font-size: 0.85rem; padding: 5px 9px; border-radius: 3px;
+  margin-bottom: 0; min-width: 180px;
+}
+.line-row input[type=text]:focus { outline: none; border-color: var(--accent); }
+.offset-label { font-size: 10px; color: var(--ink-soft); flex-shrink: 0; }
+.offset-input {
+  width: 52px; background: var(--white); border: 1px solid var(--border);
+  color: var(--ink); font-family: var(--font-mono); font-size: 0.78rem;
+  padding: 4px 6px; border-radius: 3px; flex-shrink: 0;
+}
+
+/* Spacing slider row */
+.spacing-row {
+  display: flex; align-items: center; gap: 10px; margin-top: 6px;
+  padding-top: 10px; border-top: 1px solid var(--border-soft);
+}
+.spacing-row label { font-size: 10px; color: var(--ink-soft); font-style: italic; flex-shrink: 0; }
+.spacing-row input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+.spacing-row .val { font-size: 10px; color: var(--ink-soft); min-width: 30px; text-align: right; font-family: var(--font-mono); }
+.spacing-row button { width: auto; padding: 4px 11px; font-size: 10px; }
+
+.transfer-box {
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-left: 2px solid var(--ok);
+  border-radius: 3px; padding: 14px 16px; text-align: center;
+}
+.transfer-box p { color: var(--ok); font-size: 0.84rem; margin-bottom: 10px; }
+
+.workspace {
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 1180px; width: 100%; margin: 0 auto;
+}
+
+/* Toolbar */
+.toolbar {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 9px 14px;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+}
+.tb-group { display: flex; align-items: center; gap: 5px; }
+.tb-group label { font-size: 10px; font-style: normal; color: var(--ink-soft); white-space: nowrap; letter-spacing: 0.03em; }
+.tb-group input[type=range] { width: 88px; accent-color: var(--accent); cursor: pointer; }
+.tb-group .val { font-size: 10px; color: var(--accent); min-width: 28px; font-family: var(--font-mono); }
+.tb-sep { width: 1px; background: var(--line); align-self: stretch; margin: 0 2px; }
+
+.mode-btns { display: flex; gap: 3px; }
+.mode-btns button { width: auto; padding: 5px 10px; font-size: 10px; }
+
+/* Canvas row */
+.canvas-row { display: flex; gap: 14px; align-items: flex-start; }
+.color-panel {
+  width: 210px; flex-shrink: 0;
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 11px 13px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.cp-head {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.canvas-area { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow: visible; }
+
+.canvas-wrap {
+  position: relative; display: block;
+  border: 1px solid var(--border); border-radius: 3px; overflow: hidden;
+  cursor: crosshair; width: 100%;
+}
+#imgC { display: block; width: 100%; height: auto; }
+#overlayCanvas { position: absolute; top: 0; left: 0; pointer-events: none; width: 100%; height: 100%; }
+#interactCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+.below-canvas { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.recipe-box {
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-left: 2px solid var(--accent);
+  border-radius: 3px; padding: 10px 12px;
+  font-size: 0.74rem; line-height: 1.9; color: var(--ink-soft);
+  flex: 1;
+}
+.recipe-box strong { color: var(--ink); font-style: normal; }
+.recipe-box .chars-line { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-soft); word-break: break-all; margin: 2px 0; }
+.split-char { color: #b07010; }
+
+.legend {
+  display: flex; gap: 9px; flex-wrap: wrap;
+  padding: 8px 12px; border: 1px solid var(--border-soft);
+  border-radius: 3px; background: var(--white); align-self: flex-start;
+}
+.li { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ink-soft); }
+.ls { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.12); flex-shrink: 0; }
+
+/* Cast section */
+.cast-section {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 10px 14px;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+}
+.cast-head {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.cast-info { font-size: 10px; font-style: italic; color: var(--ink-soft); line-height: 1.5; }
+.cast-info strong { color: var(--ink); font-style: normal; }
+
+/* Reference table */
+.ref-section {
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+}
+.ref-toggle {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  user-select: none;
+}
+.ref-toggle:hover { background: var(--surface-alt); }
+.ref-body { padding: 0 14px 14px; display: none; overflow-x: auto; }
+.ref-body.open { display: block; }
+.ref-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.ref-table th {
+  background: var(--surface-alt);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 8px; text-align: left;
+  border: 1px solid var(--border);
+}
+.ref-table td { padding: 5px 8px; border: 1px solid var(--border-soft); color: var(--ink-soft); vertical-align: top; }
+.ref-table tr:nth-child(even) td { background: var(--surface-alt); }
+.ref-table .active-row td { background: var(--accent-pale); }
+
+/* Shared controls */
+.ctrl-section {
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ctrl-head {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+}
+label { font-size: 10px; font-style: italic; color: var(--ink-soft); }
+input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.val { font-size: 10px; color: var(--accent); font-style: normal; min-width: 32px; text-align: right; font-family: var(--font-mono); }
+
+button {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  width: 100%;
+}
+button:hover { background: var(--accent-pale); color: var(--ink); border-color: var(--accent); }
+button.sec { background: transparent; color: var(--ink-ghost); border-color: var(--border-soft); }
+button.sec:hover { background: var(--surface-alt); color: var(--ink-soft); border-color: var(--border); }
+button.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+button.active:hover { background: #3a3a3a; }
+
+.toggle-row { display: flex; gap: 4px; }
+.toggle-row button { flex: 1; font-size: 10px; padding: 5px 5px; }
+
+/* Color pickers */
+.picker-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.picker-row label { font-size: 10px; font-style: italic; color: var(--ink-soft); flex: 1; }
+.picker-row input[type=color] { width: 30px; height: 24px; border: 1px solid var(--border); border-radius: 2px; background: none; cursor: pointer; padding: 1px; }
+.picker-reset { font-size: 10px; padding: 3px 8px; width: auto; }
+
+.hint { font-size: 10px; font-style: italic; color: var(--ink-ghost); }
+.origin-hint { font-size: 10px; font-style: italic; color: var(--ink-ghost); }
+
+.grid-placeholder {
+  background: var(--white); border: 1px solid var(--border-soft);
+  border-radius: 3px; padding: 50px; text-align: center;
+  color: var(--ink-ghost); font-style: italic; font-size: 0.9rem;
+}
+
+@media (max-width: 680px) {
+
+  /* Page shell */
+  body { padding: 0 0 40px; font-size: 13px; }
+
+  .tool-header { padding: 14px 14px 10px; }
+  .tool-header h1 { font-size: 1.05rem; letter-spacing: 0.05em; }
+  .subtitle { font-size: 0.78rem; }
+
+  .tab-bar { padding: 0 14px; }
+  .tab-btn { padding: 7px 14px; font-size: 0.7rem; }
+
+  .tab-panel { padding: 0 14px; }
+
+  /* Toolbar — stack all groups vertically */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .tb-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .tb-group input[type=range] { width: auto; flex: 1; }
+  .tb-sep { display: none; }
+
+  /* Mode buttons — full width row */
+  .mode-btns { width: 100%; }
+  .mode-btns button { flex: 1; }
+
+  /* Canvas row — stack canvas above color panel */
+  .canvas-row { flex-direction: column; }
+  .color-panel { width: 100%; }
+
+  /* Below canvas — stack recipe and legend */
+  .below-canvas {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Cast strip — stack all items */
+  .cast-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .cast-section .tb-sep { display: none; }
+  .cast-section .toggle-row { width: 100%; }
+  .cast-section .toggle-row button { flex: 1; }
+  .cast-section input[type=range] { width: 100%; }
+
+  /* OCR sections */
+  .ocr-wrap { gap: 10px; }
+  .spacing-row { flex-wrap: wrap; }
+  .spacing-row input[type=range] { min-width: 0; }
+
+  /* Transfer box */
+  .transfer-box { padding: 12px; }
+
+  /* Reference table — allow horizontal scroll */
+  .ref-body { overflow-x: auto; }
+  .ref-table { min-width: 480px; }
+
+  /* Recipe box — slightly smaller text */
+  .recipe-box { font-size: 0.7rem; }
+
+}
+</style>
+</head>
+<body>
+
+<!-- TOOL HEADER -->
+<div class="tool-header">
+  <h1>Phonetic Grid · Image Tool</h1>
+  <p class="subtitle">OCR your poem image, then visualize its sounds as color</p>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('ocr')">① OCR</button>
+  <button class="tab-btn" id="gridTabBtn" onclick="switchTab('grid')">② Grid</button>
+</div>
+
+<div class="tab-panel active" id="tab-ocr">
+<div class="ocr-wrap">
+
+  <!-- IMAGE UPLOAD -->
+  <div class="ocr-section">
+    <h3>Step 1 · Upload Poem Image</h3>
+    <p>Photograph or scan of your handwritten or printed poem.</p>
+    <input type="file" id="imgInput" accept="image/*" onchange="loadImage(event)">
+    <button class="ocr-btn" onclick="document.getElementById('imgInput').click()">Choose image…</button>
+    <div class="status-msg" id="imgStatus">No image loaded</div>
+  </div>
+
+  <!-- RUN OCR -->
+  <div class="ocr-section">
+    <h3>Step 2 · Run OCR</h3>
+    <p>Sends the image to be processed and extract letter positions line-by-line. <strong>This can take 30–60 seconds</strong> — please wait after clicking.</p>
+    <button class="ocr-btn primary" id="runOcrBtn" onclick="runOCR()" disabled>Run OCR</button>
+    <button class="ocr-btn" onclick="saveOCR()" id="saveOcrBtn" disabled title="Save OCR result as JSON to reuse later">Save OCR…</button>
+    <button class="ocr-btn" onclick="document.getElementById('loadOcrInput').click()" title="Load a previously saved OCR JSON — skips re-processing">Load OCR…</button>
+    <input type="file" id="loadOcrInput" accept=".json" style="display:none" onchange="loadOCR(event)">
+    <div class="status-msg" id="ocrStatus">Upload an image first</div>
+  </div>
+
+  <!-- CANVAS VIEWER -->
+  <div class="ocr-section">
+    <h3>Canvas View</h3>
+    <div class="canvas-tabs">
+      <button class="ocr-btn cv-tab active" id="cvTab0" onclick="showCvTab(0)">Detection Overlay</button>
+      <button class="ocr-btn cv-tab" id="cvTab1" onclick="showCvTab(1)">Synthetic Render</button>
+    </div>
+    <div id="ocrCanvasWrap">
+      <canvas id="ocrCanvas0"></canvas>
+      <canvas id="ocrCanvas1" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <!-- LINE EDITOR -->
+  <div class="ocr-section">
+    <h3>Step 3 · Review &amp; Correct Lines</h3>
+    <p>Edit any misread lines. Corrected letters are remapped to detected positions. Use dx: to shift a line left/right.</p>
+
+    <!-- Global letter spacing sliders — first, most commonly needed -->
+    <div class="spacing-row">
+      <label>Letter spacing scale:</label>
+      <input type="range" id="spacingScale" min="50" max="200" value="100" oninput="updateSpacingDisplay();liveRebuild()">
+      <span class="val" id="vSpacing">100%</span>
+      <button class="ocr-btn sec" onclick="resetSpacing()">Reset</button>
+    </div>
+    <div class="spacing-row" style="margin-bottom:8px;">
+      <label>Line spacing scale:</label>
+      <input type="range" id="vSpacingScale" min="50" max="200" value="100" oninput="updateVSpacingDisplay();liveRebuild()">
+      <span class="val" id="vvSpacing">100%</span>
+      <button class="ocr-btn sec" onclick="resetVSpacing()">Reset</button>
+    </div>
+
+    <!-- Global position nudge -->
+    <div class="spacing-row" style="margin-bottom:4px;">
+      <label>Shift all X:</label>
+      <input type="range" id="globalDX" min="-300" max="300" value="0" oninput="document.getElementById('vGDX').textContent=this.value+'px';liveRebuild()">
+      <span class="val" id="vGDX">0px</span>
+    </div>
+    <div class="spacing-row" style="margin-bottom:10px;">
+      <label>Shift all Y:</label>
+      <input type="range" id="globalDY" min="-300" max="300" value="0" oninput="document.getElementById('vGDY').textContent=this.value+'px';liveRebuild()">
+      <span class="val" id="vGDY">0px</span>
+    </div>
+
+    <!-- Per-line text correction + dx -->
+    <div class="line-editor" id="lineEditor"><em style="font-size:0.78rem;color:#9a8a60">Run OCR first</em></div>
+
+    <br>
+    <button class="ocr-btn" id="applyBtn" onclick="applyCorrections()" disabled>Apply Corrections &amp; Re-render</button>
+    <div class="status-msg" id="corrStatus"></div>
+  </div>
+
+  <!-- TEST DATA -->
+  <div class="ocr-section" style="background:#e8eef8;border-color:#99aacc;">
+    <h3 style="color:#334488;">🧪 Test Grid Without OCR</h3>
+    <p>Loads a sample poem so you can test the grid and color controls without running OCR.</p>
+    <p style="font-size:0.82rem;color:#556;margin-top:4px;font-style:italic;">Test poem: <em>Silence</em> — Deborah Chi</p>
+    <button class="ocr-btn" style="border-color:#334488;color:#334488;" onclick="loadTestData()">Load Test Poem →</button>
+  </div>
+
+  <!-- SEND TO GRID -->
+  <div class="transfer-box" id="transferBox" style="display:none">
+    <p>OCR complete — ready to send data to the Grid tab.</p>
+    <button class="ocr-btn go-grid" onclick="sendToGrid()">Send to Grid →</button>
+  </div>
+
+</div>
+</div><!-- /tab-ocr -->
+
+<div class="tab-panel" id="tab-grid">
+
+  <div class="grid-placeholder" id="gridPlaceholder">
+    Complete the OCR step and click <strong>Send to Grid →</strong> to begin.
+  </div>
+
+  <div class="workspace" id="gridWorkspace" style="display:none">
+
+    <!-- ── TOOLBAR: Grid controls + Mode above canvas ── -->
+    <div class="toolbar">
+      <div class="tb-group">
+        <label>Cell W</label>
+        <input type="range" id="cellW" min="10" max="2000" value="60" oninput="upd('cellW','vW');gridRender()">
+        <span class="val" id="vW">60</span>
+      </div>
+      <div class="tb-group">
+        <label>Cell H</label>
+        <input type="range" id="cellH" min="8" max="2000" value="50" oninput="upd('cellH','vH');gridRender()">
+        <span class="val" id="vH">50</span>
+      </div>
+      <div class="tb-group">
+        <label>Opacity</label>
+        <input type="range" id="opacity" min="0" max="100" value="70" oninput="upd('opacity','vO','%');gridRender()">
+        <span class="val" id="vO">70%</span>
+      </div>
+      <div class="tb-group">
+        <label>Labels</label>
+        <input type="range" id="labelSize" min="0" max="12" value="6" oninput="upd('labelSize','vL');gridRender()">
+        <span class="val" id="vL">6</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <label>Origin X</label>
+        <input type="range" id="originXSlider" min="0" max="2000" value="0" oninput="originX=+this.value;document.getElementById('vOX').textContent=this.value;gridRender()">
+        <span class="val" id="vOX">0</span>
+      </div>
+      <div class="tb-group">
+        <label>Origin Y</label>
+        <input type="range" id="originYSlider" min="0" max="2000" value="0" oninput="originY=+this.value;document.getElementById('vOY').textContent=this.value;gridRender()">
+        <span class="val" id="vOY">0</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="mode-btns">
+        <button class="active" id="btnColor" onclick="setMode('color')">Color</button>
+        <button class="sec" id="btnGrid" onclick="setMode('grid')">Grid only</button>
+        <button class="sec" id="btnBoth" onclick="setMode('both')">Color+text</button>
+        <button class="sec" id="btnFreq" onclick="setMode('freq')">Similarity</button>
+      </div>
+      <div class="tb-group" id="freqControls" style="display:none;">
+        <label>Color distance</label>
+        <input type="range" id="freqTol" min="1" max="100" value="10" oninput="upd('freqTol','vFT','%');gridRender()">
+        <span class="val" id="vFT">10%</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <label>Density</label>
+        <div class="mode-btns">
+          <button class="active" id="btnDensOn" onclick="setDensity('on')">On</button>
+          <button class="sec"    id="btnDensOff" onclick="setDensity('off')">Off</button>
+        </div>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <label>Cast</label>
+        <div class="mode-btns">
+          <button class="active" id="btnCastOn"  onclick="setCastMode('on')">On</button>
+          <button class="sec"    id="btnCastOff" onclick="setCastMode('off')">Off</button>
+        </div>
+      </div>
+      <div class="tb-group">
+        <div class="mode-btns">
+          <button class="active" id="btnCastLast" onclick="setCastBasis('last')">Last word</button>
+          <button class="sec"    id="btnCastAll"  onclick="setCastBasis('all')">All words</button>
+        </div>
+      </div>
+      <div class="tb-group">
+        <label>Cast str.</label>
+        <input type="range" id="castStr" min="0" max="100" value="10" style="width:80px;" oninput="upd('castStr','vCS','%');gridRender()">
+        <span class="val" id="vCS">32%</span>
+      </div>
+      <div class="cast-info tb-group" id="castInfo" style="font-size:0.68rem;font-style:italic;color:#8a7050;">—</div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <button class="sec" onclick="exportSVG()" title="Download grid as SVG for plotter">Export SVG</button>
+      </div>
+    </div>
+
+    <!-- ── CANVAS ROW: canvas + color panel ── -->
+    <div class="canvas-row">
+      <div class="canvas-area">
+        <div class="canvas-wrap" id="wrap">
+          <canvas id="imgC"></canvas>
+          <canvas id="overlayCanvas"></canvas>
+          <canvas id="interactCanvas"></canvas>
+        </div>
+        <p class="hint">Drag ✛ handle to reposition grid · boundary letters (20–80% overlap) shown in gold</p>
+      </div>
+
+        <div class="color-panel">
+        <div class="cp-head">Color</div>
+        <label>Hue expression</label>
+        <div class="row">
+          <input type="range" id="hueExp" min="2" max="30" value="11" oninput="upd('hueExp','vHE',null,0.1);gridRender()">
+          <span class="val" id="vHE">1.1</span>
+        </div>
+        <div style="border-top:1px solid #c8b490;padding-top:8px;margin-top:2px;">
+          <label style="display:block;margin-bottom:6px;">Sound colors</label>
+          <div class="picker-row">
+            <label>Stops (S)</label>
+            <input type="color" id="colS" value="#FF00FF">
+          </div>
+          <div class="picker-row" style="margin-top:5px;">
+            <label>Fricatives (F)</label>
+            <input type="color" id="colF" value="#00FFFF">
+          </div>
+          <div class="picker-row" style="margin-top:5px;">
+            <label>Sonorants (R)</label>
+            <input type="color" id="colR" value="#FFFF00">
+          </div>
+          <button class="ocr-btn sec picker-reset" style="margin-top:8px;width:100%;" onclick="resetColors()">Reset</button>
+        </div>
+        <div style="border-top:1px solid #c8b490;padding-top:8px;margin-top:8px;">
+          <div class="recipe-box" id="recipe">Hover a cell to see its recipe</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BELOW CANVAS: Legend only ── -->
+    <div class="below-canvas">
+      <div class="legend" id="legend">
+        <div class="li"><div class="ls" style="background:#fff;border-color:#aaa"></div>White · silence</div>
+        <div class="li"><div class="ls" id="lgS" style="background:rgb(255,100,255)"></div><span id="lgSLabel">Magenta · Stops</span></div>
+        <div class="li"><div class="ls" id="lgF" style="background:rgb(100,220,220)"></div><span id="lgFLabel">Cyan · Fricatives</span></div>
+        <div class="li"><div class="ls" id="lgR" style="background:rgb(220,220,80)"></div><span id="lgRLabel">Yellow · Sonorants</span></div>
+        <div class="li"><div class="ls" style="background:#aaa"></div>Grey · Mixed</div>
+        <div class="li"><div class="ls" style="background:rgba(180,140,30,0.6)"></div>Gold label · boundary</div>
+      </div>
+    </div>
+
+    <!-- ── REFERENCE TABLE (collapsible) ── -->
+    <div class="ref-section">
+      <div class="ref-toggle" onclick="toggleRef()">
+        <span>▸ Sound System Reference</span>
+        <span style="font-size:0.72rem;font-style:italic;color:#9a8a60;">Click to expand</span>
+      </div>
+      <div class="ref-body" id="refBody">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Element</th><th>What it is</th><th>Letters / Examples</th><th>Color role</th></tr>
+          </thead>
+          <tbody>
+            <tr class="active-row"><td><strong>Stop / Plosive</strong></td><td>Sudden burst sounds</td><td>b p d t g k</td><td>Primary channel S (default Magenta)</td></tr>
+            <tr class="active-row"><td><strong>Fricative</strong></td><td>Continuous friction sounds</td><td>f v s z sh th</td><td>Primary channel F (default Cyan)</td></tr>
+            <tr class="active-row"><td><strong>Sonorant</strong></td><td>Resonant / liquid sounds</td><td>m n l r ng · w=Sonorant / y=Vowel</td><td>Primary channel R (default Yellow)</td></tr>
+            <tr class="active-row"><td><strong>Vowel</strong></td><td>Open resonant sounds</td><td>a e i o u</td><td>Water — dilutes pigment (more vowels = lighter)</td></tr>
+            <tr class="active-row"><td><strong>Punctuation</strong></td><td>Pause / silence markers</td><td>, ; . : — …</td><td>Water weight: , =2× ; =3× . =5× : =4× — =6×</td></tr>
+            <tr><td>Word boundary</td><td>Pause at word end</td><td>(Space)</td><td>Used for last-word cast only</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.7rem;font-style:italic;color:#9a8a60;margin-top:8px;">✅ bold rows active in color formula · Boundary letters count fully (weight 1.0) in both adjacent cells · Cell brightness follows the decibel scale when Density is On</p>
+      </div>
+    </div>
+
+  </div><!-- /gridWorkspace -->
+</div><!-- /tab-grid -->
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const idx = name === 'ocr' ? 0 : 1;
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+}
+
+let shared = {
+  charData: null, lineRows: null, textBbox: null,
+  imgW: 0, imgH: 0, poemLines: null, synthCanvas: null,
+};
+
+let ocrImgEl = null, ocrImgBase64 = null, ocrImgW = 0, ocrImgH = 0;
+let rawLines = null;   // [{text, y0, y1, chars:[{ch,x0,x1}]}]
+let lineOffsets = [];
+let charData = null, lineRows = null, textBbox = null, poemLines = null;
+let activeCvTab = 0, synthCanvas = null;
+let spacingScaleVal = 1.0; // global letter x-spacing multiplier
+let vSpacingScaleVal = 1.0; // global line y-spacing multiplier
+
+function loadImage(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 900;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      ocrImgBase64 = cv.toDataURL('image/jpeg', 0.92).split(',')[1];
+      ocrImgW = w; ocrImgH = h;
+      ocrImgEl = new Image();
+      ocrImgEl.src = cv.toDataURL('image/jpeg', 0.92);
+
+      const c0 = document.getElementById('ocrCanvas0');
+      c0.width = w; c0.height = h;
+      c0.getContext('2d').drawImage(img, 0, 0, w, h);
+      const c1 = document.getElementById('ocrCanvas1');
+      c1.width = w; c1.height = h;
+
+      setStatus('imgStatus', `Image loaded: ${w}×${h} px`, 'ok');
+      document.getElementById('runOcrBtn').disabled = false;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setStatus(id, msg, cls) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'status-msg' + (cls ? ' ' + cls : '');
+}
+
+async function runOCR() {
+  if (!ocrImgBase64) { setStatus('ocrStatus', 'Upload an image first', 'error'); return; }
+  if (!PROXY_URL || PROXY_URL === 'YOUR_WORKER_URL_HERE') {
+    setStatus('ocrStatus', 'Proxy URL not configured', 'error'); return;
+  }
+
+  document.getElementById('ocrStatus').innerHTML =
+    '<span class="spinner"></span>Running OCR — this can take 30–60 seconds, please wait…';
+  document.getElementById('runOcrBtn').disabled = true;
+
+  const prompt = `You are a precise OCR engine for handwritten cursive poetry. Your most important job is to return PIXEL-ACCURATE bounding coordinates for each character.
+
+Analyze this poem image carefully. Return ONLY valid JSON — no preamble, no markdown fences, no explanation.
+
+The JSON must follow this exact schema:
+{
+  "lines": [
+    {
+      "text": "the line text",
+      "y0": 42,
+      "y1": 68,
+      "chars": [
+        {"ch": "T", "x0": 12, "x1": 22},
+        {"ch": "h", "x0": 22, "x1": 30}
+      ]
+    }
+  ]
+}
+
+- x0/x1 are the LEFT and RIGHT pixel edges of each character's INK on the image, measured in pixels from the LEFT edge of the image (x=0 is the leftmost pixel)
+- For cursive handwriting, x0/x1 must span the FULL INK WIDTH of the character including connecting strokes to neighbouring letters
+- Characters should tile continuously: each character's x1 should equal (or nearly equal) the next character's x0
+- The first character of a line should have x0 matching where its ink actually starts in the image — do NOT start at x=0 unless the ink really starts there
+- The last character of a line should have x1 matching where its ink actually ends
+- y0/y1 are pixel rows spanning the full height of the text line (top of ascenders to bottom of descenders)
+- Spaces: x0=previous char x1, x1=next char x0 (i.e. the gap between words)
+- Preserve exact capitalisation
+- Skip blank lines between stanzas
+- Image dimensions: ${ocrImgW}×${ocrImgH} pixels
+
+Example: if "When" starts at pixel x=240 and ends at x=380, then W=(240,268), h=(268,296), e=(296,322), n=(322,380).`;
+
+  try {
+    const resp = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 20000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: ocrImgBase64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      setStatus('ocrStatus', `API error: ${err.error?.message || resp.status}`, 'error');
+      document.getElementById('runOcrBtn').disabled = false;
+      return;
+    }
+
+    const data = await resp.json();
+    let raw = data.content[0].text.trim();
+    raw = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    const parsed = JSON.parse(raw);
+    rawLines = parsed.lines;
+    processOCRResult();
+    showCvTab(0);
+    setStatus('ocrStatus', `OCR complete — ${rawLines.length} lines detected`, 'ok');
+    document.getElementById('applyBtn').disabled = false;
+    document.getElementById('transferBox').style.display = 'block';
+    document.getElementById('saveOcrBtn').disabled = false;
+  } catch (e) {
+    setStatus('ocrStatus', `Error: ${e.message}`, 'error');
+  }
+  document.getElementById('runOcrBtn').disabled = false;
+}
+
+function processOCRResult() {
+  if (!rawLines) return;
+  lineOffsets = rawLines.map(() => 0);
+  spacingScaleVal = 1.0;
+  vSpacingScaleVal = 1.0;
+  document.getElementById('spacingScale').value = 100;
+  document.getElementById('vSpacing').textContent = '100%';
+  document.getElementById('vSpacingScale').value = 100;
+  document.getElementById('vvSpacing').textContent = '100%';
+  rebuildCharData();
+  poemLines = rawLines.map(l => l.text);
+  drawOverlay();
+  drawSynthetic();
+  buildLineEditor();
+}
+
+function rebuildCharData() {
+  const globalDX = +(document.getElementById('globalDX')?.value || 0);
+  const globalDY = +(document.getElementById('globalDY')?.value || 0);
+  const yAnchor = rawLines.length > 0 ? rawLines[0].y0 : 0;
+
+  charData = rawLines.map((line, li) => {
+    const dx = (lineOffsets[li] || 0) + globalDX;
+    const y0 = yAnchor + (line.y0 - yAnchor) * vSpacingScaleVal + globalDY;
+    const y1 = yAnchor + (line.y1 - yAnchor) * vSpacingScaleVal + globalDY;
+    const chars = (line.chars || []).filter(c => c.ch !== ' ');
+    if (chars.length === 0) return [];
+    const anchor = chars[0].x0;
+    return (line.chars || []).map(ch => {
+      if (ch.ch === ' ') return null;
+      const newX0 = anchor + (ch.x0 - anchor) * spacingScaleVal + dx;
+      const newX1 = anchor + (ch.x1 - anchor) * spacingScaleVal + dx;
+      return { ch: ch.ch, x0: newX0, x1: newX1, row0: y0, row1: y1 };
+    }).filter(Boolean);
+  });
+
+  lineRows = rawLines.map(l => {
+    const y0 = yAnchor + (l.y0 - yAnchor) * vSpacingScaleVal + globalDY;
+    const y1 = yAnchor + (l.y1 - yAnchor) * vSpacingScaleVal + globalDY;
+    return [y0, y1];
+  });
+
+  let bx0 = Infinity, by0 = Infinity, bx1 = 0, by1 = 0;
+  rawLines.forEach(l => {
+    by0 = Math.min(by0, l.y0); by1 = Math.max(by1, l.y1);
+    (l.chars||[]).forEach(ch => { bx0 = Math.min(bx0, ch.x0); bx1 = Math.max(bx1, ch.x1); });
+  });
+  textBbox = { x0: bx0 === Infinity ? 0 : bx0, y0: by0===Infinity?0:by0, x1: bx1, y1: by1 };
+}
+
+function drawOverlay() {
+  const cv = document.getElementById('ocrCanvas0');
+  cv.width = ocrImgW; cv.height = ocrImgH;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(ocrImgEl, 0, 0);
+  // Draw scaled charData positions (updated by liveRebuild/applyCorrections)
+  const data = charData || null;
+  if (!data || !lineRows) return;
+  lineRows.forEach(([r0, r1]) => {
+    ctx.strokeStyle = 'rgba(80,160,80,0.45)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, r0, ocrImgW, r1 - r0);
+  });
+  data.forEach(lineChars => {
+    lineChars.forEach(ch => {
+      ctx.strokeStyle = 'rgba(80,160,255,0.7)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(ch.x0, ch.row0, ch.x1 - ch.x0, ch.row1 - ch.row0);
+      ctx.fillStyle = 'rgba(220,160,30,0.95)';
+      ctx.font = '9px monospace';
+      ctx.fillText(ch.ch, ch.x0 + 1, ch.row0 + 10);
+    });
+  });
+}
+
+function drawSynthetic() {
+  const cv = document.getElementById('ocrCanvas1');
+  cv.width = ocrImgW; cv.height = ocrImgH;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#f5eed8';
+  ctx.fillRect(0, 0, ocrImgW, ocrImgH);
+  if (!rawLines) return;
+
+  const lineHeights = rawLines.map(l => Math.max(10, l.y1 - l.y0));
+  const sorted = [...lineHeights].sort((a,b) => a-b);
+  const medianLH = sorted[Math.floor(sorted.length / 2)];
+  const fontSize = Math.round(medianLH * 0.82);
+  ctx.font = `${fontSize}px 'IM Fell English', serif`;
+
+  const CATS = {S:'#cc44cc', F:'#44aacc', R:'#aaaa22', V:'#888', O:'#555'};
+
+  const globalDY = +(document.getElementById('globalDY')?.value || 0);
+  const yAnchor = rawLines.length > 0 ? rawLines[0].y0 : 0;
+
+  rawLines.forEach((line, li) => {
+    const dx = (lineOffsets[li] || 0) + (+(document.getElementById('globalDX')?.value || 0));
+    const anchor = (line.chars||[]).filter(c=>c.ch!==' ')[0]?.x0 || 0;
+    const scaledY0 = yAnchor + (line.y0 - yAnchor) * vSpacingScaleVal + globalDY;
+    const scaledY1 = yAnchor + (line.y1 - yAnchor) * vSpacingScaleVal + globalDY;
+    const lh = Math.max(10, scaledY1 - scaledY0);
+
+    ctx.fillStyle = 'rgba(160,190,255,0.1)';
+    ctx.fillRect(0, scaledY0, ocrImgW, lh);
+
+    (line.chars||[]).forEach(ch => {
+      if (ch.ch === ' ') return;
+      const scaledX = anchor + (ch.x0 - anchor) * spacingScaleVal + dx;
+      const cat = getCharCat(ch.ch);
+      ctx.fillStyle = CATS[cat] || '#333';
+      ctx.fillText(ch.ch, scaledX, scaledY1 - Math.round(lh * 0.12));
+    });
+  });
+
+  synthCanvas = document.createElement('canvas');
+  synthCanvas.width = ocrImgW;
+  synthCanvas.height = ocrImgH;
+  synthCanvas.getContext('2d').drawImage(cv, 0, 0);
+}
+
+function getCharCat(c) {
+  c = c.toLowerCase();
+  const STOPS = {b:1,d:1,g:1,k:1,p:1,q:1,t:1};
+  const FRICS = {f:1,h:1,j:1,s:1,v:1,x:1,z:1};
+  const SONS  = {l:1,m:1,n:1,r:1,w:1};
+  const VOWS  = {a:1,e:1,i:1,o:1,u:1,y:1};
+  if (STOPS[c]) return 'S';
+  if (FRICS[c]) return 'F';
+  if (SONS[c])  return 'R';
+  if (VOWS[c])  return 'V';
+  return 'O';
+}
+
+function showCvTab(n) {
+  activeCvTab = n;
+  ['ocrCanvas0','ocrCanvas1'].forEach((id,i) => {
+    document.getElementById(id).style.display = i === n ? 'block' : 'none';
+  });
+  ['cvTab0','cvTab1'].forEach((id,i) => {
+    document.getElementById(id).classList.toggle('active', i === n);
+  });
+}
+
+function buildLineEditor() {
+  const el = document.getElementById('lineEditor');
+  if (!rawLines) { el.innerHTML = '<em style="font-size:0.78rem;color:#9a8a60">Run OCR first</em>'; return; }
+  el.innerHTML = '';
+  rawLines.forEach((line, i) => {
+    const row = document.createElement('div');
+    row.className = 'line-row';
+
+    const numSpan = document.createElement('span');
+    numSpan.className = 'line-num';
+    numSpan.textContent = i + 1;
+
+    const textIn = document.createElement('input');
+    textIn.type = 'text';
+    textIn.value = line.text;
+    textIn.style.flex = '1';
+    textIn.style.minWidth = '180px';
+
+    const offLabel = document.createElement('span');
+    offLabel.className = 'offset-label';
+    offLabel.textContent = 'dx:';
+
+    const offIn = document.createElement('input');
+    offIn.type = 'number';
+    offIn.value = lineOffsets[i] || 0;
+    offIn.step = 5;
+    offIn.className = 'offset-input';
+    offIn.title = 'Shift all characters on this line left/right (pixels)';
+
+    row.appendChild(numSpan);
+    row.appendChild(textIn);
+    row.appendChild(offLabel);
+    row.appendChild(offIn);
+    el.appendChild(row);
+  });
+}
+
+function updateSpacingDisplay() {
+  const v = document.getElementById('spacingScale').value;
+  document.getElementById('vSpacing').textContent = v + '%';
+}
+
+function updateVSpacingDisplay() {
+  const v = document.getElementById('vSpacingScale').value;
+  document.getElementById('vvSpacing').textContent = v + '%';
+}
+
+function resetSpacing() {
+  document.getElementById('spacingScale').value = 100;
+  document.getElementById('vSpacing').textContent = '100%';
+}
+
+function resetVSpacing() {
+  document.getElementById('vSpacingScale').value = 100;
+  document.getElementById('vvSpacing').textContent = '100%';
+}
+
+function toggleRef() {
+  const b = document.getElementById('refBody');
+  const t = b.parentElement.querySelector('.ref-toggle span');
+  b.classList.toggle('open');
+  t.textContent = b.classList.contains('open') ? '▾ Sound System Reference' : '▸ Sound System Reference';
+}
+
+function syncOriginSliders() {
+  const sx = document.getElementById('originXSlider');
+  const sy = document.getElementById('originYSlider');
+  if (sx) { sx.value = Math.round(originX); document.getElementById('vOX').textContent = Math.round(originX); }
+  if (sy) { sy.value = Math.round(originY); document.getElementById('vOY').textContent = Math.round(originY); }
+}
+
+function liveRebuild() {
+  if (!rawLines) return;
+  spacingScaleVal = document.getElementById('spacingScale').value / 100;
+  vSpacingScaleVal = document.getElementById('vSpacingScale').value / 100;
+  rebuildCharData();
+  drawOverlay();
+  drawSynthetic();
+  if (shared.charData) {
+    shared.charData   = charData;
+    shared.lineRows   = lineRows;
+    shared.synthCanvas = synthCanvas;
+    if (imgCtx) imgCtx.drawImage(shared.synthCanvas, 0, 0, shared.imgW, shared.imgH);
+    gridRender();
+  }
+}
+
+function makeLineChars(text, startX, charW) {
+  const chars = [];
+  let x = startX;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === ' ') { x += charW * 0.55; continue; }
+    chars.push({ ch, x0: Math.round(x), x1: Math.round(x + charW) });
+    x += charW;
+  }
+  return chars;
+}
+
+function loadTestData() {
+  const W = 900, H = 750;
+  const CW = 20;
+  // Silence — Deborah Chi
+  rawLines = [
+    { text:'Silence',                                   y0:55,  y1:100,  chars:makeLineChars('Silence',                                   60, CW) },
+    { text:'Is silence a sound? For it feels like',     y0:110, y1:160,  chars:makeLineChars('Is silence a sound? For it feels like',     60, CW) },
+    { text:'The loudest of all. It blares,',            y0:170, y1:220,  chars:makeLineChars('The loudest of all. It blares,',            60, CW) },
+    { text:"Reverberates, it's greater than the",       y0:230, y1:280,  chars:makeLineChars("Reverberates, it's greater than the",       60, CW) },
+    { text:'Rudest bangs. It vibrates through',         y0:290, y1:340,  chars:makeLineChars('Rudest bangs. It vibrates through',         60, CW) },
+    { text:'my innermost. And calls me',                y0:350, y1:400,  chars:makeLineChars('my innermost. And calls me',                60, CW) },
+    { text:'back to me. To the core of me.',            y0:410, y1:460,  chars:makeLineChars('back to me. To the core of me.',            60, CW) },
+    { text:"It's unceasing and insists of me",          y0:470, y1:520,  chars:makeLineChars("It's unceasing and insists of me",          60, CW) },
+    { text:'to stop and listen to',                     y0:530, y1:580,  chars:makeLineChars('to stop and listen to',                     60, CW) },
+    { text:'the absence. So I can hear.',               y0:590, y1:640,  chars:makeLineChars('the absence. So I can hear.',               60, CW) },
+    { text:'So I can be heard.',                        y0:650, y1:700,  chars:makeLineChars('So I can be heard.',                        60, CW) },
+  ];
+  lineOffsets = rawLines.map(() => 0);
+  spacingScaleVal = 1.0;
+  vSpacingScaleVal = 1.0;
+  document.getElementById('spacingScale').value = 100;
+  document.getElementById('vSpacing').textContent = '100%';
+  document.getElementById('vSpacingScale').value = 100;
+  document.getElementById('vvSpacing').textContent = '100%';
+  rebuildCharData();
+  poemLines = rawLines.map(l => l.text);
+
+  // Draw synthetic canvas — each character at its exact x0 position (matching charData)
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#f5eed8';
+  ctx.fillRect(0, 0, W, H);
+  const CATS = {S:'#cc44cc', F:'#44aacc', R:'#aaaa22', V:'#888', O:'#555'};
+  ctx.font = `${CW * 1.4}px 'IM Fell English', serif`;
+  rawLines.forEach(line => {
+    const lh = line.y1 - line.y0;
+    ctx.fillStyle = 'rgba(180,210,255,0.15)';
+    ctx.fillRect(0, line.y0, W, lh);
+    (line.chars || []).forEach(ch => {
+      if (ch.ch === ' ') return;
+      const cat = getCharCat(ch.ch);
+      ctx.fillStyle = CATS[cat] || '#333';
+      ctx.fillText(ch.ch, ch.x0, line.y1 - Math.round(lh * 0.12));
+    });
+  });
+  synthCanvas = cv;
+  ocrImgW = W; ocrImgH = H;
+
+  shared.charData    = charData;
+  shared.lineRows    = lineRows;
+  shared.textBbox    = textBbox;
+  shared.imgW        = W;
+  shared.imgH        = H;
+  shared.poemLines   = poemLines;
+  shared.synthCanvas = synthCanvas;
+
+  document.getElementById('transferBox').style.display = 'block';
+  document.getElementById('applyBtn').disabled = false;
+  setStatus('ocrStatus', 'Test data loaded.', 'ok');
+  switchTab('grid');
+  initGrid();
+}
+
+function applyCorrections() {
+  if (!rawLines) return;
+
+  // Read spacing scales
+  spacingScaleVal = document.getElementById('spacingScale').value / 100;
+  vSpacingScaleVal = document.getElementById('vSpacingScale').value / 100;
+
+  // Read text corrections and remap letters onto detected coordinates
+  const textInputs = document.querySelectorAll('#lineEditor input[type=text]');
+  const offInputs  = document.querySelectorAll('#lineEditor .offset-input');
+
+  textInputs.forEach((inp, i) => {
+    if (!rawLines[i]) return;
+    const corrected = inp.value;
+    // Remap corrected letters onto detected char positions (preserving coordinates)
+    const corrLetters = corrected.replace(/\s/g, '').split('');
+    const detectedNonSpace = rawLines[i].chars.filter(c => c.ch !== ' ');
+    const minLen = Math.min(corrLetters.length, detectedNonSpace.length);
+    for (let k = 0; k < minLen; k++) {
+      detectedNonSpace[k].ch = corrLetters[k];
+    }
+    rawLines[i].text = corrected;
+  });
+
+  offInputs.forEach((inp, i) => {
+    lineOffsets[i] = parseInt(inp.value) || 0;
+  });
+
+  poemLines = rawLines.map(l => l.text);
+  rebuildCharData();
+  drawOverlay();
+  drawSynthetic();
+  setStatus('corrStatus', 'Corrections applied.', 'ok');
+}
+
+function autoSizeGrid() {
+  // Compute smart defaults from OCR data so the grid opens well-fitted.
+  // All sliders remain fully adjustable after this.
+
+  // Median character width
+  const charWidths = [];
+  rawLines.forEach(line => {
+    (line.chars || []).forEach(ch => {
+      if (ch.ch !== ' ' && ch.x1 > ch.x0) charWidths.push(ch.x1 - ch.x0);
+    });
+  });
+  charWidths.sort((a,b) => a-b);
+  const medCharW = charWidths.length ? charWidths[Math.floor(charWidths.length/2)] : 30;
+
+  // Median line height
+  const lineHeights = rawLines.map(l => Math.max(8, l.y1 - l.y0));
+  lineHeights.sort((a,b) => a-b);
+  const medLineH = lineHeights.length ? lineHeights[Math.floor(lineHeights.length/2)] : 40;
+
+  // Cell size: match character width and line height, clamped to slider range
+  const cw = Math.max(10, Math.min(2000, Math.round(medCharW)));
+  const ch = Math.max(8,  Math.min(2000, Math.round(medLineH)));
+  const ox = Math.max(0, Math.min(2000, Math.round(textBbox.x0)));
+  const oy = Math.max(0, Math.min(2000, Math.round(textBbox.y0)));
+
+  // Apply to sliders + display labels
+  const setSlider = (id, val, labelId) => {
+    const el = document.getElementById(id);
+    if (el) { el.value = val; document.getElementById(labelId).textContent = val; }
+  };
+  setSlider('cellW', cw, 'vW');
+  setSlider('cellH', ch, 'vH');
+
+  // Origin sliders (these drive the originX/Y globals in initGrid)
+  originX = ox; originY = oy;
+  const sx = document.getElementById('originXSlider');
+  const sy = document.getElementById('originYSlider');
+  if (sx) { sx.value = ox; document.getElementById('vOX').textContent = ox; }
+  if (sy) { sy.value = oy; document.getElementById('vOY').textContent = oy; }
+}
+
+function saveOCR() {
+  if (!rawLines) { alert('No OCR data to save — run OCR first.'); return; }
+  const payload = JSON.stringify({ lines: rawLines }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  // Use image filename as base if available
+  const imgName = (document.getElementById('imgInput').files[0]?.name || 'poem').replace(/\.[^.]+$/, '');
+  a.download = `${imgName}_ocr.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function loadOCR(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.lines || !Array.isArray(parsed.lines)) throw new Error('Invalid OCR file — missing lines array.');
+      rawLines = parsed.lines;
+      processOCRResult();
+      showCvTab(0);
+      setStatus('ocrStatus', `Loaded OCR — ${rawLines.length} lines`, 'ok');
+      document.getElementById('applyBtn').disabled = false;
+      document.getElementById('transferBox').style.display = 'block';
+      document.getElementById('saveOcrBtn').disabled = false;
+    } catch(err) {
+      setStatus('ocrStatus', `Load failed: ${err.message}`, 'error');
+    }
+  };
+  reader.readAsText(file);
+  // Reset input so same file can be reloaded if needed
+  event.target.value = '';
+}
+
+function sendToGrid() {
+  if (!charData || !lineRows || !poemLines) {
+    alert('OCR data not ready. Run OCR first.'); return;
+  }
+  drawSynthetic();
+  shared.charData    = charData;
+  shared.lineRows    = lineRows;
+  shared.textBbox    = textBbox;
+  shared.imgW        = ocrImgW;
+  shared.imgH        = ocrImgH;
+  shared.poemLines   = poemLines;
+  shared.synthCanvas = synthCanvas;
+
+  autoSizeGrid();   // set sliders to sensible starting values
+  switchTab('grid');
+  initGrid();
+}
+
+const STOPS = {b:1,d:1,g:1,k:1,p:1,t:1,q:1};
+const FRICS = {f:1,v:1,s:1,z:1,h:1,j:1,x:1};
+const SONS  = {l:1,m:1,n:1,r:1,w:1};
+const VOWS  = {a:1,e:1,i:1,o:1,u:1,y:1};
+const DI    = {th:'F',sh:'F',ch:'F',ck:'S',ng:'R',ph:'F',wh:'F',gh:'F',qu:'S'};
+
+// Cast state
+let castMode  = 'on';   // 'on' | 'off'
+let castBasis = 'last'; // 'last' | 'all'
+let densityMode = 'on'; // 'on' = log scale | 'off' = flat d=1.0
+
+function getCat(ch, nxt) {
+  const c = ch.toLowerCase(), n = (nxt||'').toLowerCase(), di = c+n;
+  if (DI[di]) return {cat: DI[di], skip: true};
+  if (c==='c') return {cat: (['e','i','y'].includes(n) ? 'F' : 'S'), skip: false};
+  if (c==='y') return {cat: 'V', skip: false};
+  if (STOPS[c]) return {cat:'S', skip:false};
+  if (FRICS[c]) return {cat:'F', skip:false};
+  if (SONS[c])  return {cat:'R', skip:false};
+  if (VOWS[c])  return {cat:'V', skip:false};
+  return null;
+}
+
+function wordPhonetics(word) {
+  const w = word.toLowerCase().replace(/[^a-z]/g,'');
+  let S=0,F=0,R=0; let i=0;
+  while (i < w.length) {
+    const di = w[i] + (w[i+1]||'');
+    if (DI[di]) { DI[di]==='S'?S++:DI[di]==='F'?F++:R++; i+=2; continue; }
+    const r = getCat(w[i], w[i+1]);
+    if (r) { if(r.cat==='S')S++; else if(r.cat==='F')F++; else if(r.cat==='R')R++; }
+    i++;
+  }
+  const c = S+F+R;
+  return {M: c>0?S/c:0, C: c>0?F/c:0, Y: c>0?R/c:0, S, F, R};
+}
+
+function allWordsPhonetics(poemLines) {
+  let S=0, F=0, R=0;
+  const allWords = poemLines.join(' ').replace(/[^a-zA-Z ]/g,' ').trim().split(/\s+/);
+  allWords.forEach(w => {
+    const p = wordPhonetics(w);
+    S += p.S; F += p.F; R += p.R;
+  });
+  const c = S+F+R;
+  return {M: c>0?S/c:0, C: c>0?F/c:0, Y: c>0?R/c:0, S, F, R};
+}
+
+function getUserColors() {
+  return {
+    S: document.getElementById('colS').value,
+    F: document.getElementById('colF').value,
+    R: document.getElementById('colR').value,
+  };
+}
+
+function resetColors() {
+  document.getElementById('colS').value = '#FF00FF';
+  document.getElementById('colF').value = '#00FFFF';
+  document.getElementById('colR').value = '#FFFF00';
+  updateLegend();
+  gridRender();
+}
+
+function updateLegend() {
+  const cols = getUserColors();
+  const sRgb = hexToRgb(cols.S);
+  const fRgb = hexToRgb(cols.F);
+  const rRgb = hexToRgb(cols.R);
+  document.getElementById('lgS').style.background = `rgb(${sRgb})`;
+  document.getElementById('lgF').style.background = `rgb(${fRgb})`;
+  document.getElementById('lgR').style.background = `rgb(${rRgb})`;
+}
+
+// Attach legend update + grid re-render to color inputs
+function onColorChange() { updateLegend(); gridRender(); }
+document.getElementById('colS').addEventListener('input', onColorChange);
+document.getElementById('colF').addEventListener('input', onColorChange);
+document.getElementById('colR').addEventListener('input', onColorChange);
+
+// Pigments mix multiplicatively in linear light (subtractive).
+// Water/white dilutes by linear interpolation AFTER pigment mixing —
+// this avoids the zero-channel collapse (cyan+white bug where green stays 0).
+function kmMix(pigmentHexes, pigmentWeights, waterWeight) {
+  function srgbToLin(c) { return c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
+  function linToSrgb(c) { return c <= 0.0031308 ? 12.92*c : 1.055*Math.pow(c,1/2.4)-0.055; }
+  function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+
+  let pigTotal = 0;
+  let mixR = 1, mixG = 1, mixB = 1;
+  pigmentHexes.forEach((hex, i) => {
+    const w = pigmentWeights[i] || 0;
+    if (w <= 0) return;
+    pigTotal += w;
+    const [r, g, b] = hexToRgb(hex);
+    mixR *= Math.pow(srgbToLin(r/255), w);
+    mixG *= Math.pow(srgbToLin(g/255), w);
+    mixB *= Math.pow(srgbToLin(b/255), w);
+  });
+
+  let pr, pg, pb;
+  if (pigTotal < 0.001) {
+    pr = pg = pb = 255; // no pigment → white
+  } else {
+    const p = 1/pigTotal;
+    pr = Math.round(clamp01(linToSrgb(Math.pow(mixR, p))) * 255);
+    pg = Math.round(clamp01(linToSrgb(Math.pow(mixG, p))) * 255);
+    pb = Math.round(clamp01(linToSrgb(Math.pow(mixB, p))) * 255);
+  }
+
+  const totalAll = pigTotal + (waterWeight || 0);
+  if (totalAll < 0.001) return [255, 255, 255];
+  const wf = (waterWeight || 0) / totalAll; // 0 = full pigment, 1 = full white
+  return [
+    Math.round(pr + (255 - pr) * wf),
+    Math.round(pg + (255 - pg) * wf),
+    Math.round(pb + (255 - pb) * wf),
+  ];
+}
+
+function spectralMix(concC, concM, concY, concW, userCols) {
+  // Guard: reject NaN/Infinity
+  if (!isFinite(concC) || !isFinite(concM) || !isFinite(concY) || !isFinite(concW)) {
+    return [255, 255, 255];
+  }
+  const total = concC + concM + concY + concW;
+  if (total < 0.001) return [255, 255, 255];
+  // Pigments: F=Cyan, S=Magenta, R=Yellow. Water handled separately.
+  return kmMix([userCols.F, userCols.S, userCols.R], [concC, concM, concY], concW);
+}
+
+function hexToRgb(hex) {
+  if (Array.isArray(hex)) return hex;
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+
+function clamp(x) { return Math.max(0, Math.min(1, x)); }
+
+let originX = 0, originY = 0;
+let gridCells = [];
+let mode = 'color';
+let hoveredIdx = -1;
+let draggingOrigin = false;
+let dragOffX = 0, dragOffY = 0;
+let castWord = null;
+let lastWord = '';
+
+let imgCv, ovcCv, intCv, imgCtx, oCtx, iCtx;
+const ORIGIN_R = 10;
+
+function initGrid() {
+  document.getElementById('gridPlaceholder').style.display = 'none';
+  document.getElementById('gridWorkspace').style.display = 'flex';
+
+  imgCv  = document.getElementById('imgC');
+  ovcCv  = document.getElementById('overlayCanvas');
+  intCv  = document.getElementById('interactCanvas');
+  imgCtx = imgCv.getContext('2d');
+  oCtx   = ovcCv.getContext('2d');
+  iCtx   = intCv.getContext('2d');
+
+  [imgCv, ovcCv, intCv].forEach(cv => {
+    cv.width = shared.imgW; cv.height = shared.imgH;
+  });
+  imgCtx.drawImage(shared.synthCanvas, 0, 0, shared.imgW, shared.imgH);
+
+  computeCastWords();
+  // originX/Y already set by autoSizeGrid (or drag) — don't reset here
+  updateCastInfo();
+  gridRender();
+  bindGridEvents(); // always re-bind on each initGrid
+}
+
+function computeCastWords() {
+  const allWords = shared.poemLines.join(' ').replace(/[^a-zA-Z ]/g,' ').trim().split(/\s+/);
+  lastWord = allWords[allWords.length - 1];
+  if (castBasis === 'last') {
+    castWord = wordPhonetics(lastWord);
+  } else {
+    castWord = allWordsPhonetics(shared.poemLines);
+  }
+}
+
+function bindGridEvents() {
+  // Always remove old listeners by cloning — simplest way to reset
+  const oldIntCv = intCv;
+  const newIntCv = oldIntCv.cloneNode(true);
+  oldIntCv.parentNode.replaceChild(newIntCv, oldIntCv);
+  intCv = newIntCv;
+
+  intCv.addEventListener('mousedown', e => {
+    const [mx,my] = canvasXY(e);
+    const dx = mx-originX, dy = my-originY;
+    if (dx*dx+dy*dy <= ORIGIN_R*ORIGIN_R*2.5) {
+      draggingOrigin = true;
+      dragOffX = dx; dragOffY = dy;
+      intCv.style.cursor = 'grabbing';
+    }
+  });
+
+  intCv.addEventListener('mousemove', e => {
+    const [mx,my] = canvasXY(e);
+    if (draggingOrigin) {
+      originX = Math.max(0, Math.min(shared.imgW-10, mx-dragOffX));
+      originY = Math.max(0, Math.min(shared.imgH-10, my-dragOffY));
+      syncOriginSliders();
+      gridRender(); return;
+    }
+    const dx = mx-originX, dy = my-originY;
+    intCv.style.cursor = (dx*dx+dy*dy <= ORIGIN_R*ORIGIN_R*3) ? 'grab' : 'crosshair';
+    const newIdx = gridCells.findIndex(c => mx>=c.x&&mx<c.x+c.w&&my>=c.y&&my<c.y+c.h);
+    if (newIdx !== hoveredIdx) { hoveredIdx = newIdx; gridRender(); updateRecipe(); }
+  });
+
+  intCv.addEventListener('mouseup', () => { draggingOrigin = false; intCv.style.cursor = 'crosshair'; });
+  intCv.addEventListener('mouseleave', () => {
+    draggingOrigin = false; hoveredIdx = -1; gridRender();
+    document.getElementById('recipe').innerHTML = 'Hover a cell to see recipe';
+  });
+}
+
+function computeGrid() {
+  const cellW = +document.getElementById('cellW').value;
+  const cellH = +document.getElementById('cellH').value;
+  const hueExp = document.getElementById('hueExp').value / 10;
+  const castStr = castMode === 'on' ? document.getElementById('castStr').value / 100 : 0;
+  const userCols = getUserColors();
+  const IMG_W = shared.imgW, IMG_H = shared.imgH;
+  const CHAR_DATA = shared.charData;
+  const LINE_ROWS = shared.lineRows;
+
+  const nCols = Math.ceil((IMG_W - originX) / cellW) + 1;
+  const nRows = Math.ceil((IMG_H - originY) / cellH) + 1;
+
+  const cells = [];
+  for (let r=0; r<nRows; r++) for (let c=0; c<nCols; c++) {
+    cells.push({row:r, col:c, x:originX+c*cellW, y:originY+r*cellH, w:cellW, h:cellH,
+      S:0, F:0, R:0, V:0, O:0, charEntries:[], userCols});
+  }
+  function idx(r,c) { return r*nCols+c; }
+
+  CHAR_DATA.forEach(lineChars => {
+    for (let charIdx = 0; charIdx < lineChars.length; charIdx++) {
+      const ch = lineChars[charIdx];
+      const {ch:letter, x0, x1, row0, row1} = ch;
+      const nextLetter = (lineChars[charIdx+1]?.ch || '').toLowerCase();
+      const charW = Math.max(1, x1-x0);
+      const charRow = Math.floor(((row0+row1)/2 - originY) / cellH);
+      if (charRow < 0 || charRow >= nRows) continue;
+      const cMin = Math.floor((x0 - originX) / cellW);
+      const cMax = Math.floor((x1 - 1 - originX) / cellW);
+
+      // Punctuation → water weight (from sound system: , =2x ; =3x . =5x : =4x — =6x)
+      const PUNCT_WATER = {',':2, ';':3, '.':5, ':':4, '—':6, '–':4, '…':7};
+      if (PUNCT_WATER[letter]) {
+        const pw = PUNCT_WATER[letter];
+        for (let c=cMin; c<=cMax; c++) {
+          if (c<0||c>=nCols) continue;
+          const cellIdx = idx(charRow, c);
+          if (cellIdx<0||cellIdx>=cells.length) continue;
+          cells[cellIdx].V += pw;
+          cells[cellIdx].charEntries.push({ch:letter, cat:'V', weight:pw, split:false});
+        }
+        continue;
+      }
+
+      const res = getCat(letter, nextLetter);
+      const cat = res ? res.cat : null;
+      if (!cat) continue;
+      // If getCat matched a digraph (e.g. th, sh, ch), skip the second letter
+      if (res.skip) charIdx++;
+      for (let c=cMin; c<=cMax; c++) {
+        if (c<0||c>=nCols) continue;
+        const colX0 = originX + c*cellW;
+        const colX1 = colX0 + cellW;
+        const olapX0 = Math.max(x0, colX0);
+        const olapX1 = Math.min(x1, colX1);
+        const overlap = Math.max(0, olapX1-olapX0);
+        const frac = overlap/charW;
+        let weight=0, split=false;
+        if (frac > 0.8)       { weight=1.0; split=false; }
+        else if (frac >= 0.2) { weight=1.0; split=true; }
+        else                  continue;
+        const cellIdx = idx(charRow, c);
+        if (cellIdx<0||cellIdx>=cells.length) continue;
+        cells[cellIdx][cat] += weight;
+        cells[cellIdx].charEntries.push({ch:letter, cat, weight, split});
+      }
+    }
+  });
+
+  LINE_ROWS.forEach(([r0,r1]) => {
+    const rowMin = Math.floor((r0-originY)/cellH);
+    const rowMax = Math.floor((r1-originY)/cellH);
+    for (let r=rowMin; r<=rowMax; r++) {
+      for (let c=0; c<nCols; c++) {
+        const ci = idx(r,c);
+        if (ci>=0&&ci<cells.length) {
+          const cell = cells[ci];
+          if (cell.S+cell.F+cell.R+cell.V===0) cell.O += 0.5;
+        }
+      }
+    }
+  });
+
+  let gMax = 0;
+  cells.forEach(c => { gMax = Math.max(gMax, c.S+c.F+c.R+c.V+c.O); });
+  if (gMax < 0.1) {
+    gMax = 1;
+    console.warn('[Grid] No characters scored — charData sample:', CHAR_DATA[0]?.[0], 'LINE_ROWS sample:', LINE_ROWS?.[0]);
+  }
+
+  cells.forEach(cell => {
+    const {S,F,R,V,O} = cell;
+    const total = S+F+R+V+O;
+    cell.gMax = gMax;
+    if (total < 0.05) { cell.rgb = null; cell.conc = null; return; }
+    const cons = S+F+R;
+    if (cons < 0.001) { cell.rgb = null; cell.conc = null; return; } // vowels/water only — render blank
+    const d = densityMode === 'on'
+      ? Math.log(total+1)/Math.log(gMax+1)
+      : 1.0;
+    const mR = cons>0?S/cons:1/3;
+    const cR = cons>0?F/cons:1/3;
+    const yR = cons>0?R/cons:1/3;
+    const mn = 1/3;
+    const ev = 1 - Math.sqrt(((mR-mn)**2+(cR-mn)**2+(yR-mn)**2)/(2/3));
+    const cf = cons/total;
+    const gP = ev*cf, hP = clamp((1-ev)*cf*hueExp);
+
+    // Base color — no cast in formula
+    let C = clamp(cR*hP + gP*0.5) * d;
+    let M = clamp(mR*hP + gP*0.5) * d;
+    let Y = clamp(yR*hP + gP*0.5) * d;
+    C=clamp(C); M=clamp(M); Y=clamp(Y);
+    const W = Math.max(0, 1-C-M-Y);
+    const t = C+M+Y+W;
+    if (t < 0.0001) { cell.rgb = null; cell.conc = null; return; }
+    cell.conc = {C:C/t, M:M/t, Y:Y/t, W:W/t};
+    const baseRgb = spectralMix(cell.conc.C, cell.conc.M, cell.conc.Y, cell.conc.W, userCols);
+
+    // Cast: post-blend toward cast color — preserves cell hue, adds a tint wash
+    if (castWord && castStr > 0) {
+      const cwW = Math.max(0, 1 - castWord.C - castWord.M - castWord.Y);
+      const castRgb = spectralMix(castWord.C, castWord.M, castWord.Y, cwW, userCols);
+      cell.rgb = baseRgb.map((v, i) => Math.round(v + (castRgb[i] - v) * castStr));
+    } else {
+      cell.rgb = baseRgb;
+    }
+  });
+
+  return cells;
+}
+
+function gridRender() {
+  if (!shared.charData) return;
+  gridCells = computeGrid();
+  const op = document.getElementById('opacity').value / 100;
+  const labelSz = +document.getElementById('labelSize').value;
+
+  oCtx.clearRect(0, 0, shared.imgW, shared.imgH);
+
+  if (mode === 'freq') {
+    // Similarity mode: color cells by how many other cells have a SIMILAR ACTUAL PAINT COLOR.
+    // Uses RGB distance on the computed cell.rgb — so "close" means paintably close.
+    const rgbTol = document.getElementById('freqTol').value * 1.5; // slider 1–100 → RGB distance 1.5–150
+    const scored = gridCells.filter(c => c.rgb);
+    function rgbDist(a, b) {
+      return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+    }
+    const counts = scored.map(cell => {
+      let matches = 0;
+      scored.forEach(other => {
+        if (other === cell) return;
+        if (rgbDist(cell.rgb, other.rgb) <= rgbTol) matches++;
+      });
+      return { cell, matches };
+    });
+    const maxMatches = Math.max(1, ...counts.map(c => c.matches));
+    // Color scale: red (most common) → orange → yellow → green → cyan → blue → violet (rarest)
+    const freqColors = [
+      [220,30,30],   // red — most common
+      [220,110,20],  // orange
+      [200,190,20],  // yellow
+      [40,160,40],   // green
+      [20,180,180],  // cyan
+      [40,80,200],   // blue
+      [130,40,200],  // violet — rarest
+    ];
+    function freqColor(t) { // t = 0 (rarest) → 1 (most common)
+      const scaled = t * (freqColors.length - 1);
+      const lo = Math.floor(scaled), hi = Math.min(freqColors.length-1, lo+1);
+      const f = scaled - lo;
+      return freqColors[lo].map((v,i) => Math.round(v + (freqColors[hi][i]-v)*f));
+    }
+    counts.forEach(({cell, matches}) => {
+      const t = matches / maxMatches;
+      const [r,g,b] = freqColor(t);
+      oCtx.globalAlpha = op;
+      oCtx.fillStyle = `rgb(${r},${g},${b})`;
+      oCtx.fillRect(cell.x, cell.y, cell.w, cell.h);
+    });
+  } else if (mode !== 'grid') {
+    gridCells.forEach(cell => {
+      if (!cell.rgb) return;
+      oCtx.globalAlpha = op;
+      oCtx.fillStyle = `rgb(${cell.rgb[0]},${cell.rgb[1]},${cell.rgb[2]})`;
+      oCtx.fillRect(cell.x, cell.y, cell.w, cell.h);
+    });
+  }
+
+  oCtx.globalAlpha = 0.22;
+  oCtx.strokeStyle = '#555';
+  oCtx.lineWidth = 0.5;
+  gridCells.forEach(cell => { oCtx.strokeRect(cell.x, cell.y, cell.w, cell.h); });
+
+  if (labelSz > 0 && (mode === 'grid' || mode === 'both')) {
+    oCtx.globalAlpha = 0.9;
+    oCtx.font = `${labelSz}px monospace`;
+    oCtx.textAlign = 'left';
+    oCtx.textBaseline = 'top';
+    gridCells.forEach(cell => {
+      let px=cell.x+2, py=cell.y+2;
+      cell.charEntries.forEach(e => {
+        oCtx.fillStyle = e.split ? 'rgba(180,120,0,0.95)' : 'rgba(40,20,0,0.75)';
+        oCtx.fillText(e.ch, px, py);
+        px += labelSz * 0.75;
+        if (px > cell.x+cell.w-labelSz) { px=cell.x+2; py+=labelSz+1; }
+      });
+    });
+  }
+
+  if (hoveredIdx >= 0 && hoveredIdx < gridCells.length) {
+    const c = gridCells[hoveredIdx];
+    oCtx.globalAlpha = 1;
+    oCtx.strokeStyle = 'rgba(255,255,255,0.9)';
+    oCtx.lineWidth = 2;
+    oCtx.strokeRect(c.x+1, c.y+1, c.w-2, c.h-2);
+  }
+
+  oCtx.globalAlpha = 1;
+
+  // Draw origin handle on interact canvas
+  iCtx.clearRect(0, 0, shared.imgW, shared.imgH);
+  iCtx.beginPath();
+  iCtx.arc(originX, originY, ORIGIN_R, 0, Math.PI*2);
+  iCtx.fillStyle = 'rgba(120,80,30,0.85)';
+  iCtx.fill();
+  iCtx.strokeStyle = '#fff';
+  iCtx.lineWidth = 1.5;
+  iCtx.stroke();
+  iCtx.strokeStyle = '#fff';
+  iCtx.lineWidth = 1.2;
+  iCtx.beginPath();
+  iCtx.moveTo(originX-ORIGIN_R+3, originY);
+  iCtx.lineTo(originX+ORIGIN_R-3, originY);
+  iCtx.moveTo(originX, originY-ORIGIN_R+3);
+  iCtx.lineTo(originX, originY+ORIGIN_R-3);
+  iCtx.stroke();
+}
+
+function canvasXY(e) {
+  const rect = intCv.getBoundingClientRect();
+  const scX = shared.imgW/rect.width, scY = shared.imgH/rect.height;
+  return [(e.clientX-rect.left)*scX, (e.clientY-rect.top)*scY];
+}
+
+function updateRecipe() {
+  const box = document.getElementById('recipe');
+  if (hoveredIdx < 0 || hoveredIdx >= gridCells.length) {
+    box.innerHTML = 'Hover a cell to see recipe'; return;
+  }
+  const cell = gridCells[hoveredIdx];
+  const {S,F,R,V,O,conc,charEntries} = cell;
+  const total = S+F+R+V+O;
+  const charHtml = charEntries.map(e => {
+    const cls = e.split ? 'split-char' : '';
+    return `<span class="${cls}" title="${e.cat}${e.split?'½':''}">${e.ch}</span>`;
+  }).join('');
+  if (total < 0.05 || !conc) {
+    box.innerHTML = `<strong>R${cell.row+1}·C${cell.col+1}</strong><br><em>empty</em>`; return;
+  }
+  const Cp=Math.round(conc.C*100), Mp=Math.round(conc.M*100);
+  const Yp=Math.round(conc.Y*100), Wp=Math.max(0,100-Cp-Mp-Yp);
+  const dom = S+F+R<0.05 ? 'vowels/open' : S>=F&&S>=R ? 'Stops→S' : F>=R ? 'Fric→F' : 'Son→R';
+
+  // Current picker colors — used to label recipe by actual pigment
+  const colS = document.getElementById('colS').value;
+  const colF = document.getElementById('colF').value;
+  const colR = document.getElementById('colR').value;
+  const sw = (c) => `<span style="display:inline-block;width:14px;height:10px;background:${c};border:1px solid #999;border-radius:1px;margin-right:4px;vertical-align:middle"></span>`;
+
+  // Recipe rows — labeled by actual chosen hex color, not abstract S/F/R
+  const recipeRows = [];
+  if (Mp > 0) recipeRows.push(`${sw(colS)}<span style="font-family:var(--font-mono);font-size:0.72rem">${colS}</span>  ${Mp}%`);
+  if (Cp > 0) recipeRows.push(`${sw(colF)}<span style="font-family:var(--font-mono);font-size:0.72rem">${colF}</span>  ${Cp}%`);
+  if (Yp > 0) recipeRows.push(`${sw(colR)}<span style="font-family:var(--font-mono);font-size:0.72rem">${colR}</span>  ${Yp}%`);
+  if (Wp > 0) recipeRows.push(`Water  ${Wp}%`);
+
+  // Pump parts: scale min nonzero → 1, cap at 16
+  const pctArr = [Mp, Cp, Yp];
+  const nonzero = pctArr.filter(p => p > 0);
+  let pumpLine = '';
+  if (nonzero.length > 0) {
+    const minP = Math.min(...nonzero);
+    const [pM, pC, pY] = pctArr.map(p => p > 0 ? Math.max(1, Math.min(16, Math.round(p/minP))) : 0);
+    const parts = [];
+    if (pM > 0) parts.push(`${sw(colS)}S:${pM}`);
+    if (pC > 0) parts.push(`${sw(colF)}F:${pC}`);
+    if (pY > 0) parts.push(`${sw(colR)}R:${pY}`);
+    pumpLine = `<br><strong>Pump parts</strong> &nbsp;${parts.join(' · ')}`;
+  }
+
+  box.innerHTML =
+    `<strong>R${cell.row+1}·C${cell.col+1}</strong><br>`+
+    `<div class="chars-line">${charHtml||'—'}</div>`+
+    `<span style="color:#b07010;font-size:0.66rem">gold = boundary (full weight in both cells)</span><br>`+
+    `S:${Math.round(S*10)/10} F:${Math.round(F*10)/10} R:${Math.round(R*10)/10} V+P:${Math.round(V*10)/10}<br>`+
+    `<span style="font-size:0.66rem;color:#9a8060">V+P = vowels + punctuation water</span><br>`+
+    `dominant: ${dom}<br>─────────────<br>`+
+    `<strong>Recipe</strong><br>`+
+    recipeRows.join('<br>')+
+    pumpLine;
+}
+
+function exportSVG() {
+  if (!gridCells || gridCells.length === 0) {
+    alert('No grid to export — run OCR and Send to Grid first.');
+    return;
+  }
+  const cw = +document.getElementById('cellW').value;
+  const ch = +document.getElementById('cellH').value;
+  const W = shared.imgW || 900;
+  const H = shared.imgH || 900;
+
+  // Plotter SVG — stroke only, no fill. Paint inside each cell manually.
+  // viewBox matches image pixel dimensions exactly.
+  let svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <g fill="none" stroke="#000000" stroke-width="0.5">
+`;
+
+  gridCells.forEach(cell => {
+    svg += `    <rect x="${cell.x}" y="${cell.y}" width="${cell.w}" height="${cell.h}"/>\n`;
+  });
+
+  svg += `  </g>\n</svg>`;
+
+  const blob = new Blob([svg], {type: 'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `phonetic_grid_${cw}x${ch}.svg`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function setMode(m) {
+  mode = m;
+  ['btnColor','btnGrid','btnBoth','btnFreq'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+    document.getElementById(id).classList.add('sec');
+  });
+  const activeId = m==='color'?'btnColor':m==='grid'?'btnGrid':m==='both'?'btnBoth':'btnFreq';
+  document.getElementById(activeId).classList.add('active');
+  document.getElementById(activeId).classList.remove('sec');
+  document.getElementById('freqControls').style.display = m === 'freq' ? 'flex' : 'none';
+  gridRender();
+}
+
+function setCastMode(m) {
+  castMode = m;
+  ['btnCastOn','btnCastOff'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+    document.getElementById(id).classList.add('sec');
+  });
+  const activeId = m === 'on' ? 'btnCastOn' : 'btnCastOff';
+  document.getElementById(activeId).classList.add('active');
+  document.getElementById(activeId).classList.remove('sec');
+  gridRender();
+}
+
+function setCastBasis(b) {
+  castBasis = b;
+  ['btnCastLast','btnCastAll'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+    document.getElementById(id).classList.add('sec');
+  });
+  const activeId = b === 'last' ? 'btnCastLast' : 'btnCastAll';
+  document.getElementById(activeId).classList.add('active');
+  document.getElementById(activeId).classList.remove('sec');
+  if (shared.poemLines) { computeCastWords(); updateCastInfo(); }
+  gridRender();
+}
+
+function setDensity(m) {
+  densityMode = m;
+  ['btnDensOn','btnDensOff'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+    document.getElementById(id).classList.add('sec');
+  });
+  const activeId = m === 'on' ? 'btnDensOn' : 'btnDensOff';
+  document.getElementById(activeId).classList.add('active');
+  document.getElementById(activeId).classList.remove('sec');
+  gridRender();
+}
+
+function upd(inputId, displayId, suffix, mult) {
+  const v = +document.getElementById(inputId).value;
+  const display = suffix==='%' ? Math.round(v)+'%' : (mult!=null ? (v*mult).toFixed(1) : Math.round(v));
+  document.getElementById(displayId).textContent = display;
+}
+
+function updateCastInfo() {
+  if (!castWord) return;
+  const src = castBasis === 'last' ? `"${lastWord}"` : 'all words';
+  const dom = castWord.S>=castWord.F&&castWord.S>=castWord.R ? 'Stops' :
+              castWord.F>=castWord.R ? 'Fricatives' : 'Sonorants';
+  document.getElementById('castInfo').innerHTML =
+    `Source: <strong>${src}</strong><br>S:${castWord.S} F:${castWord.F} R:${castWord.R}<br>`+
+    `Dominant: ${dom} · Cast ${castMode}`;
+}
+</script>
+</body>
+</html>
