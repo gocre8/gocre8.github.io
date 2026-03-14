@@ -113,7 +113,7 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
     </div>
 
     <div class="panel-section">
-      <h3>Hue Branches &nbsp;<span style="color:var(--muted);font-weight:400;font-size:8px">← opposite →</span></h3>
+      <h3>Hue Branches &nbsp;<span style="color:var(--ink-ghost);font-weight:400;font-size:8px">← opposite →</span></h3>
       <div class="branch-presets">
         <button class="preset-btn" data-preset="all">All 20</button>
         <button class="preset-btn active" data-preset="10">Main 10</button>
@@ -164,6 +164,10 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
           <input type="range" id="size-slider" min="1" max="40" value="20">
         </div>
       </div>
+      <div class="toggle-row" style="margin-top:8px;margin-bottom:0">
+        <button class="toggle-btn" id="flat-toggle">Flat</button>
+        <span class="toggle-label">Equal size (no depth variation)</span>
+      </div>
     </div>
 
     <div class="divider"></div>
@@ -174,6 +178,15 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
         <div class="legend-item"><div class="legend-line" style="background:#c04040"></div><span><strong>Hue</strong> — angle (20 pages)</span></div>
         <div class="legend-item"><div class="legend-line" style="background:#888"></div><span><strong>Value</strong> — vertical 0–10</span></div>
         <div class="legend-item"><div class="legend-line" style="background:#4a7a4a"></div><span><strong>Chroma</strong> — radius, irregular</span></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-section">
+      <h3>Selected Chip</h3>
+      <div id="chip-info" style="display:flex;gap:8px;align-items:center;min-height:32px">
+        <span style="font-size:9px;color:var(--ink-ghost)">Click a swatch to identify</span>
       </div>
     </div>
 
@@ -286,17 +299,20 @@ let hSliceOn      = false, hSliceIdx = 0;
 let maxChromaClip = 16;
 let pointSizeMult = 2.0;  // 2× = solid/filled default; slider shrinks to see through
 let pointsObj = null, axisObj = null;
+let flatMode = false;
+const pointData = [];  // parallel to geometry buffer: {hi?, v, c} per point
 
 const BASE_SIZE = 0.06;  // = SCALE_C = V_SUBSTEP*SCALE_V; at 1× swatches are square and touching
 
 // ── Build points ──────────────────────────────────────────────────
 function buildPoints() {
   const pos = [], col = [];
+  pointData.length = 0;
 
   // Neutral axis — dense enough to look solid
   for (let v = 0; v <= 10; v += V_SUBSTEP) {
     const g = Math.pow(v/10, 0.9);
-    for (let r = 0; r < 4; r++) { pos.push(0, (v-5)*SCALE_V, 0); col.push(g,g,g); }
+    for (let r = 0; r < 4; r++) { pos.push(0, (v-5)*SCALE_V, 0); col.push(g,g,g); pointData.push({v, c:0}); }
   }
 
   activeHues.forEach(hi => {
@@ -319,6 +335,7 @@ function buildPoints() {
         pos.push(ca*r, y, sa*r);
         const [rr,gg,bb] = munsellToRgb(hi, v, c);
         col.push(rr, gg, bb);
+        pointData.push({hi, v, c});
       }
     }
   });
@@ -327,7 +344,8 @@ function buildPoints() {
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('color',    new THREE.Float32BufferAttribute(col, 3));
   return new THREE.Points(geo, new THREE.PointsMaterial({
-    size: BASE_SIZE * pointSizeMult, vertexColors: true, sizeAttenuation: true
+    size: flatMode ? flatPointSize() : BASE_SIZE * pointSizeMult,
+    vertexColors: true, sizeAttenuation: !flatMode
   }));
 }
 
@@ -466,10 +484,57 @@ document.getElementById('chroma-slider').addEventListener('input',e=>{
 document.getElementById('size-slider').addEventListener('input',e=>{
   pointSizeMult=parseInt(e.target.value)/10;
   document.getElementById('size-val').textContent=pointSizeMult.toFixed(1)+'×';
-  if(pointsObj) pointsObj.material.size=BASE_SIZE*pointSizeMult;
+  if(pointsObj) pointsObj.material.size = flatMode ? flatPointSize() : BASE_SIZE*pointSizeMult;
 });
 
 window.addEventListener('resize',()=>{ W=container.clientWidth; H=container.clientHeight; camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H); });
+
+// ── Flat projection ────────────────────────────────────────────────
+// Computes the pixel size that matches sizeAttenuation:true at current camera distance,
+// so toggling flat mode is visually seamless.
+function flatPointSize() {
+  const dist = camera.position.distanceTo(controls.target);
+  const projY = camera.projectionMatrix.elements[5]; // 1/tan(FOV/2)
+  return BASE_SIZE * pointSizeMult * projY * (H * 0.5) / dist;
+}
+controls.addEventListener('change', () => {
+  if (flatMode && pointsObj) { pointsObj.material.size = flatPointSize(); pointsObj.material.needsUpdate = true; }
+});
+document.getElementById('flat-toggle').addEventListener('click', () => {
+  flatMode = !flatMode;
+  document.getElementById('flat-toggle').classList.toggle('active', flatMode);
+  if (pointsObj) {
+    pointsObj.material.sizeAttenuation = !flatMode;
+    pointsObj.material.size = flatMode ? flatPointSize() : BASE_SIZE * pointSizeMult;
+    pointsObj.material.needsUpdate = true;
+  }
+});
+
+// ── Click → identify chip ──────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+let _mdx = 0, _mdy = 0;
+renderer.domElement.addEventListener('mousedown', e => { _mdx = e.clientX; _mdy = e.clientY; });
+renderer.domElement.addEventListener('click', e => {
+  if (Math.abs(e.clientX - _mdx) > 4 || Math.abs(e.clientY - _mdy) > 4) return; // was a drag
+  const rect = renderer.domElement.getBoundingClientRect();
+  const nx = ((e.clientX - rect.left) / rect.width)  *  2 - 1;
+  const ny = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+  raycaster.setFromCamera({x: nx, y: ny}, camera);
+  raycaster.params.Points.threshold = BASE_SIZE * pointSizeMult * 0.7;
+  const hits = raycaster.intersectObject(pointsObj);
+  if (!hits.length) return;
+  const d = pointData[hits[0].index];
+  if (!d) return;
+  const isNeutral = d.hi === undefined;
+  const [r, g, b] = munsellToRgb(isNeutral ? 0 : d.hi, d.v, d.c)
+    .map(n => Math.round(n * 255));
+  const hex = '#' + [r,g,b].map(n => n.toString(16).padStart(2,'0')).join('');
+  const notation = isNeutral ? `N ${d.v}/` : `${HUE_NAMES[d.hi]} ${d.v}/${d.c}`;
+  document.getElementById('chip-info').innerHTML =
+    `<div style="width:28px;height:28px;background:${hex};border:1px solid var(--border);border-radius:2px;flex-shrink:0"></div>` +
+    `<div><div style="font-family:'Courier Prime',monospace;font-size:13px;color:var(--ink)">${notation}</div>` +
+    `<div style="font-size:8px;color:var(--ink-ghost);margin-top:2px">${hex.toUpperCase()} · ${r} ${g} ${b}</div></div>`;
+});
 
 function animate(){ requestAnimationFrame(animate); controls.update(); updateLabels(); renderer.render(scene,camera); }
 buildHueGrid(); rebuild(); animate();
