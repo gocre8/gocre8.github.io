@@ -160,8 +160,8 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
           <input type="range" id="chroma-slider" min="0" max="18" value="16" step="1">
         </div>
         <div class="slider-row">
-          <label>Point Size <strong id="size-val">2.0×</strong></label>
-          <input type="range" id="size-slider" min="1" max="40" value="20">
+          <label>Point Size <strong id="size-val">1.0×</strong></label>
+          <input type="range" id="size-slider" min="1" max="40" value="10">
         </div>
       </div>
     </div>
@@ -275,8 +275,8 @@ function munsellToRgb(hi, value, chroma) {
 // ── Scene constants ───────────────────────────────────────────────
 // V steps at 0.5 intervals so no vertical gaps
 const V_SUBSTEP = 0.5;
-const SCALE_C   = 0.048;
-const SCALE_V   = 0.17;  // V5 = y=0 centre
+const SCALE_C   = 0.06;                          // horizontal chroma step
+const SCALE_V   = 0.12;  // V5 = y=0 centre      // V_SUBSTEP*SCALE_V = 0.06 = SCALE_C → square swatches
 
 // ── State ─────────────────────────────────────────────────────────
 let activeHues    = new Set([0,2,4,6,8,10,12,14,16,18]);
@@ -284,10 +284,10 @@ let pairMode      = false; // true when "1 Pair" preset is active
 let vSliceOn      = false, vSliceVal = 5;
 let hSliceOn      = false, hSliceIdx = 0;
 let maxChromaClip = 16;
-let pointSizeMult = 2.0;  // start at 2× so points touch
+let pointSizeMult = 1.0;  // 1× = swatches exactly touching
 let pointsObj = null, axisObj = null;
 
-const BASE_SIZE = 0.052; // world-unit base; at 2× = 0.104, V_SUBSTEP*SCALE_V=0.085 → overlap ✓
+const BASE_SIZE = 0.06;  // = SCALE_C = V_SUBSTEP*SCALE_V; at 1× swatches are square and touching
 
 // ── Build points ──────────────────────────────────────────────────
 function buildPoints() {
@@ -307,8 +307,8 @@ function buildPoints() {
     // Iterate value in sub-steps so no vertical gaps
     for (let v = 0; v <= 10; v += V_SUBSTEP) {
       if (vSliceOn) {
-        // In slice mode, show a band ±0.5 around the chosen value
-        if (Math.abs(v - vSliceVal) > 0.5) continue;
+        // In slice mode, show only the exact value substep
+        if (Math.abs(v - vSliceVal) > V_SUBSTEP * 0.5) continue;
       }
       const maxCfloat = maxChromaAt(hi, v);
       const maxC = Math.min(Math.floor(maxCfloat), maxChromaClip);
