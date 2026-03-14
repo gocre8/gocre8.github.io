@@ -160,13 +160,13 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
           <input type="range" id="chroma-slider" min="0" max="18" value="16" step="1">
         </div>
         <div class="slider-row">
-          <label>Point Size <strong id="size-val">2.0×</strong></label>
-          <input type="range" id="size-slider" min="1" max="40" value="20">
+          <label>Point Size <strong id="size-val">1.0×</strong></label>
+          <input type="range" id="size-slider" min="1" max="40" value="10">
         </div>
       </div>
       <div class="toggle-row" style="margin-top:8px;margin-bottom:0">
-        <button class="toggle-btn" id="flat-toggle">Flat</button>
-        <span class="toggle-label">Equal size (no depth variation)</span>
+        <button class="toggle-btn active" id="flat-toggle">Flat</button>
+        <span class="toggle-label">Orthographic (parallel projection)</span>
       </div>
     </div>
 
@@ -213,11 +213,42 @@ renderer.setClearColor(0xaaaaaa);
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, W/H, 0.01, 100);
-camera.position.set(2.2, 1.4, 2.2);
-const controls = new OrbitControls(camera, renderer.domElement);
+
+// ── Cameras ───────────────────────────────────────────────────────
+// perspCam is the permanent orbital reference — OrbitControls always drives it.
+// In flat mode, orthoCam is synced each frame: same position/orientation, but
+// frustum computed to match perspCam's apparent zoom (parallel projection).
+const perspCam = new THREE.PerspectiveCamera(50, W/H, 0.01, 100);
+perspCam.position.set(2.2, 1.4, 2.2);
+const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+let flatMode = true;       // default: orthographic
+let camera = orthoCam;     // active camera (switches on flat-toggle)
+
+const controls = new OrbitControls(perspCam, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.07;
 controls.minDistance = 0.4; controls.maxDistance = 9;
+
+// Sync orthoCam to perspCam: same eye position/direction, parallel frustum
+// sized to match perspCam's apparent zoom level at current orbit distance.
+function syncOrthoCam() {
+  orthoCam.position.copy(perspCam.position);
+  orthoCam.quaternion.copy(perspCam.quaternion);
+  const dist = perspCam.position.distanceTo(controls.target);
+  const halfH = Math.tan((perspCam.fov * Math.PI / 180) * 0.5) * dist;
+  orthoCam.left   = -halfH * (W / H);
+  orthoCam.right  =  halfH * (W / H);
+  orthoCam.top    =  halfH;
+  orthoCam.bottom = -halfH;
+  orthoCam.updateProjectionMatrix();
+}
+
+// Pixel size for sizeAttenuation:false so that 1× = exactly touching swatches.
+// Maps BASE_SIZE world units → equivalent screen pixels given current frustum.
+function orthoPixelSize() {
+  const dist = perspCam.position.distanceTo(controls.target);
+  const halfH = Math.tan((perspCam.fov * Math.PI / 180) * 0.5) * dist;
+  return BASE_SIZE * pointSizeMult * H / (2 * halfH);
+}
 
 // ── 20 Munsell hue pages ──────────────────────────────────────────
 const HUE_NAMES = [
@@ -297,40 +328,39 @@ let pairMode      = false; // true when "1 Pair" preset is active
 let vSliceOn      = false, vSliceVal = 5;
 let hSliceOn      = false, hSliceIdx = 0;
 let maxChromaClip = 16;
-let pointSizeMult = 2.0;  // 2× = solid/filled default; slider shrinks to see through
+let pointSizeMult = 1.0;  // 1× = exactly touching in ortho mode
 let pointsObj = null, axisObj = null;
-let flatMode = false;
 const pointData = [];  // parallel to geometry buffer: {hi?, v, c} per point
 
-const BASE_SIZE = 0.06;  // = SCALE_C = V_SUBSTEP*SCALE_V; at 1× swatches are square and touching
+const BASE_SIZE = 0.06;  // = SCALE_C = V_SUBSTEP*SCALE_V; at 1× swatches square and touching
 
 // ── Build points ──────────────────────────────────────────────────
 function buildPoints() {
   const pos = [], col = [];
   pointData.length = 0;
 
-  // Neutral axis — dense enough to look solid
+  // Neutral axis — 1 point per V sub-step, no duplication.
+  // Always rendered regardless of hue selection; respects vSlice.
   for (let v = 0; v <= 10; v += V_SUBSTEP) {
+    if (vSliceOn && Math.abs(v - vSliceVal) > V_SUBSTEP * 0.5) continue;
     const g = Math.pow(v/10, 0.9);
-    for (let r = 0; r < 4; r++) { pos.push(0, (v-5)*SCALE_V, 0); col.push(g,g,g); pointData.push({v, c:0}); }
+    pos.push(0, (v-5)*SCALE_V, 0);
+    col.push(g, g, g);
+    pointData.push({v, c: 0});
   }
 
   activeHues.forEach(hi => {
     if (hSliceOn && hi !== hSliceIdx) return;
-    const a   = (hi / 20) * Math.PI * 2;
-    const ca  = Math.cos(a), sa = Math.sin(a);
+    const a  = (hi / 20) * Math.PI * 2;
+    const ca = Math.cos(a), sa = Math.sin(a);
 
-    // Iterate value in sub-steps so no vertical gaps
     for (let v = 0; v <= 10; v += V_SUBSTEP) {
-      if (vSliceOn) {
-        // In slice mode, show only the exact value substep
-        if (Math.abs(v - vSliceVal) > V_SUBSTEP * 0.5) continue;
-      }
+      if (vSliceOn && Math.abs(v - vSliceVal) > V_SUBSTEP * 0.5) continue;
       const maxCfloat = maxChromaAt(hi, v);
       const maxC = Math.min(Math.floor(maxCfloat), maxChromaClip);
-      if (maxC < 0) continue;
+      if (maxC < 1) continue; // c=0 is neutral axis above; skip if no chroma
       const y = (v - 5) * SCALE_V;
-      for (let c = 0; c <= maxC; c++) {
+      for (let c = 1; c <= maxC; c++) { // start at 1: c=0 is neutral axis only
         const r = c * SCALE_C;
         pos.push(ca*r, y, sa*r);
         const [rr,gg,bb] = munsellToRgb(hi, v, c);
@@ -344,7 +374,7 @@ function buildPoints() {
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('color',    new THREE.Float32BufferAttribute(col, 3));
   return new THREE.Points(geo, new THREE.PointsMaterial({
-    size: flatMode ? flatPointSize() : BASE_SIZE * pointSizeMult,
+    size: flatMode ? orthoPixelSize() : BASE_SIZE * pointSizeMult,
     vertexColors: true, sizeAttenuation: !flatMode
   }));
 }
@@ -481,31 +511,37 @@ document.getElementById('chroma-slider').addEventListener('input',e=>{
   document.getElementById('chroma-val').textContent=maxChromaClip;
   rebuild();
 });
-document.getElementById('size-slider').addEventListener('input',e=>{
-  pointSizeMult=parseInt(e.target.value)/10;
-  document.getElementById('size-val').textContent=pointSizeMult.toFixed(1)+'×';
-  if(pointsObj) pointsObj.material.size = flatMode ? flatPointSize() : BASE_SIZE*pointSizeMult;
+document.getElementById('size-slider').addEventListener('input', e => {
+  pointSizeMult = parseInt(e.target.value) / 10;
+  document.getElementById('size-val').textContent = pointSizeMult.toFixed(1) + '×';
+  if (pointsObj) {
+    pointsObj.material.size = flatMode ? orthoPixelSize() : BASE_SIZE * pointSizeMult;
+    pointsObj.material.needsUpdate = true;
+  }
 });
 
-window.addEventListener('resize',()=>{ W=container.clientWidth; H=container.clientHeight; camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H); });
+window.addEventListener('resize', () => {
+  W = container.clientWidth; H = container.clientHeight;
+  perspCam.aspect = W/H; perspCam.updateProjectionMatrix();
+  renderer.setSize(W, H);
+  // orthoCam frustum is updated every frame by syncOrthoCam()
+});
 
-// ── Flat projection ────────────────────────────────────────────────
-// Computes the pixel size that matches sizeAttenuation:true at current camera distance,
-// so toggling flat mode is visually seamless.
-function flatPointSize() {
-  const dist = camera.position.distanceTo(controls.target);
-  const projY = camera.projectionMatrix.elements[5]; // 1/tan(FOV/2)
-  return BASE_SIZE * pointSizeMult * projY * (H * 0.5) / dist;
-}
+// When orbiting/zooming, re-sync ortho pixel size to match new frustum
 controls.addEventListener('change', () => {
-  if (flatMode && pointsObj) { pointsObj.material.size = flatPointSize(); pointsObj.material.needsUpdate = true; }
+  if (flatMode && pointsObj) {
+    pointsObj.material.size = orthoPixelSize();
+    pointsObj.material.needsUpdate = true;
+  }
 });
+
 document.getElementById('flat-toggle').addEventListener('click', () => {
   flatMode = !flatMode;
+  camera = flatMode ? orthoCam : perspCam;
   document.getElementById('flat-toggle').classList.toggle('active', flatMode);
   if (pointsObj) {
     pointsObj.material.sizeAttenuation = !flatMode;
-    pointsObj.material.size = flatMode ? flatPointSize() : BASE_SIZE * pointSizeMult;
+    pointsObj.material.size = flatMode ? orthoPixelSize() : BASE_SIZE * pointSizeMult;
     pointsObj.material.needsUpdate = true;
   }
 });
@@ -536,8 +572,18 @@ renderer.domElement.addEventListener('click', e => {
     `<div style="font-size:8px;color:var(--ink-ghost);margin-top:2px">${hex.toUpperCase()} · ${r} ${g} ${b}</div></div>`;
 });
 
-function animate(){ requestAnimationFrame(animate); controls.update(); updateLabels(); renderer.render(scene,camera); }
-buildHueGrid(); rebuild(); animate();
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  if (flatMode) syncOrthoCam();
+  updateLabels();
+  renderer.render(scene, camera);
+}
+buildHueGrid();
+controls.update();  // initialize perspCam orientation before first syncOrthoCam
+syncOrthoCam();     // initial ortho frustum before first rebuild
+rebuild();
+animate();
 </script>
 </body>
 </html>
