@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Munsell Color Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;1,300&family=Courier+Prime:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --white:       #ffffff;
+  --bg:          #f4f6f9;
+  --surface-alt: #eff1f4;
+  --ink:         #222222;
+  --ink-soft:    #666666;
+  --ink-ghost:   #aaaaaa;
+  --line:        #eaeaea;
+  --border:      #e0e3e8;
+  --border-soft: #eceef2;
+  --accent:      #2a4a82;
+  --accent-pale: #e5ecf7;
+}
+body { background:var(--bg); color:var(--ink); font-family:'Jost',sans-serif; font-weight:300; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+header { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--white); }
+.title-group h1 { font-family:'Jost',sans-serif; font-size:18px; font-weight:400; letter-spacing:-0.3px; }
+.title-group p { font-size:9px; color:var(--ink-soft); margin-top:1px; letter-spacing:0.08em; text-transform:uppercase; }
+.main { display:flex; flex:1; overflow:hidden; }
+#canvas-container { flex:1; position:relative; cursor:grab; }
+#canvas-container:active { cursor:grabbing; }
+#canvas-container canvas { display:block; }
+.label-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+.hue-label {
+  position:absolute; transform:translate(-50%,-50%);
+  font-family:'Jost',sans-serif; font-size:9px; font-weight:300;
+  color:var(--ink); background:rgba(255,255,255,0.88); padding:1px 5px;
+  border-radius:3px; border:1px solid var(--border); white-space:nowrap; pointer-events:none;
+}
+.sidebar { width:264px; border-left:1px solid var(--border); background:var(--white); overflow-y:auto; padding:14px; flex-shrink:0; display:flex; flex-direction:column; gap:13px; }
+.panel-section h3 { font-size:9px; font-weight:400; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:9px; padding-bottom:4px; border-bottom:1px solid var(--line); }
+.info-card { background:var(--bg); border:1px solid var(--border-soft); border-radius:3px; padding:11px; }
+.info-card .space-name { font-family:'Jost',sans-serif; font-size:19px; font-weight:400; margin-bottom:4px; color:var(--accent); }
+.info-card .space-desc { font-size:9px; line-height:1.75; color:var(--ink-soft); }
+
+.branch-presets { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:9px; }
+.preset-btn { font-family:'Jost',sans-serif; font-size:10px; font-weight:300; letter-spacing:0.08em; text-transform:uppercase; padding:3px 9px; border:1px solid var(--border); background:var(--bg); color:var(--ink-soft); cursor:pointer; border-radius:3px; transition:all 0.15s; }
+.preset-btn:hover { color:var(--ink); border-color:var(--ink); }
+.preset-btn.active { background:var(--ink); color:var(--white); border-color:var(--ink); }
+
+.hue-grid-pairs { display:flex; flex-direction:column; gap:2px; }
+.hue-pair-row { display:flex; gap:2px; }
+.hue-checkbox {
+  flex:1; display:flex; align-items:center; gap:5px; cursor:pointer;
+  padding:3px 5px; border-radius:3px; border:1px solid var(--border);
+  background:var(--bg); transition:all 0.12s; user-select:none; min-width:0;
+}
+.hue-checkbox:hover { background:var(--surface-alt); }
+.hue-checkbox.active { background:var(--surface-alt); border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink); }
+.hue-swatch { width:8px; height:8px; border-radius:2px; flex-shrink:0; border:1px solid rgba(0,0,0,0.12); }
+.hue-checkbox span { font-size:8.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pair-divider { width:1px; background:var(--border); flex-shrink:0; }
+
+.slider-group { display:flex; flex-direction:column; gap:9px; }
+.slider-row { display:flex; flex-direction:column; gap:3px; }
+.slider-row label { font-size:9px; color:var(--ink-soft); letter-spacing:0.08em; text-transform:uppercase; display:flex; justify-content:space-between; }
+.slider-row label strong { font-family:'Courier Prime',monospace; color:var(--ink-soft); font-size:11px; font-weight:400; }
+input[type=range] { width:100%; accent-color:var(--accent); cursor:pointer; }
+
+.toggle-row { display:flex; align-items:center; gap:7px; margin-bottom:7px; }
+.toggle-btn { font-family:'Jost',sans-serif; font-size:10px; font-weight:300; letter-spacing:0.08em; text-transform:uppercase; padding:3px 10px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); border-radius:3px; cursor:pointer; transition:all 0.15s; }
+.toggle-btn.active { background:var(--ink); color:var(--white); border-color:var(--ink); }
+.toggle-label { font-size:9px; color:var(--ink-soft); }
+.divider { height:1px; background:var(--line); }
+.dim { opacity:0.3; pointer-events:none; }
+
+.legend-list { display:flex; flex-direction:column; gap:5px; }
+.legend-item { display:flex; align-items:center; gap:8px; }
+.legend-line { width:14px; height:2px; flex-shrink:0; }
+.legend-item span { font-size:9px; color:var(--ink-soft); }
+.legend-item strong { color:var(--ink); }
+
+footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--white); font-size:9px; color:var(--ink-soft); display:flex; justify-content:space-between; flex-shrink:0; }
+
+@media (max-width: 680px) {
+  body { height:auto; overflow:auto; }
+  .main { flex-direction:column; overflow:visible; }
+  #canvas-container { height:400px; flex:none; }
+  .sidebar { width:100%; border-left:none; border-top:1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="title-group">
+    <h1>Munsell Color Tree</h1>
+    <p>Hue · Value · Chroma — Drag to orbit · Scroll to zoom</p>
+  </div>
+  <div style="font-family:'Courier Prime',monospace;font-size:9px;color:var(--ink-soft);text-align:right;line-height:1.7">
+    A.H. Munsell, 1905<br><span style="color:var(--accent)">H V/C</span>
+  </div>
+</header>
+<div class="main">
+  <div id="canvas-container">
+    <div class="label-overlay" id="label-overlay"></div>
+  </div>
+  <div class="sidebar">
+
+    <div class="panel-section">
+      <h3>About</h3>
+      <div class="info-card">
+        <div class="space-name">Munsell</div>
+        <div class="space-desc">The tree is <em>deliberately irregular</em> — branches extend only as far as real pigments allow. 20 hue pages, values 0–10, chroma 0–16+. Opposite pairs cancel to neutral grey.</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Hue Branches &nbsp;<span style="color:var(--ink-ghost);font-weight:400;font-size:8px">← opposite →</span></h3>
+      <div class="branch-presets">
+        <button class="preset-btn" data-preset="all">All 20</button>
+        <button class="preset-btn active" data-preset="10">Main 10</button>
+        <button class="preset-btn" data-preset="5">5 Hues</button>
+        <button class="preset-btn" data-preset="pair">1 Pair</button>
+        <button class="preset-btn" data-preset="custom">Custom</button>
+      </div>
+      <div class="hue-grid-pairs" id="hue-grid"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-section">
+      <h3>Value Slice (Horizontal)</h3>
+      <div class="toggle-row">
+        <button class="toggle-btn" id="vslice-toggle">Enable</button>
+        <span class="toggle-label">Isolate one value level</span>
+      </div>
+      <div id="vslice-controls" class="slider-row dim">
+        <label>Value <strong id="vslice-val">5</strong></label>
+        <input type="range" id="vslice-slider" min="0" max="10" value="5" step="1">
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Hue Page (Vertical Fan)</h3>
+      <div class="toggle-row">
+        <button class="toggle-btn" id="hslice-toggle">Enable</button>
+        <span class="toggle-label">Isolate one hue's page</span>
+      </div>
+      <div id="hslice-controls" class="slider-row dim">
+        <label>Hue <strong id="hslice-val">5R</strong></label>
+        <input type="range" id="hslice-slider" min="0" max="19" value="0" step="1">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-section">
+      <h3>Settings</h3>
+      <div class="slider-group">
+        <div class="slider-row">
+          <label>Max Chroma <strong id="chroma-val">16</strong></label>
+          <input type="range" id="chroma-slider" min="0" max="18" value="16" step="1">
+        </div>
+        <div class="slider-row">
+          <label>Point Size <strong id="size-val">1.0×</strong></label>
+          <input type="range" id="size-slider" min="1" max="40" value="10">
+        </div>
+      </div>
+      <div class="toggle-row" style="margin-top:8px;margin-bottom:0">
+        <button class="toggle-btn" id="flat-toggle">Perspective</button>
+        <span class="toggle-label">Orthographic (parallel projection)</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-section">
+      <h3>Axes</h3>
+      <div class="legend-list">
+        <div class="legend-item"><div class="legend-line" style="background:#c04040"></div><span><strong>Hue</strong> — angle (20 pages)</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#888"></div><span><strong>Value</strong> — vertical 0–10</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#4a7a4a"></div><span><strong>Chroma</strong> — radius, irregular</span></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-section">
+      <h3>Selected Chip</h3>
+      <div id="chip-info" style="display:flex;gap:8px;align-items:center;min-height:32px">
+        <span style="font-size:9px;color:var(--ink-ghost)">Click a swatch to identify</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+<footer>
+  <span>Munsell Color Tree · Teaching Tool</span>
+  <span id="point-info">Loading…</span>
+</footer>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const container = document.getElementById('canvas-container');
+let W = container.clientWidth, H = container.clientHeight;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0xaaaaaa);
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+// ── Cameras ───────────────────────────────────────────────────────
+// perspCam is the permanent orbital reference — OrbitControls always drives it.
+// In flat mode, orthoCam is synced each frame: same position/orientation, but
+// frustum computed to match perspCam's apparent zoom (parallel projection).
+const perspCam = new THREE.PerspectiveCamera(50, W/H, 0.01, 100);
+perspCam.position.set(2.2, 1.4, 2.2);
+const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+let perspMode = false;     // false = orthographic (default)
+let camera = orthoCam;     // active camera (switches on flat-toggle)
+
+const controls = new OrbitControls(perspCam, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.07;
+controls.minDistance = 0.4; controls.maxDistance = 9;
+
+// Sync orthoCam to perspCam: same eye position/direction, parallel frustum
+// sized to match perspCam's apparent zoom level at current orbit distance.
+function syncOrthoCam() {
+  orthoCam.position.copy(perspCam.position);
+  orthoCam.quaternion.copy(perspCam.quaternion);
+  const dist = perspCam.position.distanceTo(controls.target);
+  const halfH = Math.tan((perspCam.fov * Math.PI / 180) * 0.5) * dist;
+  orthoCam.left   = -halfH * (W / H);
+  orthoCam.right  =  halfH * (W / H);
+  orthoCam.top    =  halfH;
+  orthoCam.bottom = -halfH;
+  orthoCam.updateProjectionMatrix();
+}
+
+// ── 20 Munsell hue pages ──────────────────────────────────────────
+const HUE_NAMES = [
+  '5R','10R','5YR','10YR','5Y','10Y','5GY','10GY','5G','10G',
+  '5BG','10BG','5B','10B','5PB','10PB','5P','10P','5RP','10RP'
+];
+const HUE_SWATCHES = [
+  '#c0392b','#c94b2a','#e07030','#d4903a','#d4b800',
+  '#a8c020','#7fa830','#5c9830','#2e8b57','#20906a',
+  '#00897b','#00888a','#1565c0','#2855b8','#5c35a0',
+  '#7040b0','#8e44ad','#a03898','#c0186e','#c02050'
+];
+const HSL_HUE = [
+  4, 14, 22, 38, 55, 72, 90, 110, 148, 166,
+  184, 196, 220, 236, 254, 266, 278, 292, 326, 344
+];
+
+// Max chroma per hue × value (index 0=V0 … 10=V10)
+//          V0  V1  V2  V3  V4  V5  V6  V7  V8  V9 V10
+const MAX_CHROMA = [
+  [0,  4,  6,  8, 10, 14, 14, 12, 10,  8,  4], // 5R
+  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  4], // 10R
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  6,  4], // 5YR
+  [0,  2,  4,  6,  8, 10, 10, 10,  8,  6,  2], // 10YR
+  [0,  2,  4,  6,  8, 12, 14, 14, 12,  8,  4], // 5Y
+  [0,  2,  4,  6,  8, 10, 12, 12, 10,  6,  2], // 10Y
+  [0,  2,  4,  6,  8, 10, 10,  8,  6,  4,  2], // 5GY
+  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  2], // 10GY
+  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  2], // 5G
+  [0,  2,  2,  4,  6,  6,  8,  6,  4,  2,  2], // 10G
+  [0,  2,  2,  4,  6,  6,  8,  6,  4,  2,  2], // 5BG
+  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  2], // 10BG
+  [0,  2,  4,  4,  6,  8,  8,  8,  6,  4,  2], // 5B
+  [0,  2,  4,  6,  8, 10, 10, 10,  8,  6,  2], // 10B
+  [0,  2,  4,  6,  8, 10, 12, 12, 10,  6,  4], // 5PB
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  4], // 10PB
+  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  4], // 5P
+  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  4], // 10P
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  4], // 5RP
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  4], // 10RP
+];
+
+// ── Color helpers ─────────────────────────────────────────────────
+function hslToRgb(h, s, l) {
+  if (s === 0) return [l, l, l];
+  const q = l < 0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+  const f = t => { t=((t%1)+1)%1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+  return [f(h+1/3), f(h), f(h-1/3)];
+}
+
+// Interpolate max chroma at fractional value (linear between integer steps)
+function maxChromaAt(hi, v) {
+  const lo = Math.floor(v), hi2 = Math.min(Math.ceil(v), 10);
+  if (lo === hi2) return MAX_CHROMA[hi][lo];
+  const t = v - lo;
+  return MAX_CHROMA[hi][lo] * (1-t) + MAX_CHROMA[hi][hi2] * t;
+}
+
+function munsellToRgb(hi, value, chroma) {
+  if (value <= 0) return [0, 0, 0];
+  if (chroma === 0) { const g = Math.pow(value/10, 0.9); return [g,g,g]; }
+  const l = Math.pow(value/10, 0.9);
+  const maxC = Math.max(...MAX_CHROMA[hi]);
+  const sat = (chroma/maxC) * (1 - Math.abs(l*2-1) * 0.22);
+  return hslToRgb(HSL_HUE[hi]/360, Math.min(sat, 1), Math.max(0.04, Math.min(l, 0.96)));
+}
+
+// ── Scene constants ───────────────────────────────────────────────
+// V steps at 0.5 intervals so no vertical gaps
+const V_SUBSTEP = 0.5;
+const SCALE_C   = 0.06;                          // horizontal chroma step
+const SCALE_V   = 0.12;  // V5 = y=0 centre      // V_SUBSTEP*SCALE_V = 0.06 = SCALE_C → square swatches
+
+// ── State ─────────────────────────────────────────────────────────
+let activeHues    = new Set([0,2,4,6,8,10,12,14,16,18]);
+let pairMode      = false; // true when "1 Pair" preset is active
+let vSliceOn      = false, vSliceVal = 5;
+let hSliceOn      = false, hSliceIdx = 0;
+let maxChromaClip = 16;
+let pointSizeMult = 1.0;  // 1× = exactly touching in ortho mode
+let pointsObj = null, axisObj = null;
+const pointData = [];  // parallel to geometry buffer: {hi?, v, c} per point
+
+const BASE_SIZE = 0.06;  // = SCALE_C = V_SUBSTEP*SCALE_V; at 1× swatches square and touching
+
+// ── Build points (InstancedMesh of cubes) ─────────────────────────
+function buildPoints() {
+  const dummy = new THREE.Object3D();
+  const chipColor = new THREE.Color();
+  const chips = [];  // collect all chip data before allocating InstancedMesh
+
+  // Neutral axis — 1 cube per V sub-step (no duplication), respects vSlice
+  for (let v = 0; v <= 10; v += V_SUBSTEP) {
+    if (vSliceOn && Math.abs(v - vSliceVal) > V_SUBSTEP * 0.5) continue;
+    const gv = Math.pow(v / 10, 0.9);
+    chips.push({ x: 0, y: (v-5)*SCALE_V, z: 0, rot: 0, rgb: [gv, gv, gv], data: {v, c: 0} });
+  }
+
+  // Hue pages — each chip is a cube aligned to its hue page plane
+  activeHues.forEach(hi => {
+    if (hSliceOn && hi !== hSliceIdx) return;
+    const a  = (hi / 20) * Math.PI * 2;
+    const ca = Math.cos(a), sa = Math.sin(a);
+    for (let v = 0; v <= 10; v += V_SUBSTEP) {
+      if (vSliceOn && Math.abs(v - vSliceVal) > V_SUBSTEP * 0.5) continue;
+      const maxCfloat = maxChromaAt(hi, v);
+      const maxC = Math.min(Math.floor(maxCfloat), maxChromaClip);
+      if (maxC < 1) continue;
+      const y = (v - 5) * SCALE_V;
+      for (let c = 1; c <= maxC; c++) {
+        const r = c * SCALE_C;
+        chips.push({ x: ca*r, y, z: sa*r, rot: a, rgb: munsellToRgb(hi, v, c), data: {hi, v, c} });
+      }
+    }
+  });
+
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  const mat = new THREE.MeshBasicMaterial();
+  const mesh = new THREE.InstancedMesh(geo, mat, chips.length);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  pointData.length = 0;
+
+  const s = BASE_SIZE * pointSizeMult;
+  chips.forEach(({ x, y, z, rot, rgb, data }, i) => {
+    dummy.position.set(x, y, z);
+    dummy.rotation.set(0, -rot, 0);
+    dummy.scale.setScalar(s);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+    mesh.setColorAt(i, chipColor.setRGB(...rgb));
+    pointData.push(data);
+  });
+
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.instanceColor.needsUpdate = true;
+  return mesh;
+}
+
+// ── Axes ──────────────────────────────────────────────────────────
+function buildAxes() {
+  const grp = new THREE.Group();
+  const lm = (c,o=1) => new THREE.LineBasicMaterial({color:c,transparent:o<1,opacity:o});
+  const ln = (a,b,m) => { const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]); return new THREE.Line(g,m); };
+  grp.add(ln([0,-5.2*SCALE_V,0],[0,5.4*SCALE_V,0], lm(0x888888)));
+  // Integer value ticks — sprites always face camera, no blind angles
+  const dashCanvas = document.createElement('canvas');
+  dashCanvas.width = 64; dashCanvas.height = 16;
+  const dctx = dashCanvas.getContext('2d');
+  dctx.fillStyle = '#777777';
+  dctx.fillRect(8, 6, 48, 4);
+  const dashTex = new THREE.CanvasTexture(dashCanvas);
+  const dashMat = new THREE.SpriteMaterial({ map: dashTex, transparent: true });
+  for (let v = 0; v <= 10; v++) {
+    const sp = new THREE.Sprite(dashMat);
+    sp.position.set(0, (v-5)*SCALE_V, 0);
+    sp.scale.set(0.07, 0.018, 1);
+    grp.add(sp);
+  }
+  // Hue spokes
+  for (let i=0;i<20;i++) {
+    const a=(i/20)*Math.PI*2;
+    const maxC=Math.min(Math.max(...MAX_CHROMA[i]),maxChromaClip);
+    grp.add(ln([0,0,0],[Math.cos(a)*(maxC+1)*SCALE_C,0,Math.sin(a)*(maxC+1)*SCALE_C],lm(0xcccccc,0.35)));
+  }
+  // Chroma rings
+  for (let c=4;c<=18;c+=4) {
+    const pts=[];
+    for(let i=0;i<=72;i++){const a=i/72*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*c*SCALE_C,0,Math.sin(a)*c*SCALE_C));}
+    grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lm(0xcccccc,0.22)));
+  }
+  return grp;
+}
+
+// ── Rebuild ───────────────────────────────────────────────────────
+function rebuild() {
+  if (pointsObj) {
+    scene.remove(pointsObj);
+    pointsObj.geometry.dispose();
+    pointsObj.material.dispose();
+    pointsObj.dispose();
+  }
+  if (axisObj) scene.remove(axisObj);
+  pointsObj = buildPoints(); axisObj = buildAxes();
+  scene.add(pointsObj); scene.add(axisObj);
+  document.getElementById('point-info').textContent =
+    `${pointsObj.count.toLocaleString()} chips · 20 hue pages · V0–V10`;
+}
+
+// ── HTML labels ───────────────────────────────────────────────────
+function updateLabels() {
+  const ov = document.getElementById('label-overlay');
+  ov.innerHTML = '';
+  if (!hSliceOn) {
+    activeHues.forEach(hi => {
+      const a=(hi/20)*Math.PI*2;
+      const maxC=Math.min(Math.max(...MAX_CHROMA[hi]),maxChromaClip);
+      const r=(maxC+2)*SCALE_C;
+      const p3=new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r);
+      const pr=p3.clone().project(camera); if(pr.z>1)return;
+      const d=document.createElement('div');
+      d.className='hue-label'; d.textContent=HUE_NAMES[hi];
+      d.style.left=((pr.x*.5+.5)*W)+'px'; d.style.top=((-pr.y*.5+.5)*H)+'px';
+      d.style.borderLeft=`3px solid ${HUE_SWATCHES[hi]}`;
+      ov.appendChild(d);
+    });
+  }
+  // Value axis labels (integers only)
+  for (let v=0;v<=10;v++) {
+    const p3=new THREE.Vector3(-0.09,(v-5)*SCALE_V,0);
+    const pr=p3.clone().project(camera); if(pr.z>1)return;
+    const d=document.createElement('div');
+    d.className='hue-label'; d.textContent='V'+v;
+    d.style.left=((pr.x*.5+.5)*W)+'px'; d.style.top=((-pr.y*.5+.5)*H)+'px';
+    d.style.background='rgba(255,255,255,0.7)'; d.style.borderLeft='none'; d.style.fontSize='8px';
+    ov.appendChild(d);
+  }
+}
+
+// ── Hue grid ──────────────────────────────────────────────────────
+function buildHueGrid() {
+  const grid = document.getElementById('hue-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const li = i, ri = i + 10; // ri is the true opposite
+    const row = document.createElement('div');
+    row.className = 'hue-pair-row';
+    [li, ri].forEach((idx, col) => {
+      const div = document.createElement('div');
+      div.className = 'hue-checkbox' + (activeHues.has(idx) ? ' active' : '');
+      div.dataset.idx = idx;
+      div.dataset.opp = (idx < 10) ? idx + 10 : idx - 10; // opposite index
+      div.innerHTML = `<div class="hue-swatch" style="background:${HUE_SWATCHES[idx]}"></div><span>${HUE_NAMES[idx]}</span>`;
+      div.addEventListener('click', () => {
+        const oppIdx = parseInt(div.dataset.opp);
+        if (pairMode) {
+          // In pair mode: clicking selects ONLY this pair
+          activeHues = new Set([idx, oppIdx]);
+        } else {
+          // Custom mode: toggle individually
+          if (activeHues.has(idx)) { if (activeHues.size > 1) activeHues.delete(idx); }
+          else activeHues.add(idx);
+        }
+        syncHueGrid();
+        rebuild();
+      });
+      row.appendChild(div);
+      if (col === 0) { const sep=document.createElement('div'); sep.className='pair-divider'; row.appendChild(sep); }
+    });
+    grid.appendChild(row);
+  }
+}
+
+function syncHueGrid() {
+  document.querySelectorAll('.hue-checkbox').forEach(d => {
+    d.classList.toggle('active', activeHues.has(parseInt(d.dataset.idx)));
+  });
+}
+
+// ── Events ────────────────────────────────────────────────────────
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const p=btn.dataset.preset;
+    pairMode = (p === 'pair');
+    if (p==='all')    activeHues=new Set([...Array(20).keys()]);
+    if (p==='10')     activeHues=new Set([0,2,4,6,8,10,12,14,16,18]);
+    if (p==='5')      activeHues=new Set([0,4,8,12,16]);
+    if (p==='pair')   activeHues=new Set([0,10]); // 5R ↔ 5BG to start
+    if (p==='custom') pairMode=false; // keep current selection
+    syncHueGrid(); rebuild();
+  });
+});
+
+const vTog=document.getElementById('vslice-toggle'), vCtl=document.getElementById('vslice-controls');
+vTog.addEventListener('click',()=>{ vSliceOn=!vSliceOn; vTog.classList.toggle('active',vSliceOn); vCtl.classList.toggle('dim',!vSliceOn); rebuild(); });
+document.getElementById('vslice-slider').addEventListener('input',e=>{ vSliceVal=parseInt(e.target.value); document.getElementById('vslice-val').textContent=vSliceVal; if(vSliceOn)rebuild(); });
+
+const hTog=document.getElementById('hslice-toggle'), hCtl=document.getElementById('hslice-controls');
+hTog.addEventListener('click',()=>{ hSliceOn=!hSliceOn; hTog.classList.toggle('active',hSliceOn); hCtl.classList.toggle('dim',!hSliceOn); rebuild(); });
+document.getElementById('hslice-slider').addEventListener('input',e=>{ hSliceIdx=parseInt(e.target.value); document.getElementById('hslice-val').textContent=HUE_NAMES[hSliceIdx]; if(hSliceOn)rebuild(); });
+
+document.getElementById('chroma-slider').addEventListener('input',e=>{
+  maxChromaClip=parseInt(e.target.value);
+  document.getElementById('chroma-val').textContent=maxChromaClip;
+  rebuild();
+});
+document.getElementById('size-slider').addEventListener('input', e => {
+  pointSizeMult = parseInt(e.target.value) / 10;
+  document.getElementById('size-val').textContent = pointSizeMult.toFixed(1) + '×';
+  rebuild(); // InstancedMesh: scale is baked into instance matrices, must rebuild
+});
+
+window.addEventListener('resize', () => {
+  W = container.clientWidth; H = container.clientHeight;
+  perspCam.aspect = W/H; perspCam.updateProjectionMatrix();
+  renderer.setSize(W, H);
+  // orthoCam frustum is updated every frame by syncOrthoCam()
+});
+
+document.getElementById('flat-toggle').addEventListener('click', () => {
+  perspMode = !perspMode;
+  camera = perspMode ? perspCam : orthoCam;
+  document.getElementById('flat-toggle').classList.toggle('active', perspMode);
+  // InstancedMesh uses world-space geometry — no material changes needed
+});
+
+// ── Click → identify chip ──────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+let _mdx = 0, _mdy = 0;
+renderer.domElement.addEventListener('mousedown', e => { _mdx = e.clientX; _mdy = e.clientY; });
+renderer.domElement.addEventListener('click', e => {
+  if (Math.abs(e.clientX - _mdx) > 4 || Math.abs(e.clientY - _mdy) > 4) return; // was a drag
+  const rect = renderer.domElement.getBoundingClientRect();
+  const nx = ((e.clientX - rect.left) / rect.width)  *  2 - 1;
+  const ny = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+  raycaster.setFromCamera({x: nx, y: ny}, camera);
+  // InstancedMesh intersection is exact — no threshold parameter needed
+  const hits = raycaster.intersectObject(pointsObj);
+  if (!hits.length) return;
+  const d = pointData[hits[0].instanceId];
+  if (!d) return;
+  const isNeutral = d.hi === undefined;
+  const [r, g, b] = munsellToRgb(isNeutral ? 0 : d.hi, d.v, d.c)
+    .map(n => Math.round(n * 255));
+  const hex = '#' + [r,g,b].map(n => n.toString(16).padStart(2,'0')).join('');
+  const notation = isNeutral ? `N ${d.v}/` : `${HUE_NAMES[d.hi]} ${d.v}/${d.c}`;
+  document.getElementById('chip-info').innerHTML =
+    `<div style="width:28px;height:28px;background:${hex};border:1px solid var(--border);border-radius:2px;flex-shrink:0"></div>` +
+    `<div><div style="font-family:'Courier Prime',monospace;font-size:13px;color:var(--ink)">${notation}</div>` +
+    `<div style="font-size:8px;color:var(--ink-ghost);margin-top:2px">${hex.toUpperCase()} · ${r} ${g} ${b}</div></div>`;
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  if (!perspMode) syncOrthoCam();
+  updateLabels();
+  renderer.render(scene, camera);
+}
+buildHueGrid();
+controls.update();  // initialize perspCam orientation before first syncOrthoCam
+syncOrthoCam();     // initial ortho frustum before first rebuild
+rebuild();
+animate();
+</script>
+</body>
+</html>
