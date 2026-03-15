@@ -298,7 +298,8 @@ function maxChromaAt(hi, v) {
 function hiToH(hi) { return (hi + 1) * 5; }
 
 // munsellToRgb — uses official renotation data via privet-kitty/munsell.js
-// mhvcToRgb([H, V, C]) → [r, g, b] in [0,1], clamped to sRGB gamut
+// mhvcToRgb(H, V, C) → [r, g, b] in [0,1], clamped to sRGB gamut
+// Note: CJS build takes separate params, NOT an array [H,V,C]
 //
 // ⚠️ COLOR SPACE ZERO WARNING: H=0 is not a valid Munsell hue.
 // Valid H range is (0, 100]. H=0 causes an out-of-bounds index in the
@@ -308,7 +309,7 @@ function hiToH(hi) { return (hi + 1) * 5; }
 // to color space libraries that use index-based lookup tables — 0 often maps
 // to an invalid or edge case that breaks interpolation arithmetic.
 function munsellToRgb(hi, value, chroma) {
-  return mhvcToRgb([hiToH(hi), value, chroma]);
+  return mhvcToRgb(hiToH(hi), value, chroma);
 }
 
 // ── Scene constants ───────────────────────────────────────────────
@@ -342,7 +343,7 @@ function buildPoints() {
   for (let v = 0; v <= 10; v += V_SUBSTEP) {
     if (vSliceOn && Math.abs(v - vSliceVal) > V_SUBSTEP * 0.5) continue;
     try {
-      chips.push({ x: 0, y: (v-5)*SCALE_V, z: 0, rot: 0, rgb: mhvcToRgb([50, v, 0]), data: {v, c: 0} });
+      chips.push({ x: 0, y: (v-5)*SCALE_V, z: 0, rot: 0, rgb: mhvcToRgb(50, v, 0), data: {v, c: 0} });
     } catch(e) { console.warn('neutral chip failed V='+v, e.message); }
   }
 
@@ -580,7 +581,7 @@ renderer.domElement.addEventListener('click', e => {
   const [r, g, b] = munsellToRgb(isNeutral ? 0 : d.hi, d.v, d.c)
     .map(n => Math.round(n * 255));
   const hex = '#' + [r,g,b].map(n => n.toString(16).padStart(2,'0')).join('');
-  const notation = isNeutral ? `N ${d.v}/` : mhvcToMunsell([hiToH(d.hi), d.v, d.c]);
+  const notation = isNeutral ? `N ${d.v}/` : mhvcToMunsell(hiToH(d.hi), d.v, d.c);
   document.getElementById('chip-info').innerHTML =
     `<div style="width:28px;height:28px;background:${hex};border:1px solid var(--border);border-radius:2px;flex-shrink:0"></div>` +
     `<div><div style="font-family:'Courier Prime',monospace;font-size:13px;color:var(--ink)">${notation}</div>` +
