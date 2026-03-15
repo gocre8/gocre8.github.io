@@ -255,28 +255,30 @@ const HUE_SWATCHES = [
   '#7040b0','#8e44ad','#a03898','#c0186e','#c02050'
 ];
 // Max chroma per hue × value (index 0=V0 … 10=V10)
-//          V0  V1  V2  V3  V4  V5  V6  V7  V8  V9 V10
+// V0 = black, V10 = pure white — neither has chromatic chips in real Munsell.
+// V10 column is 0 across all hues (no real pigment reaches white with chroma).
+//          V0  V1  V2  V3  V4  V5  V6  V7  V8  V9  V10
 const MAX_CHROMA = [
-  [0,  4,  6,  8, 10, 14, 14, 12, 10,  8,  4], // 5R
-  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  4], // 10R
-  [0,  4,  6,  8, 10, 12, 12, 12, 10,  6,  4], // 5YR
-  [0,  2,  4,  6,  8, 10, 10, 10,  8,  6,  2], // 10YR
-  [0,  2,  4,  6,  8, 12, 14, 14, 12,  8,  4], // 5Y
-  [0,  2,  4,  6,  8, 10, 12, 12, 10,  6,  2], // 10Y
-  [0,  2,  4,  6,  8, 10, 10,  8,  6,  4,  2], // 5GY
-  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  2], // 10GY
-  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  2], // 5G
-  [0,  2,  2,  4,  6,  6,  8,  6,  4,  2,  2], // 10G
-  [0,  2,  2,  4,  6,  6,  8,  6,  4,  2,  2], // 5BG
-  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  2], // 10BG
-  [0,  2,  4,  4,  6,  8,  8,  8,  6,  4,  2], // 5B
-  [0,  2,  4,  6,  8, 10, 10, 10,  8,  6,  2], // 10B
-  [0,  2,  4,  6,  8, 10, 12, 12, 10,  6,  4], // 5PB
-  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  4], // 10PB
-  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  4], // 5P
-  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  4], // 10P
-  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  4], // 5RP
-  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  4], // 10RP
+  [0,  4,  6,  8, 10, 14, 14, 12, 10,  8,  0], // 5R
+  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  0], // 10R
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  6,  0], // 5YR
+  [0,  2,  4,  6,  8, 10, 10, 10,  8,  6,  0], // 10YR
+  [0,  2,  4,  6,  8, 12, 14, 14, 12,  8,  0], // 5Y
+  [0,  2,  4,  6,  8, 10, 12, 12, 10,  6,  0], // 10Y
+  [0,  2,  4,  6,  8, 10, 10,  8,  6,  4,  0], // 5GY
+  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  0], // 10GY
+  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  0], // 5G
+  [0,  2,  2,  4,  6,  6,  8,  6,  4,  2,  0], // 10G
+  [0,  2,  2,  4,  6,  6,  8,  6,  4,  2,  0], // 5BG
+  [0,  2,  2,  4,  6,  8,  8,  6,  4,  2,  0], // 10BG
+  [0,  2,  4,  4,  6,  8,  8,  8,  6,  4,  0], // 5B
+  [0,  2,  4,  6,  8, 10, 10, 10,  8,  6,  0], // 10B
+  [0,  2,  4,  6,  8, 10, 12, 12, 10,  6,  0], // 5PB
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  0], // 10PB
+  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  0], // 5P
+  [0,  4,  6,  8, 10, 12, 12, 10,  8,  6,  0], // 10P
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  0], // 5RP
+  [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  0], // 10RP
 ];
 
 // ── Color helpers ─────────────────────────────────────────────────
@@ -429,10 +431,12 @@ function updateLabels() {
       const maxC=Math.min(Math.max(...MAX_CHROMA[hi]),maxChromaClip);
       const r=(maxC+2)*SCALE_C;
       const p3=new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r);
-      const pr=p3.clone().project(camera); if(pr.z>1)return;
+      const pr=p3.clone().project(camera);
+      const lx=(pr.x*.5+.5)*W, ly=(-pr.y*.5+.5)*H;
+      if(pr.z>1||lx<0||lx>W||ly<0||ly>H)return;
       const d=document.createElement('div');
       d.className='hue-label'; d.textContent=HUE_NAMES[hi];
-      d.style.left=((pr.x*.5+.5)*W)+'px'; d.style.top=((-pr.y*.5+.5)*H)+'px';
+      d.style.left=lx+'px'; d.style.top=ly+'px';
       d.style.borderLeft=`3px solid ${HUE_SWATCHES[hi]}`;
       ov.appendChild(d);
     });
@@ -440,10 +444,12 @@ function updateLabels() {
   // Value axis labels (integers only)
   for (let v=0;v<=10;v++) {
     const p3=new THREE.Vector3(-0.09,(v-5)*SCALE_V,0);
-    const pr=p3.clone().project(camera); if(pr.z>1)return;
+    const pr=p3.clone().project(camera);
+    const lx=(pr.x*.5+.5)*W, ly=(-pr.y*.5+.5)*H;
+    if(pr.z>1||lx<0||lx>W||ly<0||ly>H)return;
     const d=document.createElement('div');
     d.className='hue-label'; d.textContent='V'+v;
-    d.style.left=((pr.x*.5+.5)*W)+'px'; d.style.top=((-pr.y*.5+.5)*H)+'px';
+    d.style.left=lx+'px'; d.style.top=ly+'px';
     d.style.background='rgba(255,255,255,0.7)'; d.style.borderLeft='none'; d.style.fontSize='8px';
     ov.appendChild(d);
   }
