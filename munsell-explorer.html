@@ -197,13 +197,16 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
   <span id="point-info">Loading…</span>
 </footer>
 
+<!-- Load munsell library as plain script (IIFE bundle sets window.munsell) -->
+<script src="./vendor/munsell-renotation.js"></script>
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/" } }
 </script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { mhvcToRgb, mhvcToMunsell } from './vendor/munsell-renotation.js';
+// munsell functions accessed from window.munsell (loaded by plain script above)
+const { mhvcToRgb, mhvcToMunsell } = window.munsell;
 
 const container = document.getElementById('canvas-container');
 let W = container.clientWidth, H = container.clientHeight;
