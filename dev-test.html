@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Munsell Dev Test</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #222; color: #ddd; font-family: monospace; padding: 20px; font-size: 13px; }
+h1 { color: #fff; margin-bottom: 16px; font-size: 18px; }
+h2 { color: #aaa; margin: 20px 0 10px; font-size: 14px; border-bottom: 1px solid #444; padding-bottom: 4px; }
+.badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-weight: bold; font-size: 12px; }
+.ok   { background: #1a6b2a; color: #7fff8a; }
+.warn { background: #5a4a10; color: #ffe066; }
+.fail { background: #6b1a1a; color: #ff8a8a; }
+.pass { background: #1a5c2a; color: #6eff85; }
+.row  { margin: 4px 0; }
+table { border-collapse: collapse; width: 100%; margin-top: 6px; }
+td, th { padding: 4px 8px; border: 1px solid #333; text-align: left; font-size: 12px; }
+th { background: #2a2a2a; color: #999; }
+.swatch-grid { display: flex; flex-direction: column; margin-top: 8px; line-height: 0; }
+.swatch-row  { display: flex; }
+.swatch { width: 40px; height: 40px; position: relative; flex-shrink: 0; }
+/* dot tiers: yellow = in P3 only; white = outside P3 */
+.swatch .dot { position:absolute; top:3px; right:3px; width:7px; height:7px; border-radius:50%; }
+.dot-p3only  { background: rgba(255,220,60,0.95); }
+.dot-outp3   { background: rgba(255,255,255,0.90); }
+.summary { margin-top: 10px; font-size: 12px; color: #aaa; line-height: 2.0; }
+.key-dot { display:inline-block; width:9px; height:9px; border-radius:50%; vertical-align:middle; margin-right:4px; }
+.inspector { margin-top: 8px; display: flex; gap: 16px; align-items: flex-start; }
+.inspector-swatch { width: 120px; height: 120px; flex-shrink: 0; border: 1px solid #555; }
+.inspector-info .row { margin: 3px 0; }
+input[type=number] { background:#333; border:1px solid #555; color:#ddd; padding:3px 6px; width:70px; font-family:monospace; font-size:13px; border-radius:3px; }
+button { background:#3a5a8a; border:none; color:#ddd; padding:5px 14px; cursor:pointer; font-family:monospace; font-size:13px; border-radius:3px; margin-left:6px; }
+button:hover { background:#4a6a9a; }
+label { color:#999; margin-right:4px; }
+.hue-labels { display:flex; margin-bottom:2px; }
+.hue-label  { width:40px; text-align:center; font-size:9px; color:#777; flex-shrink:0; overflow:hidden; }
+</style>
+</head>
+<body>
+<h1>Munsell Dev Test</h1>
+
+<h2>Section 1: Library Status</h2>
+<div id="status"></div>
+
+<h2>Section 2: Unit Tests</h2>
+<table>
+  <thead><tr><th>Input</th><th>Expected</th><th>Actual</th><th>Result</th></tr></thead>
+  <tbody id="tests"></tbody>
+</table>
+
+<h2>Section 3: Gamut Analysis Grid — Display P3</h2>
+<p style="font-size:11px;color:#777;margin-bottom:6px;">Swatches rendered in Display P3 (CSS color(display-p3)). Each cell shows max-chroma for that hue × value.</p>
+<div id="hue-labels" class="hue-labels"></div>
+<div id="grid" class="swatch-grid"></div>
+<div id="summary" class="summary"></div>
+
+<h2>Section 4: Single Chip Inspector</h2>
+<div style="margin-bottom:8px;">
+  <label>H:</label><input type="number" id="iH" value="25" min="0" max="100">
+  <label style="margin-left:8px;">V:</label><input type="number" id="iV" value="5" min="0" max="10">
+  <label style="margin-left:8px;">C:</label><input type="number" id="iC" value="8" min="0" max="30">
+  <button onclick="inspect()">Inspect</button>
+</div>
+<div class="inspector">
+  <div class="inspector-swatch" id="iSwatch"></div>
+  <div class="inspector-info" id="iInfo"></div>
+</div>
+
+<script src="vendor/munsell-renotation.js"></script>
+<script>
+(function() {
+  var m = window.munsell;
+  var loaded   = !!(m && typeof m === 'object');
+  var hasRgb   = loaded && typeof m.mhvcToRgb === 'function';
+  var hasLinear= loaded && typeof m.mhvcToLinearRgb === 'function';
+  var hasXyz   = loaded && typeof m.mhvcToXyz === 'function';
+  var hasMun   = loaded && typeof m.mhvcToMunsell === 'function';
+
+  // --- Section 1 ---
+  document.getElementById('status').innerHTML =
+    '<div class="row">window.munsell: <span class="badge '+(loaded?'ok':'fail')+'">'+(loaded?'LOADED':'FAILED')+'</span></div>' +
+    '<div class="row">mhvcToRgb: <span class="badge '+(hasRgb?'ok':'fail')+'">'+(hasRgb?'function':'MISSING')+'</span></div>' +
+    '<div class="row">mhvcToLinearRgb: <span class="badge '+(hasLinear?'ok':'fail')+'">'+(hasLinear?'function':'MISSING')+'</span></div>' +
+    '<div class="row">mhvcToXyz: <span class="badge '+(hasXyz?'ok':'fail')+'">'+(hasXyz?'function':'MISSING')+'</span></div>' +
+    '<div class="row">mhvcToMunsell: <span class="badge '+(hasMun?'ok':'fail')+'">'+(hasMun?'function':'MISSING')+'</span></div>' +
+    '<div class="row">CSS Display P3 support: <span class="badge '+(supportsP3()?'ok':'warn')+'">'+(supportsP3()?'YES':'NO — results may vary')+'</span></div>';
+
+  function supportsP3() { return typeof CSS!=='undefined' && CSS.supports && CSS.supports('color','color(display-p3 1 0 0)'); }
+  function safeRgb(H,V,C)    { try { return m.mhvcToRgb(H,V,C); }       catch(e) { return null; } }
+  function safeLinear(H,V,C) { try { return m.mhvcToLinearRgb(H,V,C); } catch(e) { return null; } }
+  function safeXyz(H,V,C)    { try { return m.mhvcToXyz(H,V,C); }       catch(e) { return null; } }
+  function safeMunsell(H,V,C){ try { return m.mhvcToMunsell(H,V,C); }   catch(e) { return null; } }
+  function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+  function fmt(x)   { return (typeof x === 'number') ? x.toFixed(4) : String(x); }
+  function fmtArr(a){ return a ? '['+a.map(fmt).join(', ')+']' : 'null'; }
+
+  // XYZ (D65) → Display P3 linear — ICC standard matrix
+  var XYZ_TO_P3 = [
+    [ 2.493497, -0.931384, -0.402711],
+    [-0.829489,  1.762664,  0.023625],
+    [ 0.035845, -0.076172,  0.956885]
+  ];
+  function xyzToP3Linear(xyz) {
+    var X=xyz[0], Y=xyz[1], Z=xyz[2];
+    return [
+      XYZ_TO_P3[0][0]*X + XYZ_TO_P3[0][1]*Y + XYZ_TO_P3[0][2]*Z,
+      XYZ_TO_P3[1][0]*X + XYZ_TO_P3[1][1]*Y + XYZ_TO_P3[1][2]*Z,
+      XYZ_TO_P3[2][0]*X + XYZ_TO_P3[2][1]*Y + XYZ_TO_P3[2][2]*Z
+    ];
+  }
+  // Display P3 uses the same transfer function as sRGB
+  function p3Gamma(x) {
+    x = clamp01(x);
+    return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1/2.4) - 0.055;
+  }
+  function p3Css(rgb_linear) {
+    var r = p3Gamma(rgb_linear[0]), g = p3Gamma(rgb_linear[1]), b = p3Gamma(rgb_linear[2]);
+    return 'color(display-p3 '+r.toFixed(5)+' '+g.toFixed(5)+' '+b.toFixed(5)+')';
+  }
+  // gamutTier: 0=inSrgb, 1=inP3only, 2=outP3
+  function gamutTier(H, V, C) {
+    var lin = safeLinear(H, V, C);
+    var inSrgb = lin && lin[0]>=0&&lin[0]<=1&&lin[1]>=0&&lin[1]<=1&&lin[2]>=0&&lin[2]<=1;
+    if (inSrgb) return 0;
+    var xyz = safeXyz(H, V, C);
+    if (!xyz) return 2;
+    var p3 = xyzToP3Linear(xyz);
+    var inP3 = p3[0]>=0&&p3[0]<=1&&p3[1]>=0&&p3[1]<=1&&p3[2]>=0&&p3[2]<=1;
+    return inP3 ? 1 : 2;
+  }
+
+  // --- Section 2: Unit Tests ---
+  var tests = [
+    { label:'mhvcToRgb(25,5,8)',   H:25,V:5,C:8, type:'rgb',
+      expected:[0.572,0.467,0.007], desc:'close to [0.572, 0.467, 0.007]' },
+    { label:'mhvcToRgb(50,5,0)',   H:50,V:5,C:0, type:'rgb_equal',
+      desc:'all channels equal (neutral gray)' },
+    { label:'mhvcToRgb(5,5,8)',    H:5,V:5,C:8,  type:'rgb_red',
+      desc:'red: first channel largest' },
+    { label:'mhvcToRgb(75,7,6)',   H:75,V:7,C:6, type:'rgb_blue',
+      desc:'blue: third channel largest' },
+    { label:'mhvcToMunsell(25,5,8)',H:25,V:5,C:8,type:'munsell',
+      expected:'5Y 5.0/8.0', desc:'"5Y 5.0/8.0"' },
+    { label:'mhvcToMunsell(5,10,0)',H:5,V:10,C:0,type:'munsell_n',
+      desc:'contains "N 10"' },
+    { label:'mhvcToXyz(25,5,8)',   H:25,V:5,C:8, type:'xyz',
+      desc:'XYZ values are positive numbers' },
+  ];
+  var tbody = document.getElementById('tests');
+  tests.forEach(function(t) {
+    var actual, pass, actualStr;
+    if (t.type === 'rgb' || t.type === 'rgb_equal' || t.type === 'rgb_red' || t.type === 'rgb_blue') {
+      actual = safeRgb(t.H, t.V, t.C); actualStr = fmtArr(actual);
+      if (!actual) { pass = false; }
+      else if (t.type === 'rgb') {
+        pass = Math.abs(actual[0]-t.expected[0])<0.05 && Math.abs(actual[1]-t.expected[1])<0.05 && Math.abs(actual[2]-t.expected[2])<0.05;
+      } else if (t.type === 'rgb_equal') {
+        pass = Math.abs(actual[0]-actual[1])<0.01 && Math.abs(actual[1]-actual[2])<0.01;
+      } else if (t.type === 'rgb_red')  { pass = actual[0]>actual[1] && actual[0]>actual[2]; }
+        else if (t.type === 'rgb_blue') { pass = actual[2]>actual[0] && actual[2]>actual[1]; }
+    } else if (t.type === 'munsell') {
+      actual = safeMunsell(t.H,t.V,t.C); actualStr = '"'+actual+'"'; pass = actual===t.expected;
+    } else if (t.type === 'munsell_n') {
+      actual = safeMunsell(t.H,t.V,t.C); actualStr = '"'+actual+'"'; pass = actual&&actual.indexOf('N 10')!==-1;
+    } else if (t.type === 'xyz') {
+      actual = safeXyz(t.H,t.V,t.C); actualStr = fmtArr(actual);
+      pass = actual && actual.every(function(v){ return typeof v==='number' && v>0 && isFinite(v); });
+    }
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+t.label+'</td><td>'+t.desc+'</td><td>'+actualStr+'</td>' +
+      '<td><span class="badge '+(pass?'pass':'fail')+'">'+(pass?'PASS':'FAIL')+'</span></td>';
+    tbody.appendChild(tr);
+  });
+
+  // --- Section 3: Gamut Analysis Grid ---
+  var numHue = 20, numVal = 9;
+  var hLabels = document.getElementById('hue-labels');
+  var gridEl  = document.getElementById('grid');
+  var inSrgbCount=0, inP3Count=0, outP3Count=0, totalChips=0;
+
+  for (var hi=0; hi<numHue; hi++) {
+    var lbl = document.createElement('div'); lbl.className='hue-label'; lbl.textContent=(hi+1)*5; hLabels.appendChild(lbl);
+  }
+
+  for (var vi=numVal; vi>=1; vi--) {
+    var rowEl = document.createElement('div'); rowEl.className='swatch-row';
+    for (var hi2=0; hi2<numHue; hi2++) {
+      var H2=(hi2+1)*5, V=vi, bestXyz=null, bestC=0;
+      // Find max chroma
+      for (var C=1; C<=30; C++) {
+        var xyz = safeXyz(H2, V, C);
+        if (!xyz) break;
+        bestXyz=xyz; bestC=C;
+      }
+      var cell = document.createElement('div'); cell.className='swatch';
+      if (bestXyz && bestC > 0) {
+        totalChips++;
+        var p3lin = xyzToP3Linear(bestXyz);
+        var tier = gamutTier(H2, V, bestC);
+        if (tier===0) inSrgbCount++; else if (tier===1) inP3Count++; else outP3Count++;
+        // Swatch: always use P3 color for display
+        cell.style.background = supportsP3() ? p3Css(p3lin) :
+          'rgb('+Math.round(clamp01(p3lin[0])*255)+','+Math.round(clamp01(p3lin[1])*255)+','+Math.round(clamp01(p3lin[2])*255)+')';
+        var tierLabel = ['in sRGB','in P3 only','outside P3'][tier];
+        cell.title = 'H='+H2+' V='+V+' C='+bestC+' ['+tierLabel+']';
+        if (tier===1) { var d=document.createElement('div'); d.className='dot dot-p3only'; cell.appendChild(d); }
+        if (tier===2) { var d=document.createElement('div'); d.className='dot dot-outp3';  cell.appendChild(d); }
+      } else {
+        cell.style.background='#2a2a2a';
+        cell.title='H='+H2+' V='+V+' — no data';
+      }
+      rowEl.appendChild(cell);
+    }
+    gridEl.appendChild(rowEl);
+  }
+
+  document.getElementById('summary').innerHTML =
+    'Total chips: <b>'+totalChips+'</b> &nbsp;|&nbsp; ' +
+    '<span class="key-dot" style="background:#888"></span>In sRGB: <b>'+inSrgbCount+'</b> &nbsp;|&nbsp; ' +
+    '<span class="key-dot dot-p3only"></span>In P3 only: <b>'+inP3Count+'</b> &nbsp;|&nbsp; ' +
+    '<span class="key-dot dot-outp3"></span>Outside P3: <b>'+outP3Count+'</b><br>' +
+    'Hover any cell for H/V/C and gamut tier. Swatches rendered as CSS color(display-p3 …).';
+
+  // --- Section 4: Inspector ---
+  window.inspect = function() {
+    var H=parseFloat(document.getElementById('iH').value);
+    var V=parseFloat(document.getElementById('iV').value);
+    var C=parseFloat(document.getElementById('iC').value);
+    var sw=document.getElementById('iSwatch'), info=document.getElementById('iInfo');
+    var rgb=safeRgb(H,V,C), lin=safeLinear(H,V,C), xyz=safeXyz(H,V,C), mn=safeMunsell(H,V,C);
+    var p3lin = xyz ? xyzToP3Linear(xyz) : null;
+    var inSrgb = lin&&lin.every(function(v){return v>=0&&v<=1;});
+    var inP3   = p3lin&&p3lin.every(function(v){return v>=0&&v<=1;});
+    // Swatch: use P3 color if available
+    if (p3lin && supportsP3()) {
+      sw.style.background = p3Css(p3lin);
+    } else if (rgb) {
+      sw.style.background = 'rgb('+Math.round(clamp01(rgb[0])*255)+','+Math.round(clamp01(rgb[1])*255)+','+Math.round(clamp01(rgb[2])*255)+')';
+    } else { sw.style.background='#333'; }
+    var tier = lin ? (inSrgb?0:(inP3?1:2)) : 2;
+    var tierBadge = ['<span class="badge ok">In sRGB</span>','<span class="badge warn">In P3 only (outside sRGB)</span>','<span class="badge fail">Outside P3 gamut</span>'][tier];
+    info.innerHTML =
+      '<div class="row">mhvcToRgb:       <b>'+fmtArr(rgb)+'</b></div>' +
+      '<div class="row">mhvcToLinearRgb: <b>'+fmtArr(lin)+'</b></div>' +
+      '<div class="row">mhvcToXyz:       <b>'+fmtArr(xyz)+'</b></div>' +
+      '<div class="row">P3 linear:       <b>'+fmtArr(p3lin)+'</b></div>' +
+      '<div class="row">mhvcToMunsell:   <b>'+(mn||'null')+'</b></div>' +
+      '<div class="row">Gamut tier: '+tierBadge+'</div>';
+  };
+  inspect();
+})();
+</script>
+</body>
+</html>
