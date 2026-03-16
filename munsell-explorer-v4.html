@@ -636,6 +636,33 @@ document.getElementById('flat-toggle').addEventListener('click', () => {
   // InstancedMesh uses world-space geometry — no material changes needed
 });
 
+// ── Color space conversions for chip info ─────────────────────────
+// XYZ(D65) → CIE L*a*b* + derived LCH
+function xyzToLab(X, Y, Z) {
+  const Xn = 0.95047, Yn = 1.00000, Zn = 1.08883; // D65 white
+  const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16/116;
+  const fx = f(X/Xn), fy = f(Y/Yn), fz = f(Z/Zn);
+  const L = 116*fy - 16;
+  const a = 500*(fx - fy);
+  const b = 200*(fy - fz);
+  const C = Math.sqrt(a*a + b*b);
+  const h = ((Math.atan2(b, a) * 180/Math.PI) + 360) % 360;
+  return { L, a, b, C, h };
+}
+// XYZ(D65) → OKLab → OKLCh (Björn Ottosson, 2020)
+function xyzToOklch(X, Y, Z) {
+  const l = 0.8189330101*X + 0.3618667424*Y - 0.1288597137*Z;
+  const m = 0.0329845436*X + 0.9293118715*Y + 0.0361456387*Z;
+  const s = 0.0482003018*X + 0.2643662691*Y + 0.6338517070*Z;
+  const lp = Math.cbrt(l), mp = Math.cbrt(m), sp = Math.cbrt(s);
+  const ok_L = 0.2104542553*lp + 0.7936177850*mp - 0.0040720468*sp;
+  const ok_a = 1.9779984951*lp - 2.4285922050*mp + 0.4505937099*sp;
+  const ok_b = 0.0259040371*lp + 0.7827717662*mp - 0.8086757660*sp;
+  const C = Math.sqrt(ok_a*ok_a + ok_b*ok_b);
+  const h = ((Math.atan2(ok_b, ok_a) * 180/Math.PI) + 360) % 360;
+  return { L: ok_L, C, h };
+}
+
 // ── Click → identify chip ──────────────────────────────────────────
 const raycaster = new THREE.Raycaster();
 let _mdx = 0, _mdy = 0;
@@ -646,21 +673,44 @@ renderer.domElement.addEventListener('click', e => {
   const nx = ((e.clientX - rect.left) / rect.width)  *  2 - 1;
   const ny = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
   raycaster.setFromCamera({x: nx, y: ny}, camera);
-  // InstancedMesh intersection is exact — no threshold parameter needed
   const hits = raycaster.intersectObject(pointsObj);
   if (!hits.length) return;
   const d = pointData[hits[0].instanceId];
   if (!d) return;
   const isNeutral = d.hi === undefined;
-  const [r, g, b] = munsellToRgb(isNeutral ? 0 : d.hi, d.v, d.c ?? 0)
-    .map(n => Math.round(n * 255));
+  const H_munsell = isNeutral ? 50 : hiToH(d.hi);
+  const chroma = d.c ?? 0;
+
+  // sRGB — clamp to [0,255] so hex is always valid (raw values can be negative OOG)
+  const rawRgb = munsellToRgb(isNeutral ? 0 : d.hi, d.v, chroma);
+  const [r, g, b] = rawRgb.map(n => Math.max(0, Math.min(255, Math.round(n * 255))));
   const hex = '#' + [r,g,b].map(n => n.toString(16).padStart(2,'0')).join('');
-  const notation = isNeutral ? `N ${d.v}/` : mhvcToMunsell(hiToH(d.hi), d.v, d.c);
-  const gamutNote = d.outOfP3 ? `<div style="font-size:8px;color:#e8c84a;margin-top:2px">outside P3 gamut — approximate</div>` : '';
+
+  // Lab LCH + OKLCh via XYZ
+  const [X, Y, Z] = mhvcToXyz(H_munsell, d.v, chroma);
+  const lab = xyzToLab(X, Y, Z);
+  const okl = xyzToOklch(X, Y, Z);
+
+  const notation = isNeutral ? `N ${d.v}/` : mhvcToMunsell(H_munsell, d.v, chroma);
+
+  // Gamut note — more informative when outside P3
+  const gamutNote = d.outOfP3
+    ? `<div style="font-size:8px;color:#e8c84a;margin-top:4px;line-height:1.5">` +
+      `⚠ outside Display P3 gamut<br>` +
+      `sRGB hex is clipped — true color exceeds display capacity</div>`
+    : '';
+
   document.getElementById('chip-info').innerHTML =
-    `<div style="width:28px;height:28px;background:${hex};border:1px solid var(--border);border-radius:2px;flex-shrink:0"></div>` +
-    `<div><div style="font-family:'Courier Prime',monospace;font-size:13px;color:var(--ink)">${notation}</div>` +
-    `<div style="font-size:8px;color:var(--ink-ghost);margin-top:2px">${hex.toUpperCase()} · ${r} ${g} ${b}</div>${gamutNote}</div>`;
+    `<div style="width:36px;height:36px;background:${hex};border:1px solid var(--border);border-radius:2px;flex-shrink:0;${d.outOfP3 ? 'box-shadow:0 0 0 1.5px rgba(232,200,74,0.6)' : ''}"></div>` +
+    `<div style="min-width:0">` +
+      `<div style="font-family:'Courier Prime',monospace;font-size:13px;color:var(--ink);margin-bottom:3px">${notation}</div>` +
+      `<div style="font-size:8px;color:var(--ink-ghost);line-height:1.8">` +
+        `<span style="font-family:'Courier Prime',monospace">${hex.toUpperCase()}</span>&ensp;R ${r} G ${g} B ${b}<br>` +
+        `LCH&ensp;L ${lab.L.toFixed(1)}&ensp;C ${lab.C.toFixed(1)}&ensp;h ${lab.h.toFixed(0)}°<br>` +
+        `OKLCh&ensp;L ${(okl.L*100).toFixed(1)}%&ensp;C ${okl.C.toFixed(3)}&ensp;h ${okl.h.toFixed(0)}°` +
+      `</div>` +
+      gamutNote +
+    `</div>`;
 });
 
 function animate() {
