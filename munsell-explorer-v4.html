@@ -182,10 +182,11 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
     </div>
 
     <div class="panel-section">
-      <h3>Gamut</h3>
+      <h3>Markers</h3>
       <div class="legend-list">
-        <div class="legend-item"><div style="width:12px;height:12px;border:1.5px solid #fff;border-radius:2px;flex-shrink:0;opacity:0.7"></div><span>White outline — outside Display P3 (sRGB-clipped)</span></div>
-        <div class="legend-item"><div style="width:12px;height:12px;background:#666;border-radius:2px;flex-shrink:0"></div><span>No outline — within Display P3 gamut</span></div>
+        <div class="legend-item"><div style="width:12px;height:12px;border:1.5px solid #FFD700;border-radius:2px;flex-shrink:0"></div><span><strong>Gold outline</strong> — peak chroma · pure pigment</span></div>
+        <div class="legend-item"><div style="width:12px;height:12px;border:1.5px solid #fff;border-radius:2px;flex-shrink:0;opacity:0.6"></div><span>White outline — outside Display P3 gamut</span></div>
+        <div class="legend-item"><div style="width:12px;height:12px;background:#666;border-radius:2px;flex-shrink:0"></div><span>No outline — within P3, pigment diluted</span></div>
       </div>
     </div>
 
@@ -267,6 +268,31 @@ const HUE_SWATCHES = [
   '#00897b','#00888a','#1565c0','#2855b8','#5c35a0',
   '#7040b0','#8e44ad','#a03898','#c0186e','#c02050'
 ];
+// Principal pigment historically used for each Munsell hue family.
+// These are the pigments Munsell & OSA used to mix the actual paint chips.
+// Maximum-chroma chips on each branch = that pigment used at full concentration.
+const HUE_PIGMENTS = [
+  { name: 'Cadmium Red',          note: 'cadmium sulfoselenide — vivid warm red' },       // 5R
+  { name: 'Vermilion',            note: 'mercury sulfide HgS — bright orange-red' },      // 10R
+  { name: 'Cadmium Orange',       note: 'cadmium sulfide-selenide — pure orange' },        // 5YR
+  { name: 'Yellow Ochre',         note: 'iron oxyhydroxide FeO(OH) — earthy mid-yellow' },// 10YR
+  { name: 'Cadmium Yellow',       note: 'cadmium sulfide CdS — the most chromatic yellow' },// 5Y
+  { name: 'Strontium Yellow',     note: 'strontium chromate — cool greenish yellow' },    // 10Y
+  { name: 'Lemon Chrome',         note: 'lead chromate + sulfate — yellow-green' },       // 5GY
+  { name: 'Chromium Oxide Green', note: 'Cr₂O₃ — opaque earthy green' },                 // 10GY
+  { name: 'Viridian',             note: 'chromium oxide hydrate Cr₂O₃·2H₂O — pure green' },// 5G
+  { name: 'Cobalt Green',         note: 'cobalt zinc oxide — cool blue-tinged green' },   // 10G
+  { name: 'Cobalt Teal',          note: 'cobalt aluminate — blue-green' },               // 5BG
+  { name: 'Cerulean Blue',        note: 'cobalt stannate — sky blue' },                  // 10BG
+  { name: 'Cobalt Blue',          note: 'cobalt aluminate CoAl₂O₄ — deep pure blue' },   // 5B
+  { name: 'Ultramarine',          note: 'lazurite (lapis lazuli) — violet-blue' },        // 10B
+  { name: 'Ultramarine Violet',   note: 'modified ultramarine — blue-purple' },           // 5PB
+  { name: 'Manganese Violet',     note: 'manganese ammonium pyrophosphate' },             // 10PB
+  { name: 'Cobalt Violet',        note: 'cobalt phosphate Co₃(PO₄)₂ — reddish purple' }, // 5P
+  { name: 'Quinacridone',         note: 'synthetic organic — red-purple' },               // 10P
+  { name: 'Alizarin Crimson',     note: '1,2-dihydroxyanthraquinone — deep red-purple' }, // 5RP
+  { name: 'Rose Madder',          note: 'alizarin lake — cool pink-red' },                // 10RP
+];
 // Max chroma per hue × value (index 0=V0 … 10=V10)
 // V0 = black, V10 = pure white — neither has chromatic chips in real Munsell.
 // V10 column is 0 across all hues (no real pigment reaches white with chroma).
@@ -293,6 +319,16 @@ const MAX_CHROMA = [
   [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  0], // 5RP
   [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  0], // 10RP
 ];
+
+// For each hue, the (v, c) of its highest-chroma chip = "pure pigment" position.
+// This is precomputed from MAX_CHROMA so buildPoints() can flag peak instances.
+const HUE_PEAKS = Array.from({length: 20}, (_, hi) => {
+  let bestC = 0, bestV = 5;
+  for (let v = 0; v <= 10; v++) {
+    if (MAX_CHROMA[hi][v] > bestC) { bestC = MAX_CHROMA[hi][v]; bestV = v; }
+  }
+  return { v: bestV, c: bestC };
+});
 
 // ── Color helpers ─────────────────────────────────────────────────
 // Interpolate max chroma at fractional value (linear between integer steps)
@@ -348,7 +384,7 @@ let vSliceOn      = false, vSliceVal = 5;
 let hSliceOn      = false, hSliceIdx = 0;
 let maxChromaClip = 16;
 let pointSizeMult = 1.0;  // 1× = exactly touching in ortho mode
-let pointsObj = null, wireObj = null, axisObj = null;
+let pointsObj = null, wireObj = null, peakObj = null, axisObj = null;
 const pointData = [];  // parallel to geometry buffer: {hi?, v, c} per point
 
 const BASE_SIZE = 0.06;  // = SCALE_C = V_SUBSTEP*SCALE_V; at 1× swatches square and touching
@@ -375,10 +411,13 @@ function buildPoints() {
 
   // Hue pages — each chip is a cube aligned to its hue page plane.
   // Colors are sRGB-clamped for correct rendering; outOfP3 flag drives wireframe outline.
+  // isPeak flags the highest-chroma chip for this hue (pure pigment position).
   activeHues.forEach(hi => {
     if (hSliceOn && hi !== hSliceIdx) return;
     const a  = (hi / 20) * Math.PI * 2;
     const ca = Math.cos(a), sa = Math.sin(a);
+    const peakV = HUE_PEAKS[hi].v;
+    const peakC = Math.min(HUE_PEAKS[hi].c, maxChromaClip);
     for (let v = 0; v <= 10; v += V_SUBSTEP) {
       if (vSliceOn && Math.abs(v - vSliceVal) > V_SUBSTEP * 0.5) continue;
       const maxCfloat = maxChromaAt(hi, v);
@@ -391,12 +430,14 @@ function buildPoints() {
           const srgb = munsellToRgb(hi, v, c);
           if (!srgb) continue;
           const { outOfP3 } = munsellGamut(hi, v, c);
+          // Peak chip = outermost on the row where overall hue chroma is highest
+          const isPeak = (v === peakV && c === peakC);
           chips.push({
             x: ca*rr, y, z: sa*rr, rot: a,
             r: Math.max(0, Math.min(1, srgb[0])),
             g: Math.max(0, Math.min(1, srgb[1])),
             b: Math.max(0, Math.min(1, srgb[2])),
-            outOfP3, data: {hi, v, c}
+            outOfP3, isPeak, data: {hi, v, c}
           });
         } catch(e) { console.warn('chip failed hi='+hi+' v='+v+' c='+c, e.message); }
       }
@@ -419,7 +460,7 @@ function buildPoints() {
     mesh.setMatrixAt(i, dummy.matrix);
     // sRGB gamma values → THREE.SRGBColorSpace so Three.js linearises correctly
     mesh.setColorAt(i, chipColor.setRGB(r, g, b, THREE.SRGBColorSpace));
-    pointData.push({ ...data, outOfP3: outOfP3 || false });
+    pointData.push({ ...data, outOfP3: outOfP3 || false, isPeak: isPeak || false });
   });
 
   mesh.instanceMatrix.needsUpdate = true;
@@ -447,7 +488,29 @@ function buildPoints() {
     wireMesh.instanceMatrix.needsUpdate = true;
   }
 
-  return { mesh, wireMesh };
+  // ── Gold peak mesh — marks the max-chroma chip per hue (pure pigment) ──
+  // Slightly larger than the P3 outline (1.12× vs 1.08×) so both are visible.
+  const peakChips = chips.filter(c => c.isPeak);
+  let peakMesh = null;
+  if (peakChips.length > 0) {
+    const peakGeo = new THREE.BoxGeometry(1, 1, 1);
+    const peakMat = new THREE.MeshBasicMaterial({
+      wireframe: true, color: 0xFFD700, transparent: true, opacity: 0.85
+    });
+    peakMesh = new THREE.InstancedMesh(peakGeo, peakMat, peakChips.length);
+    peakMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const ps = s * 1.14;
+    peakChips.forEach(({ x, y, z, rot }, j) => {
+      dummy.position.set(x, y, z);
+      dummy.rotation.set(0, -rot, 0);
+      dummy.scale.setScalar(ps);
+      dummy.updateMatrix();
+      peakMesh.setMatrixAt(j, dummy.matrix);
+    });
+    peakMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  return { mesh, wireMesh, peakMesh };
 }
 
 // ── Axes ──────────────────────────────────────────────────────────
@@ -501,13 +564,22 @@ function rebuild() {
     wireObj.dispose();
     wireObj = null;
   }
+  if (peakObj) {
+    scene.remove(peakObj);
+    peakObj.geometry.dispose();
+    peakObj.material.dispose();
+    peakObj.dispose();
+    peakObj = null;
+  }
   if (axisObj) scene.remove(axisObj);
-  const { mesh, wireMesh } = buildPoints();
+  const { mesh, wireMesh, peakMesh } = buildPoints();
   pointsObj = mesh;
   wireObj = wireMesh;
+  peakObj = peakMesh;
   axisObj = buildAxes();
   scene.add(pointsObj);
   if (wireObj) scene.add(wireObj);
+  if (peakObj) scene.add(peakObj);
   scene.add(axisObj);
   document.getElementById('point-info').textContent =
     `${pointsObj.count.toLocaleString()} chips · 20 hue pages · V0–V10`;
@@ -693,6 +765,18 @@ renderer.domElement.addEventListener('click', e => {
 
   const notation = isNeutral ? `N ${d.v}/` : mhvcToMunsell(H_munsell, d.v, chroma);
 
+  // Pigment info — shown for all chromatic chips (property of the hue)
+  const pigment = (!isNeutral && d.hi !== undefined) ? HUE_PIGMENTS[d.hi] : null;
+  const pigmentNote = pigment
+    ? `<div style="font-size:8px;color:var(--ink-soft);margin-top:4px;line-height:1.6">` +
+      `<span style="color:${d.isPeak ? '#FFD700' : 'var(--ink-soft)'}">` +
+      (d.isPeak ? '◆ ' : '◇ ') + `</span>` +
+      `<strong style="color:var(--ink)">${pigment.name}</strong><br>` +
+      `<span style="color:var(--ink-ghost)">${pigment.note}</span>` +
+      (d.isPeak ? `<br><span style="color:#FFD700;font-size:7.5px">peak chroma — pigment at full concentration</span>` : '') +
+      `</div>`
+    : '';
+
   // Gamut note — more informative when outside P3
   const gamutNote = d.outOfP3
     ? `<div style="font-size:8px;color:#e8c84a;margin-top:4px;line-height:1.5">` +
@@ -701,7 +785,7 @@ renderer.domElement.addEventListener('click', e => {
     : '';
 
   document.getElementById('chip-info').innerHTML =
-    `<div style="width:36px;height:36px;background:${hex};border:1px solid var(--border);border-radius:2px;flex-shrink:0;${d.outOfP3 ? 'box-shadow:0 0 0 1.5px rgba(232,200,74,0.6)' : ''}"></div>` +
+    `<div style="width:36px;height:36px;background:${hex};border:1px solid var(--border);border-radius:2px;flex-shrink:0;${d.outOfP3 ? 'box-shadow:0 0 0 1.5px rgba(232,200,74,0.6)' : ''}${d.isPeak ? (d.outOfP3 ? ',' : '') + 'outline:2px solid rgba(255,215,0,0.7);outline-offset:2px' : ''}"></div>` +
     `<div style="min-width:0">` +
       `<div style="font-family:'Courier Prime',monospace;font-size:13px;color:var(--ink);margin-bottom:3px">${notation}</div>` +
       `<div style="font-size:8px;color:var(--ink-ghost);line-height:1.8">` +
@@ -709,6 +793,7 @@ renderer.domElement.addEventListener('click', e => {
         `LCH&ensp;L ${lab.L.toFixed(1)}&ensp;C ${lab.C.toFixed(1)}&ensp;h ${lab.h.toFixed(0)}°<br>` +
         `OKLCh&ensp;L ${(okl.L*100).toFixed(1)}%&ensp;C ${okl.C.toFixed(3)}&ensp;h ${okl.h.toFixed(0)}°` +
       `</div>` +
+      pigmentNote +
       gamutNote +
     `</div>`;
 });
