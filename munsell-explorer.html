@@ -107,8 +107,12 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
     <div class="panel-section">
       <h3>About</h3>
       <div class="info-card">
-        <div class="space-name">Munsell</div>
-        <div class="space-desc">The tree is <em>deliberately irregular</em> — branches extend only as far as real pigments allow. 20 hue pages, values 0–10, chroma 0–16+. Opposite pairs cancel to neutral grey. Colors use the official OSA renotation data. Chips outside Display P3 gamut are marked with a white wireframe outline.</div>
+        <div class="space-name">Munsell Color Tree</div>
+        <div class="space-desc">
+          A 3D map of perceptual color space. <strong>Hue</strong> sets the angle (20 pages), <strong>Value</strong> sets lightness on the vertical axis (0 black → 10 white), <strong>Chroma</strong> sets saturation as the radius from center.<br><br>
+          The shape is <em>deliberately irregular</em> — branches extend only as far as real pigments allow. Colors come from the official OSA renotation data (Munsell → CIE XYZ → sRGB).<br><br>
+          <strong style="color:#FFD700">Gold outline</strong> marks each hue's peak chroma — the pigment at full concentration. <strong>White outline</strong> means the color exceeds the Display P3 gamut. Click any chip to see its Munsell notation, hex, Lab LCH, and OKLCh values.
+        </div>
       </div>
     </div>
 
@@ -452,7 +456,7 @@ function buildPoints() {
   pointData.length = 0;
 
   const s = BASE_SIZE * pointSizeMult;
-  chips.forEach(({ x, y, z, rot, r, g, b, outOfP3, data }, i) => {
+  chips.forEach(({ x, y, z, rot, r, g, b, outOfP3, isPeak, data }, i) => {
     dummy.position.set(x, y, z);
     dummy.rotation.set(0, -rot, 0);
     dummy.scale.setScalar(s);  // all chips same scale; outline mesh handles indicator
