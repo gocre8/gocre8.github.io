@@ -108,7 +108,7 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
       <h3>About</h3>
       <div class="info-card">
         <div class="space-name">Munsell</div>
-        <div class="space-desc">The tree is <em>deliberately irregular</em> — branches extend only as far as real pigments allow. 20 hue pages, values 0–10, chroma 0–16+. Opposite pairs cancel to neutral grey. Colors use the official OSA renotation data (Munsell → CIE xyY → sRGB).</div>
+        <div class="space-desc">The tree is <em>deliberately irregular</em> — branches extend only as far as real pigments allow. 20 hue pages, values 0–10, chroma 0–16+. Opposite pairs cancel to neutral grey. Colors use the official OSA renotation data. Chips outside Display P3 gamut are marked with a white wireframe outline.</div>
       </div>
     </div>
 
@@ -181,6 +181,14 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
       </div>
     </div>
 
+    <div class="panel-section">
+      <h3>Gamut</h3>
+      <div class="legend-list">
+        <div class="legend-item"><div style="width:12px;height:12px;border:1.5px solid #fff;border-radius:2px;flex-shrink:0;opacity:0.7"></div><span>White outline — outside Display P3 (sRGB-clipped)</span></div>
+        <div class="legend-item"><div style="width:12px;height:12px;background:#666;border-radius:2px;flex-shrink:0"></div><span>No outline — within Display P3 gamut</span></div>
+      </div>
+    </div>
+
     <div class="divider"></div>
 
     <div class="panel-section">
@@ -214,8 +222,8 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(W, H);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setClearColor(0xaaaaaa);
-// Use Display P3 output so the GPU can show colors beyond sRGB gamut
-renderer.outputColorSpace = THREE.DisplayP3ColorSpace;
+// Standard sRGB output — colors are reliably correct on all displays.
+// P3 gamut is used only for the outOfP3 flag / wireframe outline indicator.
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -299,10 +307,10 @@ function maxChromaAt(hi, v) {
 //   hi=0 → 5R=5,  hi=1 → 10R=10, … hi=19 → 10RP=100
 function hiToH(hi) { return (hi + 1) * 5; }
 
-// ── Display P3 color conversion ───────────────────────────────────
-// Pipeline: Munsell → XYZ (D65) → P3 linear → Three.js (LinearDisplayP3ColorSpace)
-// renderer.outputColorSpace = DisplayP3ColorSpace applies P3 gamma on output.
-// Chips outside P3 gamut are rendered at 65% scale as a visual indicator.
+// ── Display P3 gamut detection ────────────────────────────────────
+// Munsell → XYZ (D65) → P3 linear — used only to determine whether a chip
+// falls outside the Display P3 gamut. Rendering uses sRGB (mhvcToRgb) for
+// colour accuracy; out-of-P3 chips get a white wireframe outline overlay.
 //
 // XYZ (D65) → Display P3 linear matrix (ICC standard)
 const XYZ_TO_P3 = [
@@ -310,20 +318,21 @@ const XYZ_TO_P3 = [
   [-0.829489,  1.762664,  0.023625],
   [ 0.035845, -0.076172,  0.956885]
 ];
-// Returns { rgb: [r,g,b] clamped P3 linear, outOfP3: bool }
-// ⚠️ COLOR SPACE ZERO WARNING: H=0 is invalid in Munsell — use H=50 for C=0 neutrals.
-// Valid H range (0,100]. See KB_COLOR_SOFTWARE for details.
-function munsellToP3(hi, value, chroma) {
-  const [X, Y, Z] = mhvcToXyz(hiToH(hi), value, chroma);
+// Returns { outOfP3: bool } — gamut-detection only, not used for rendering color.
+// ⚠️ H=0 is invalid in Munsell — use H=50 for C=0 neutrals (H range (0,100]).
+function munsellGamut(hi, value, chroma) {
+  const H = chroma === 0 ? 50 : hiToH(hi);
+  const [X, Y, Z] = mhvcToXyz(H, value, chroma);
   const r = XYZ_TO_P3[0][0]*X + XYZ_TO_P3[0][1]*Y + XYZ_TO_P3[0][2]*Z;
   const g = XYZ_TO_P3[1][0]*X + XYZ_TO_P3[1][1]*Y + XYZ_TO_P3[1][2]*Z;
   const b = XYZ_TO_P3[2][0]*X + XYZ_TO_P3[2][1]*Y + XYZ_TO_P3[2][2]*Z;
-  const outOfP3 = r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1;
-  return { rgb: [Math.max(0,Math.min(1,r)), Math.max(0,Math.min(1,g)), Math.max(0,Math.min(1,b))], outOfP3 };
+  return { outOfP3: r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1 };
 }
-// Keep sRGB version for the click-handler hex swatch display
+// Primary color source: proper sRGB gamma values for reliable Three.js rendering.
+// Out-of-sRGB chips are clamped to the sRGB boundary; the wireframe outline flags them.
 function munsellToRgb(hi, value, chroma) {
-  return mhvcToRgb(hiToH(hi), value, chroma);
+  const H = chroma === 0 ? 50 : hiToH(hi);
+  return mhvcToRgb(H, value, chroma);
 }
 
 // ── Scene constants ───────────────────────────────────────────────
@@ -339,28 +348,33 @@ let vSliceOn      = false, vSliceVal = 5;
 let hSliceOn      = false, hSliceIdx = 0;
 let maxChromaClip = 16;
 let pointSizeMult = 1.0;  // 1× = exactly touching in ortho mode
-let pointsObj = null, axisObj = null;
+let pointsObj = null, wireObj = null, axisObj = null;
 const pointData = [];  // parallel to geometry buffer: {hi?, v, c} per point
 
 const BASE_SIZE = 0.06;  // = SCALE_C = V_SUBSTEP*SCALE_V; at 1× swatches square and touching
 
 // ── Build points (InstancedMesh of cubes) ─────────────────────────
+// Returns { mesh, wireMesh } where wireMesh (may be null) is the wireframe
+// outline overlay for chips that fall outside the Display P3 gamut.
 function buildPoints() {
   const dummy = new THREE.Object3D();
   const chipColor = new THREE.Color();
   const chips = [];  // collect all chip data before allocating InstancedMesh
 
-  // Neutral axis — P3 gray, H=50 (hue irrelevant at C=0; H=0 is invalid)
+  // Neutral axis — sRGB gray, H=50 (C=0 neutrals must use H=50; H=0 is invalid)
   for (let v = 0; v <= 10; v += V_SUBSTEP) {
     if (vSliceOn && Math.abs(v - vSliceVal) > V_SUBSTEP * 0.5) continue;
     try {
-      const { rgb } = munsellToP3(0, v, 0); // hi=0 → H=5; fine since C=0
-      chips.push({ x: 0, y: (v-5)*SCALE_V, z: 0, rot: 0, rgb, outOfP3: false, data: {v, c: 0} });
+      const srgb = munsellToRgb(0, v, 0);  // C=0 → munsellToRgb routes to H=50
+      if (!srgb) continue;
+      const gc = Math.max(0, Math.min(1, srgb[0]));  // gray: r=g=b
+      chips.push({ x: 0, y: (v-5)*SCALE_V, z: 0, rot: 0,
+        r: gc, g: gc, b: gc, outOfP3: false, data: {v, c: 0} });
     } catch(e) { console.warn('neutral chip failed V='+v, e.message); }
   }
 
-  // Hue pages — each chip is a cube aligned to its hue page plane
-  // Out-of-P3-gamut chips render at 65% scale to indicate they are approximate
+  // Hue pages — each chip is a cube aligned to its hue page plane.
+  // Colors are sRGB-clamped for correct rendering; outOfP3 flag drives wireframe outline.
   activeHues.forEach(hi => {
     if (hSliceOn && hi !== hSliceIdx) return;
     const a  = (hi / 20) * Math.PI * 2;
@@ -372,15 +386,24 @@ function buildPoints() {
       if (maxC < 1) continue;
       const y = (v - 5) * SCALE_V;
       for (let c = 1; c <= maxC; c++) {
-        const r = c * SCALE_C;
+        const rr = c * SCALE_C;
         try {
-          const { rgb, outOfP3 } = munsellToP3(hi, v, c);
-          chips.push({ x: ca*r, y, z: sa*r, rot: a, rgb, outOfP3, data: {hi, v, c} });
+          const srgb = munsellToRgb(hi, v, c);
+          if (!srgb) continue;
+          const { outOfP3 } = munsellGamut(hi, v, c);
+          chips.push({
+            x: ca*rr, y, z: sa*rr, rot: a,
+            r: Math.max(0, Math.min(1, srgb[0])),
+            g: Math.max(0, Math.min(1, srgb[1])),
+            b: Math.max(0, Math.min(1, srgb[2])),
+            outOfP3, data: {hi, v, c}
+          });
         } catch(e) { console.warn('chip failed hi='+hi+' v='+v+' c='+c, e.message); }
       }
     }
   });
 
+  // ── Solid chip mesh ──────────────────────────────────────────────
   const geo = new THREE.BoxGeometry(1, 1, 1);
   const mat = new THREE.MeshBasicMaterial();
   const mesh = new THREE.InstancedMesh(geo, mat, chips.length);
@@ -388,22 +411,43 @@ function buildPoints() {
   pointData.length = 0;
 
   const s = BASE_SIZE * pointSizeMult;
-  chips.forEach(({ x, y, z, rot, rgb, outOfP3, data }, i) => {
+  chips.forEach(({ x, y, z, rot, r, g, b, outOfP3, data }, i) => {
     dummy.position.set(x, y, z);
     dummy.rotation.set(0, -rot, 0);
-    // Out-of-P3 chips render at 65% scale — visible indicator that color is approximate
-    dummy.scale.setScalar(outOfP3 ? s * 0.65 : s);
+    dummy.scale.setScalar(s);  // all chips same scale; outline mesh handles indicator
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
-    // Pass P3 linear values tagged as LinearDisplayP3ColorSpace so Three.js
-    // converts correctly through its output pipeline to the P3 display
-    mesh.setColorAt(i, chipColor.setRGB(rgb[0], rgb[1], rgb[2], THREE.LinearDisplayP3ColorSpace));
+    // sRGB gamma values → THREE.SRGBColorSpace so Three.js linearises correctly
+    mesh.setColorAt(i, chipColor.setRGB(r, g, b, THREE.SRGBColorSpace));
     pointData.push({ ...data, outOfP3: outOfP3 || false });
   });
 
   mesh.instanceMatrix.needsUpdate = true;
   if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  return mesh;
+
+  // ── Wireframe outline mesh for out-of-P3 chips ──────────────────
+  // A white wireframe cube at 1.08× scale sits just outside each out-of-P3 chip.
+  const outChips = chips.filter(c => c.outOfP3);
+  let wireMesh = null;
+  if (outChips.length > 0) {
+    const wireGeo = new THREE.BoxGeometry(1, 1, 1);
+    const wireMat = new THREE.MeshBasicMaterial({
+      wireframe: true, color: 0xffffff, transparent: true, opacity: 0.45
+    });
+    wireMesh = new THREE.InstancedMesh(wireGeo, wireMat, outChips.length);
+    wireMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const ws = s * 1.08;
+    outChips.forEach(({ x, y, z, rot }, j) => {
+      dummy.position.set(x, y, z);
+      dummy.rotation.set(0, -rot, 0);
+      dummy.scale.setScalar(ws);
+      dummy.updateMatrix();
+      wireMesh.setMatrixAt(j, dummy.matrix);
+    });
+    wireMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  return { mesh, wireMesh };
 }
 
 // ── Axes ──────────────────────────────────────────────────────────
@@ -448,10 +492,23 @@ function rebuild() {
     pointsObj.geometry.dispose();
     pointsObj.material.dispose();
     pointsObj.dispose();
+    pointsObj = null;
+  }
+  if (wireObj) {
+    scene.remove(wireObj);
+    wireObj.geometry.dispose();
+    wireObj.material.dispose();
+    wireObj.dispose();
+    wireObj = null;
   }
   if (axisObj) scene.remove(axisObj);
-  pointsObj = buildPoints(); axisObj = buildAxes();
-  scene.add(pointsObj); scene.add(axisObj);
+  const { mesh, wireMesh } = buildPoints();
+  pointsObj = mesh;
+  wireObj = wireMesh;
+  axisObj = buildAxes();
+  scene.add(pointsObj);
+  if (wireObj) scene.add(wireObj);
+  scene.add(axisObj);
   document.getElementById('point-info').textContent =
     `${pointsObj.count.toLocaleString()} chips · 20 hue pages · V0–V10`;
 }
