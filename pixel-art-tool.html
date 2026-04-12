@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pixel Art Tool</title>
+
+  <!-- React 18 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel (JSX transpilation in-browser) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Tailwind CSS v3 (pre-built, no production warning) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback } = React;
+
+    const CANVAS_SIZE = 512;
+    const MAX_VERSIONS = 10;
+    const MAX_HISTORY = 20;
+    const LS_KEY = 'pixelart-versions';
+
+
+const CANVAS_SIZE = 512;
+const MAX_VERSIONS = 10;
+const MAX_HISTORY = 20;
+const LS_KEY = 'pixelart-versions';
+
+// ── OKLCH ↔ RGB ────────────────────────────────────────────────────────────────
+function srgbToLinear(c) { return c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
+function linearToSrgb(c) { return c <= 0.0031308 ? 12.92*c : 1.055*Math.pow(c,1/2.4)-0.055; }
+function oklchToRgb(L,C,H) {
+  const h=(H*Math.PI)/180, a=C*Math.cos(h), b=C*Math.sin(h);
+  const l_=L+0.3963377774*a+0.2158037573*b;
+  const m_=L-0.1055613458*a-0.0638541728*b;
+  const s_=L-0.0894841775*a-1.2914855480*b;
+  const l=l_**3,m=m_**3,s=s_**3;
+  return {
+    r:Math.round(Math.max(0,Math.min(1,linearToSrgb(+4.0767416621*l-3.3077115913*m+0.2309699292*s)))*255),
+    g:Math.round(Math.max(0,Math.min(1,linearToSrgb(-1.2684380046*l+2.6097574011*m-0.3413193965*s)))*255),
+    b:Math.round(Math.max(0,Math.min(1,linearToSrgb(-0.0041960863*l-0.7034186147*m+1.7076147010*s)))*255),
+  };
+}
+function rgbToOklch(r,g,b) {
+  const rl=srgbToLinear(r/255),gl=srgbToLinear(g/255),bl=srgbToLinear(b/255);
+  const l_=Math.cbrt(0.4122214708*rl+0.5363325363*gl+0.0514459929*bl);
+  const m_=Math.cbrt(0.2119034982*rl+0.6806995451*gl+0.1073969566*bl);
+  const s_=Math.cbrt(0.0883024619*rl+0.2817188376*gl+0.6299787005*bl);
+  const Lo=0.2104542553*l_+0.7936177850*m_-0.0040720468*s_;
+  const ao=1.9779984951*l_-2.4285922050*m_+0.4505937099*s_;
+  const bo=0.0259040371*l_+0.7827717662*m_-0.8086757660*s_;
+  let Ho=(Math.atan2(bo,ao)*180)/Math.PI; if(Ho<0)Ho+=360;
+  return {L:Lo,C:Math.sqrt(ao**2+bo**2),H:Ho};
+}
+function hexToRgbObj(hex) {
+  const h=hex.replace('#','');
+  return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};
+}
+function rgbToHex(r,g,b) {
+  return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+}
+
+// ── OKLCH Sliders ─────────────────────────────────────────────────────────────
+function OklchSliders({color,onChange}) {
+  const [lch,setLch]=useState(()=>{const{r,g,b}=hexToRgbObj(color);return rgbToOklch(r,g,b);});
+  const internal=useRef(false);
+  useEffect(()=>{if(internal.current){internal.current=false;return;}const{r,g,b}=hexToRgbObj(color);setLch(rgbToOklch(r,g,b));},[color]);
+  const update=(newLch)=>{setLch(newLch);const{r,g,b}=oklchToRgb(newLch.L,newLch.C,newLch.H);internal.current=true;onChange(rgbToHex(r,g,b));};
+  const{L,C,H}=lch;
+  const minC=Math.max(0.08,C);
+  const lGrad=`linear-gradient(to right,oklch(0 ${C.toFixed(3)} ${H.toFixed(1)}deg),oklch(1 ${C.toFixed(3)} ${H.toFixed(1)}deg))`;
+  const cGrad=`linear-gradient(to right,oklch(${L.toFixed(3)} 0 ${H.toFixed(1)}deg),oklch(${L.toFixed(3)} 0.37 ${H.toFixed(1)}deg))`;
+  const hGrad=`linear-gradient(to right,${[0,60,120,180,240,300,360].map(d=>`oklch(${Math.max(0.55,L).toFixed(2)} ${minC.toFixed(3)} ${d}deg)`).join(',')})`;
+  const trackStyle=(grad)=>({WebkitAppearance:'none',appearance:'none',width:'100%',height:12,borderRadius:6,background:grad,outline:'none',cursor:'pointer',border:'1px solid #d1d5db',display:'block'});
+  return (
+    <div>
+      <style>{`.lch-s::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:white;border:2px solid #44403c;box-shadow:0 1px 3px rgba(0,0,0,.4);cursor:pointer}.lch-s::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:white;border:2px solid #44403c;cursor:pointer}`}</style>
+      {[
+        {label:'L',unit:'%',val:+(L*100).toFixed(1),min:0,max:100,step:1,grad:lGrad,key:'L',toInt:v=>v/100},
+        {label:'C',unit:'%',val:+(C*100).toFixed(1),min:0,max:40,step:0.5,grad:cGrad,key:'C',toInt:v=>v/100},
+        {label:'H',unit:'°',val:+H.toFixed(1),min:0,max:360,step:1,grad:hGrad,key:'H',toInt:v=>v},
+      ].map(({label,unit,val,min,max,step,grad,key,toInt})=>(
+        <div key={key} style={{marginBottom:8}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+            <span style={{fontSize:10,fontWeight:700}}>{label}</span>
+            <span style={{fontSize:10,color:'#78716c'}}>{Math.round(val)}{unit}</span>
+          </div>
+          <input type="range" className="lch-s" min={min} max={max} step={step} value={val}
+            onChange={e=>update({...lch,[key]:toInt(parseFloat(e.target.value))})}
+            style={trackStyle(grad)}/>
+        </div>
+      ))}
+      <div style={{fontFamily:'monospace',fontSize:10,color:'#78716c',textAlign:'center',marginTop:2}}>{color.toUpperCase()}</div>
+    </div>
+  );
+}
+
+// ── Hue Wheel (coloured background) ──────────────────────────────────────────
+const HUE_STEPS = 36;   // 10° each
+const WHEEL_RINGS = [
+  {innerFrac:0,    outerFrac:0.28, chroma:0.07},
+  {innerFrac:0.28, outerFrac:0.52, chroma:0.17},
+  {innerFrac:0.52, outerFrac:0.76, chroma:0.27},
+  {innerFrac:0.76, outerFrac:1.0,  chroma:0.37},
+];
+const WHEEL_L = 0.65;
+const MAX_CHROMA = 0.37;
+
+function arcPath(cx,cy,innerR,outerR,startDeg,endDeg) {
+  const s=(startDeg-90)*Math.PI/180, e=(endDeg-90)*Math.PI/180;
+  const lf=(endDeg-startDeg)>180?1:0;
+  const p=n=>n.toFixed(2);
+  if(innerR<0.5) {
+    const x2=cx+outerR*Math.cos(s),y2=cy+outerR*Math.sin(s);
+    const x3=cx+outerR*Math.cos(e),y3=cy+outerR*Math.sin(e);
+    return `M ${p(cx)} ${p(cy)} L ${p(x2)} ${p(y2)} A ${outerR} ${outerR} 0 ${lf} 1 ${p(x3)} ${p(y3)} Z`;
+  }
+  const x1=cx+innerR*Math.cos(s),y1=cy+innerR*Math.sin(s);
+  const x2=cx+outerR*Math.cos(s),y2=cy+outerR*Math.sin(s);
+  const x3=cx+outerR*Math.cos(e),y3=cy+outerR*Math.sin(e);
+  const x4=cx+innerR*Math.cos(e),y4=cy+innerR*Math.sin(e);
+  return `M ${p(x1)} ${p(y1)} L ${p(x2)} ${p(y2)} A ${outerR} ${outerR} 0 ${lf} 1 ${p(x3)} ${p(y3)} L ${p(x4)} ${p(y4)} A ${innerR} ${innerR} 0 ${lf} 0 ${p(x1)} ${p(y1)} Z`;
+}
+
+function HueWheel({palette}) {
+  const SIZE=260, CX=SIZE/2, CY=SIZE/2, MAX_R=SIZE/2-5;
+  const segments=[];
+  WHEEL_RINGS.forEach(({innerFrac,outerFrac,chroma})=>{
+    const innerR=innerFrac*MAX_R, outerR=outerFrac*MAX_R;
+    for(let h=0;h<HUE_STEPS;h++) {
+      const s=h*(360/HUE_STEPS), e=(h+1)*(360/HUE_STEPS), mid=(h+0.5)*(360/HUE_STEPS);
+      segments.push(<path key={`${innerFrac}-${h}`} d={arcPath(CX,CY,innerR,outerR,s,e)}
+        fill={`oklch(${WHEEL_L} ${chroma} ${mid.toFixed(1)}deg)`} stroke="none"/>);
+    }
+  });
+  return (
+    <svg width={SIZE} height={SIZE} style={{display:'block',flexShrink:0}}>
+      {segments}
+      {WHEEL_RINGS.map(({outerFrac})=>(
+        <circle key={outerFrac} cx={CX} cy={CY} r={outerFrac*MAX_R}
+          fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={0.75}/>
+      ))}
+      <circle cx={CX} cy={CY} r={MAX_R} fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth={1}/>
+      {palette.filter(p=>p.color).map(({color,pct,L,C,H},i)=>{
+        const chroma=Math.min(C??0, MAX_CHROMA);
+        const orbitR=(chroma/MAX_CHROMA)*MAX_R;
+        const rad=((H??0)-90)*Math.PI/180;
+        const x=CX+Math.cos(rad)*orbitR, y=CY+Math.sin(rad)*orbitR;
+        const dotR=7+(pct/100)*9;
+        const light=(L??0.5)>0.72;
+        return (
+          <g key={i}>
+            <circle cx={x} cy={y} r={dotR+2.5} fill="white" opacity={0.6}/>
+            <circle cx={x} cy={y} r={dotR} fill={color} stroke="white" strokeWidth={1.5}/>
+            <text x={x} y={y+3.5} textAnchor="middle"
+              style={{fontSize:8,fontWeight:700,fill:light?'#44403c':'white',fontFamily:'sans-serif'}}>
+              {pct}%
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Value Scale ───────────────────────────────────────────────────────────────
+// Dots sit ON the bar, bar is wide enough to contain them.
+function ValueScale({palette}) {
+  const H=260, BAR_W=80, PAD_LEFT=28, PAD_RIGHT=8;
+  const W=PAD_LEFT+BAR_W+PAD_RIGHT;
+  const BAR_X=PAD_LEFT;
+  const DOT_R=11;
+  return (
+    <svg width={W} height={H} style={{display:'block',flexShrink:0}}>
+      <defs>
+        <linearGradient id="vGrad2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="white"/>
+          <stop offset="100%" stopColor="black"/>
+        </linearGradient>
+      </defs>
+      {/* W / Bk labels */}
+      <text x={BAR_X-4} y={10} textAnchor="end"
+        style={{fontSize:10,fontWeight:700,fill:'#78716c',fontFamily:'sans-serif'}}>W</text>
+      <text x={BAR_X-4} y={H} textAnchor="end"
+        style={{fontSize:10,fontWeight:700,fill:'#78716c',fontFamily:'sans-serif'}}>Bk</text>
+      {/* Gradient bar */}
+      <rect x={BAR_X} y={0} width={BAR_W} height={H}
+        fill="url(#vGrad2)" stroke="#d1d5db" strokeWidth={1} rx={3}/>
+      {/* 25% tick labels */}
+      {[0.25,0.5,0.75].map(f=>(
+        <text key={f} x={BAR_X-4} y={f*H+4} textAnchor="end"
+          style={{fontSize:8,fill:'#a8a29e',fontFamily:'sans-serif'}}>
+          {Math.round((1-f)*100)}%
+        </text>
+      ))}
+      {/* Palette dots ON the bar */}
+      {palette.filter(p=>p.color).map(({color,pct,L},i)=>{
+        const y=Math.max(DOT_R, Math.min(H-DOT_R, (1-(L??0.5))*H));
+        const cx=BAR_X+BAR_W/2;
+        const light=(L??0.5)>0.55;
+        return (
+          <g key={i}>
+            <circle cx={cx} cy={y} r={DOT_R+1.5} fill="white" opacity={0.4}/>
+            <circle cx={cx} cy={y} r={DOT_R} fill={color} stroke="rgba(0,0,0,0.25)" strokeWidth={1}/>
+            <text x={cx} y={y+3.5} textAnchor="middle"
+              style={{fontSize:7.5,fontWeight:700,fill:light?'#1c1917':'white',fontFamily:'sans-serif'}}>
+              {pct}%
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Colour analysis strip ─────────────────────────────────────────────────────
+const EMPTY_PALETTE=Array.from({length:5},()=>({color:null,pct:null,L:null,C:null,H:null}));
+
+function ColourAnalysis({pixels,gridSize}) {
+  const [palette,setPalette]=useState(EMPTY_PALETTE);
+
+  const refresh=()=>{
+    const counts={};
+    for(let y=0;y<gridSize;y++)
+      for(let x=0;x<gridSize;x++){const c=pixels[y]?.[x]??'#ffffff';counts[c]=(counts[c]||0)+1;}
+    const total=Object.values(counts).reduce((a,b)=>a+b,0)||1;
+    const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([color,count])=>{
+      const{r,g,b}=hexToRgbObj(color);
+      const{L,C,H}=rgbToOklch(r,g,b);
+      return{color,pct:Math.round((count/total)*100),L,C,H};
+    });
+    // Pad to always 5 entries
+    while(top.length<5) top.push({color:null,pct:null,L:null,C:null,H:null});
+    setPalette(top);
+  };
+
+  const SWATCH=44; // px — height matches button
+
+  return (
+    <div style={{background:'#f5f5f4',borderTop:'1px solid #e7e5e4',padding:'10px 20px 16px',flexShrink:0}}>
+
+      {/* ── Row 1: button + 5 swatches always visible ── */}
+      <div style={{display:'flex',alignItems:'stretch',gap:6,marginBottom:12}}>
+
+        {/* Palette button — ~2.5× swatch width */}
+        <button onClick={refresh} style={{
+          width: SWATCH*2.5, height: SWATCH, flexShrink:0,
+          fontSize:11, fontWeight:700, letterSpacing:1,
+          border:'2px solid #d1d5db', background:'white', cursor:'pointer',
+        }}>↻ PALETTE</button>
+
+        {/* 5 swatch slots — always rendered */}
+        {palette.map(({color,pct},i)=>(
+          <div key={i} style={{textAlign:'center',flexShrink:0}}>
+            <div style={{
+              width:SWATCH, height:SWATCH,
+              backgroundColor: color??'#f5f5f4',
+              border: color ? '2px solid #d1d5db' : '2px dashed #d1d5db',
+            }}/>
+            <div style={{fontSize:10,fontFamily:'monospace',color:'#44403c',fontWeight:600,marginTop:2,lineHeight:1}}>
+              {color ? color.toUpperCase() : '—'}
+            </div>
+            <div style={{fontSize:13,color:'#78716c',fontWeight:700}}>
+              {pct!==null ? `${pct}%` : '—'}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Row 2: hue wheel + value scale ── */}
+      <div style={{display:'flex',alignItems:'flex-start',gap:20}}>
+        <HueWheel palette={palette}/>
+        <ValueScale palette={palette}/>
+      </div>
+
+    </div>
+  );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function colorDistance(a,b){if(a===b)return 0;if(!a||!b)return 441;const ra=hexToRgbObj(a),rb=hexToRgbObj(b);return Math.sqrt((ra.r-rb.r)**2+(ra.g-rb.g)**2+(ra.b-rb.b)**2);}
+function colorsMatch(a,b,tol){return colorDistance(a,b)<=(tol/100)*441;}
+function floodFill(pixels,sx,sy,target,fill,tol,gs){
+  const next=pixels.map(r=>[...r]),vis=Array.from({length:gs},()=>Array(gs).fill(false)),q=[[sx,sy]];
+  while(q.length){const[x,y]=q.shift();if(x<0||x>=gs||y<0||y>=gs||vis[y][x])continue;if(!colorsMatch(next[y][x],target,tol))continue;vis[y][x]=true;next[y][x]=fill;q.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);}
+  return next;
+}
+function globalFill(pixels,target,fill,tol){return pixels.map(row=>row.map(c=>colorsMatch(c,target,tol)?fill:c));}
+function renderToDataURL(pixels,gs,size,withGrid=false){
+  const ec=document.createElement('canvas');ec.width=size;ec.height=size;
+  const ctx=ec.getContext('2d'),cell=size/gs;
+  ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,size,size);
+  for(let y=0;y<gs;y++)for(let x=0;x<gs;x++)if(pixels[y]?.[x]){ctx.fillStyle=pixels[y][x];ctx.fillRect(x*cell,y*cell,cell,cell);}
+  if(withGrid){ctx.strokeStyle='#D1D5DB';ctx.lineWidth=0.5;for(let i=0;i<=gs;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,size);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(size,i*cell);ctx.stroke();}}
+  return ec.toDataURL('image/png');
+}
+function resampleNearest(pixels,oldGs,newGs){
+  return Array.from({length:newGs},(_,y)=>Array.from({length:newGs},(_,x)=>pixels[Math.floor((y/newGs)*oldGs)]?.[Math.floor((x/newGs)*oldGs)]??null));
+}
+function ResamplePreview({pixels,fromSize,toSize,previewPx=140}){
+  const ref=useRef(null);
+  useEffect(()=>{
+    const canvas=ref.current;if(!canvas)return;
+    const ctx=canvas.getContext('2d'),rs=resampleNearest(pixels,fromSize,toSize),cell=previewPx/toSize;
+    ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,previewPx,previewPx);
+    for(let y=0;y<toSize;y++)for(let x=0;x<toSize;x++)if(rs[y]?.[x]){ctx.fillStyle=rs[y][x];ctx.fillRect(x*cell,y*cell,cell,cell);}
+    ctx.strokeStyle='#D1D5DB';ctx.lineWidth=0.5;
+    for(let i=0;i<=toSize;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,previewPx);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(previewPx,i*cell);ctx.stroke();}
+  },[pixels,fromSize,toSize,previewPx]);
+  return <canvas ref={ref} width={previewPx} height={previewPx} style={{width:previewPx,height:previewPx,imageRendering:'pixelated',display:'block'}}/>;
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+const PRESET_SIZES=[8,12,16,24,32,48,64];
+const INIT_GRID=24;
+const initPixels=()=>Array.from({length:INIT_GRID},()=>Array(INIT_GRID).fill(null));
+
+function PixelArtTool() {
+  const canvasRef=useRef(null);
+  const initialPx=useRef(initPixels());
+
+  const [pixels,setPixels]                 = useState(initialPx.current);
+  const pixelsRef                          = useRef(initialPx.current);
+  const [gridSize,setGridSize]             = useState(INIT_GRID);
+  const [displaySize,setDisplaySize]       = useState(512);
+  const [selectedColor,setSelectedColor]   = useState('#FF6B35');
+  const [colorHistory,setColorHistory]     = useState([]);
+  const [tool,setTool]                     = useState('draw');
+  const [brushSize,setBrushSize]           = useState(1);
+  const [fillMode,setFillMode]             = useState('contiguous');
+  const [tolerance,setTolerance]           = useState(0);
+  const [isDrawing,setIsDrawing]           = useState(false);
+
+  // History
+  const historyRef    = useRef([initialPx.current]);
+  const historyIdxRef = useRef(0);
+  const [historyState,setHistoryState] = useState({idx:0,len:1});
+  const strokeStartRef = useRef(null);
+  const canUndo = historyState.idx>0;
+  const canRedo = historyState.idx<historyState.len-1;
+
+  // Versions
+  const [versions,setVersions]     = useState(()=>{try{return JSON.parse(localStorage.getItem(LS_KEY))||[];}catch{return [];}});
+  const [editingId,setEditingId]   = useState(null);
+  const [tempName,setTempName]     = useState('');
+  const [exportURL,setExportURL]   = useState('');
+  const [showExport,setShowExport] = useState(false);
+  const [confirmLoad,setConfirmLoad] = useState(null);
+  const [showResample,setShowResample] = useState(false);
+  const [targetSize,setTargetSize]   = useState(16);
+  const [pdfStatus,setPdfStatus]     = useState('');
+
+  // ── Internal pixel setter (keeps ref in sync) ──────────────────────────────
+  const setPixelsWithRef = useCallback((updater) => {
+    setPixels(prev=>{
+      const next=typeof updater==='function'?updater(prev):updater;
+      pixelsRef.current=next;
+      return next;
+    });
+  },[]);
+
+  // ── History ────────────────────────────────────────────────────────────────
+  const pushHistory = useCallback((newPixels) => {
+    const truncated=historyRef.current.slice(0,historyIdxRef.current+1);
+    truncated.push(newPixels);
+    if(truncated.length>MAX_HISTORY+1) truncated.shift();
+    historyRef.current=truncated;
+    historyIdxRef.current=truncated.length-1;
+    setHistoryState({idx:historyIdxRef.current,len:truncated.length});
+  },[]);
+
+  const undo = useCallback(()=>{
+    if(historyIdxRef.current>0){
+      historyIdxRef.current--;
+      const p=historyRef.current[historyIdxRef.current];
+      pixelsRef.current=p; setPixels(p);
+      setHistoryState({idx:historyIdxRef.current,len:historyRef.current.length});
+    }
+  },[]);
+
+  const redo = useCallback(()=>{
+    if(historyIdxRef.current<historyRef.current.length-1){
+      historyIdxRef.current++;
+      const p=historyRef.current[historyIdxRef.current];
+      pixelsRef.current=p; setPixels(p);
+      setHistoryState({idx:historyIdxRef.current,len:historyRef.current.length});
+    }
+  },[]);
+
+  // ── Persist versions ───────────────────────────────────────────────────────
+  useEffect(()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(versions));}catch{}},[versions]);
+
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  useEffect(()=>{
+    const onKey=(e)=>{
+      const tag=document.activeElement?.tagName?.toLowerCase();
+      if(tag==='input'||tag==='textarea') return;
+      if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
+      if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();redo();return;}
+      const map={d:'draw',e:'erase',f:'fill',c:'eyedropper'};
+      if(map[e.key.toLowerCase()]) setTool(map[e.key.toLowerCase()]);
+    };
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[undo,redo]);
+
+  // ── Render canvas ──────────────────────────────────────────────────────────
+  const render=useCallback((pd,gs)=>{
+    const canvas=canvasRef.current;if(!canvas)return;
+    const ctx=canvas.getContext('2d'),cell=CANVAS_SIZE/gs;
+    ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
+    for(let y=0;y<gs;y++)for(let x=0;x<gs;x++)if(pd[y]?.[x]){ctx.fillStyle=pd[y][x];ctx.fillRect(x*cell,y*cell,cell,cell);}
+    ctx.strokeStyle='#D1D5DB';ctx.lineWidth=0.5;
+    for(let i=0;i<=gs;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,CANVAS_SIZE);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(CANVAS_SIZE,i*cell);ctx.stroke();}
+  },[]);
+
+  useEffect(()=>{render(pixels,gridSize);},[pixels,gridSize,render]);
+
+  // ── Grid resize ────────────────────────────────────────────────────────────
+  const handleGridSizeChange=(newSize)=>{
+    setGridSize(newSize);
+    setPixelsWithRef(prev=>Array.from({length:newSize},(_,y)=>Array.from({length:newSize},(_,x)=>prev[y]?.[x]??null)));
+  };
+
+  // ── Mouse → cell ───────────────────────────────────────────────────────────
+  const getCellCoords=(e)=>{
+    const canvas=canvasRef.current,rect=canvas.getBoundingClientRect();
+    const x=(e.clientX-rect.left)*(CANVAS_SIZE/rect.width);
+    const y=(e.clientY-rect.top)*(CANVAS_SIZE/rect.height);
+    const cell=CANVAS_SIZE/gridSize;
+    return{cx:Math.floor(x/cell),cy:Math.floor(y/cell)};
+  };
+
+  // ── Paint (centered, odd brush) ────────────────────────────────────────────
+  const paintCells=useCallback((cx,cy,color,prev)=>{
+    const offset=Math.floor((brushSize-1)/2);
+    const next=prev.map(r=>[...r]);
+    for(let dx=0;dx<brushSize;dx++)for(let dy=0;dy<brushSize;dy++){
+      const px=cx-offset+dx,py=cy-offset+dy;
+      if(px>=0&&px<gridSize&&py>=0&&py<gridSize) next[py][px]=color;
+    }
+    return next;
+  },[brushSize,gridSize]);
+
+  const addToHistory2=(color)=>setColorHistory(prev=>[color,...prev.filter(c=>c!==color)].slice(0,8));
+
+  // ── Pointer events ─────────────────────────────────────────────────────────
+  const handleMouseDown=(e)=>{
+    setIsDrawing(true);
+    const{cx,cy}=getCellCoords(e);
+    if(tool==='draw'){
+      strokeStartRef.current=pixelsRef.current;
+      setPixelsWithRef(prev=>paintCells(cx,cy,selectedColor,prev));
+      addToHistory2(selectedColor);
+    } else if(tool==='erase'){
+      strokeStartRef.current=pixelsRef.current;
+      setPixelsWithRef(prev=>paintCells(cx,cy,null,prev));
+    } else if(tool==='eyedropper'){
+      const color=pixels[cy]?.[cx];
+      if(color){setSelectedColor(color);addToHistory2(color);}
+      setTool('draw');
+    } else if(tool==='fill'){
+      const target=pixels[cy]?.[cx]??null;
+      const before=pixelsRef.current;
+      setPixelsWithRef(prev=>{
+        const next=fillMode==='contiguous'
+          ?floodFill(prev,cx,cy,target,selectedColor,tolerance,gridSize)
+          :globalFill(prev,target,selectedColor,tolerance);
+        pushHistory(next);
+        return next;
+      });
+      addToHistory2(selectedColor);
+    }
+  };
+
+  const handleMouseMove=(e)=>{
+    if(!isDrawing||(tool!=='draw'&&tool!=='erase')) return;
+    const{cx,cy}=getCellCoords(e);
+    setPixelsWithRef(prev=>paintCells(cx,cy,tool==='draw'?selectedColor:null,prev));
+  };
+
+  const handleMouseUp=useCallback(()=>{
+    setIsDrawing(false);
+    if(strokeStartRef.current!==null){
+      pushHistory(pixelsRef.current);
+      strokeStartRef.current=null;
+    }
+  },[pushHistory]);
+
+  // ── Versions ───────────────────────────────────────────────────────────────
+  const saveVersion=()=>{
+    const num=(versions[versions.length-1]?.num??0)+1;
+    setVersions(prev=>[...prev.slice(-(MAX_VERSIONS-1)),{
+      id:Date.now(),name:`Design ${num}`,num,pixels,gridSize,
+      thumb:renderToDataURL(pixels,gridSize,80),
+      savedAt:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+    }]);
+  };
+  const loadVersion=(v)=>{setGridSize(v.gridSize);setPixelsWithRef(v.pixels);setConfirmLoad(null);};
+  const deleteVersion=(id)=>setVersions(prev=>prev.filter(v=>v.id!==id));
+  const handleExport=(pd=pixels,gs=gridSize)=>{setExportURL(renderToDataURL(pd,gs,CANVAS_SIZE,false));setShowExport(true);};
+  const commitRename=()=>{if(editingId===null)return;setVersions(prev=>prev.map(v=>v.id===editingId?{...v,name:tempName||v.name}:v));setEditingId(null);};
+
+  // ── Export all PDF ─────────────────────────────────────────────────────────
+  const handleExportAllPDF=async()=>{
+    if(versions.length===0){setPdfStatus('error');return;}
+    setPdfStatus('loading');
+    try{
+      if(!window.jspdf){
+        await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+      }
+      const{jsPDF}=window.jspdf;
+      const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+      const pageW=210,pageH=297,imgSize=160,imgX=(pageW-imgSize)/2,imgY=30;
+      versions.forEach((v,i)=>{
+        if(i>0) pdf.addPage();
+        pdf.setFontSize(18);pdf.setFont('helvetica','bold');pdf.text(v.name,pageW/2,20,{align:'center'});
+        pdf.addImage(renderToDataURL(v.pixels,v.gridSize,512,false),'PNG',imgX,imgY,imgSize,imgSize);
+        pdf.setFontSize(10);pdf.setFont('helvetica','normal');pdf.setTextColor(120,113,108);
+        pdf.text(`${v.gridSize}×${v.gridSize} pixels  ·  Saved ${v.savedAt}`,pageW/2,imgY+imgSize+10,{align:'center'});
+        pdf.setFontSize(9);pdf.text(`${i+1} / ${versions.length}`,pageW/2,pageH-10,{align:'center'});
+      });
+      pdf.save('pixel-art-designs.pdf');
+      setPdfStatus('');
+    }catch(err){console.error(err);setPdfStatus('error');}
+  };
+
+  const toolList=[
+    {id:'draw',       label:'Draw',       cursor:'crosshair', key:'D'},
+    {id:'erase',      label:'Erase',      cursor:'cell',      key:'E'},
+    {id:'fill',       label:'Fill',       cursor:'copy',      key:'F'},
+    {id:'eyedropper', label:'Eyedropper', cursor:'crosshair', key:'C'},
+  ];
+
+  return (
+    <div className="flex h-screen bg-white text-black overflow-hidden select-none">
+
+      {/* ── Left Sidebar ── */}
+      <div className="w-56 bg-stone-50 border-r border-stone-200 p-4 overflow-y-auto flex flex-col gap-4 flex-shrink-0">
+        <h1 className="text-base font-bold tracking-widest">PIXEL</h1>
+
+        {/* Tools */}
+        <div className="space-y-1">
+          {toolList.map(t=>(
+            <button key={t.id} onClick={()=>setTool(t.id)}
+              className={`w-full py-2 px-3 text-xs font-medium border-2 text-left transition-colors flex justify-between items-center ${
+                tool===t.id?'border-stone-900 bg-white':'border-stone-200 bg-white hover:border-stone-400'}`}>
+              <span>{t.label}</span>
+              <span className="text-stone-400 font-mono">{t.key}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Undo / Redo */}
+        <div className="flex gap-1">
+          <button onClick={undo} disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            className="flex-1 py-1.5 text-xs font-medium border-2 border-stone-300 hover:border-stone-600 disabled:opacity-30 disabled:cursor-not-allowed">
+            ↩ Undo
+          </button>
+          <button onClick={redo} disabled={!canRedo}
+            title="Redo (Ctrl+Shift+Z)"
+            className="flex-1 py-1.5 text-xs font-medium border-2 border-stone-300 hover:border-stone-600 disabled:opacity-30 disabled:cursor-not-allowed">
+            ↪ Redo
+          </button>
+        </div>
+
+        {/* Fill options */}
+        {tool==='fill'&&(
+          <div className="bg-stone-100 border border-stone-200 p-3 space-y-3">
+            <div className="flex gap-1">
+              {[['contiguous','Flood'],['global','Global']].map(([mode,label])=>(
+                <button key={mode} onClick={()=>setFillMode(mode)}
+                  className={`flex-1 py-1 text-xs font-medium border-2 ${fillMode===mode?'bg-stone-900 text-white border-stone-900':'border-stone-300 bg-white'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div>
+              <div className="flex justify-between mb-1">
+                <label className="text-xs font-bold">Tolerance</label>
+                <span className="text-xs text-stone-400">{tolerance}%</span>
+              </div>
+              <input type="range" min="0" max="100" value={tolerance}
+                onChange={e=>setTolerance(parseInt(e.target.value))} className="w-full"/>
+              <p className="text-xs text-stone-400 mt-1">
+                {tolerance===0?'Exact match':tolerance<40?'Similar shades':'Wide range'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Grid */}
+        <div>
+          <label className="block text-xs font-bold mb-1">Grid: {gridSize}×{gridSize}</label>
+          <input type="range" min="8" max="64" value={gridSize}
+            onChange={e=>handleGridSizeChange(parseInt(e.target.value))} className="w-full"/>
+        </div>
+
+        {/* Zoom */}
+        <div>
+          <label className="block text-xs font-bold mb-1">Zoom: {displaySize}px</label>
+          <input type="range" min="240" max="1000" step="10" value={displaySize}
+            onChange={e=>setDisplaySize(parseInt(e.target.value))} className="w-full"/>
+        </div>
+
+        {/* Brush */}
+        <div>
+          <label className="block text-xs font-bold mb-1">Brush</label>
+          <div className="flex gap-1">
+            {[1,3,5].map(s=>(
+              <button key={s} onClick={()=>setBrushSize(s)}
+                className={`flex-1 py-1 border-2 text-xs font-medium ${brushSize===s?'bg-stone-900 text-white border-stone-900':'border-stone-300'}`}>
+                {s}px
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Color */}
+        <div>
+          <label className="block text-xs font-bold mb-2">Color · OKLCH</label>
+          <input type="color" value={selectedColor}
+            onChange={e=>setSelectedColor(e.target.value)}
+            className="w-full h-12 border-2 border-stone-300 block" style={{padding:0,cursor:'pointer'}}/>
+          <div className="mt-3">
+            <OklchSliders color={selectedColor} onChange={setSelectedColor}/>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:0,marginTop:6}}>
+            {colorHistory.map((color,i)=>(
+              <button key={`${color}-${i}`} onClick={()=>setSelectedColor(color)} title={color}
+                style={{backgroundColor:color,height:32,width:'100%',border:'none',padding:0,margin:0,display:'block',cursor:'pointer'}}/>
+            ))}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-auto space-y-2">
+          <button onClick={()=>setPixelsWithRef(Array.from({length:gridSize},()=>Array(gridSize).fill(null)))}
+            className="w-full py-2 px-3 text-xs font-medium bg-stone-100 border-2 border-stone-300 hover:bg-stone-200">
+            Clear Canvas
+          </button>
+          <button onClick={()=>{setTargetSize(gridSize>16?16:32);setShowResample(true);}}
+            className="w-full py-2 px-3 text-xs font-medium bg-white border-2 border-stone-400 hover:bg-stone-100">
+            Resample…
+          </button>
+          <button onClick={saveVersion} disabled={versions.length>=MAX_VERSIONS}
+            className="w-full py-2 px-3 text-xs font-medium bg-stone-700 text-white border-2 border-stone-700 hover:bg-stone-600 disabled:opacity-40">
+            Save Version{versions.length>=MAX_VERSIONS?' (max)':''}
+          </button>
+          <button onClick={()=>handleExport()}
+            className="w-full py-2 px-3 text-xs font-medium bg-stone-900 text-white border-2 border-stone-900 hover:bg-stone-700">
+            Export PNG
+          </button>
+          <button onClick={handleExportAllPDF} disabled={versions.length===0||pdfStatus==='loading'}
+            className="w-full py-2 px-3 text-xs font-medium bg-amber-700 text-white border-2 border-amber-700 hover:bg-amber-600 disabled:opacity-40">
+            {pdfStatus==='loading'?'Building PDF…':`Export All PDF (${versions.length})`}
+          </button>
+          {pdfStatus==='error'&&<p className="text-xs text-red-500 text-center">{versions.length===0?'Save a version first.':'PDF failed.'}</p>}
+        </div>
+      </div>
+
+      {/* ── Centre: canvas top, colour analysis below ── */}
+      <div className="flex-1 flex flex-col bg-stone-100 overflow-auto min-w-0">
+        {/* Canvas */}
+        <div className="flex justify-center items-start p-6 pb-3 flex-shrink-0">
+          <div className="flex flex-col items-center">
+            <div className="border-2 border-stone-400 shadow-xl" style={{width:displaySize,height:displaySize}}>
+              <canvas
+                ref={canvasRef}
+                width={CANVAS_SIZE} height={CANVAS_SIZE}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                style={{display:'block',width:'100%',height:'100%',imageRendering:'pixelated',
+                  cursor:toolList.find(t=>t.id===tool)?.cursor||'crosshair'}}
+              />
+            </div>
+            <p className="mt-2 text-xs text-stone-400 font-mono">
+              {gridSize}×{gridSize} · {displaySize}px · {tool}
+              {tool==='fill'?` · ${fillMode} tol ${tolerance}%`:''}
+              {(tool==='draw'||tool==='erase')?` · brush ${brushSize}px`:''}
+              {' · '}
+              <span className={canUndo?'text-stone-500':'text-stone-300'}>↩{historyState.idx}</span>
+              {' / '}
+              <span className={canRedo?'text-stone-500':'text-stone-300'}>{historyState.len-1-historyState.idx}↪</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Colour analysis strip */}
+        <ColourAnalysis pixels={pixels} gridSize={gridSize}/>
+      </div>
+
+      {/* ── Versions ── */}
+      <div className="w-48 bg-stone-50 border-l border-stone-200 flex flex-col flex-shrink-0">
+        <div className="p-3 border-b border-stone-200 flex items-baseline justify-between">
+          <p className="text-xs font-bold tracking-wide">VERSIONS</p>
+          <p className="text-xs text-stone-400">{versions.length}/{MAX_VERSIONS}</p>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2 space-y-2">
+          {versions.length===0&&<p className="text-xs text-stone-400 text-center pt-6 px-2 leading-relaxed">Hit "Save Version" to checkpoint your work.</p>}
+          {[...versions].reverse().map(v=>(
+            <div key={v.id} className="bg-white border-2 border-stone-200 hover:border-stone-400 transition-colors">
+              <div className="relative group cursor-pointer" onClick={()=>setConfirmLoad(v)}>
+                <img src={v.thumb} alt={v.name} style={{width:'100%',aspectRatio:'1',imageRendering:'pixelated',display:'block'}}/>
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-25 flex items-center justify-center transition-all">
+                  <span className="text-white text-xs font-bold opacity-0 group-hover:opacity-100 drop-shadow">Load</span>
+                </div>
+              </div>
+              <div className="p-1.5">
+                {editingId===v.id
+                  ? <input autoFocus value={tempName} onChange={e=>setTempName(e.target.value)}
+                      onBlur={commitRename} onKeyDown={e=>{if(e.key==='Enter')commitRename();if(e.key==='Escape')setEditingId(null);}}
+                      className="w-full text-xs border border-stone-400 px-1 py-0.5 outline-none"/>
+                  : <p className="text-xs font-medium truncate cursor-text" title="Double-click to rename"
+                      onDoubleClick={()=>{setEditingId(v.id);setTempName(v.name);}}>{v.name}</p>
+                }
+                <p className="text-xs text-stone-400">{v.gridSize}×{v.gridSize} · {v.savedAt}</p>
+                <div className="flex gap-1 mt-1.5">
+                  <button onClick={()=>handleExport(v.pixels,v.gridSize)} className="flex-1 text-xs py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-300">PNG</button>
+                  <button onClick={()=>deleteVersion(v.id)} className="flex-1 text-xs py-0.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600">Del</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Resample Modal ── */}
+      {showResample&&(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={()=>setShowResample(false)}>
+          <div className="bg-white p-6 shadow-2xl w-96" onClick={e=>e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-sm">Resample Canvas</h2>
+              <button onClick={()=>setShowResample(false)} className="text-stone-400 hover:text-stone-900 font-bold text-lg">✕</button>
+            </div>
+            <p className="text-xs text-stone-500 mb-4">Nearest-neighbor resampling — colours are never blended, palette stays exact.</p>
+            <div className="mb-4">
+              <label className="block text-xs font-bold mb-2">Target size</label>
+              <div className="flex flex-wrap gap-1 mb-3">
+                {PRESET_SIZES.map(s=>(
+                  <button key={s} onClick={()=>setTargetSize(s)}
+                    className={`px-3 py-1.5 text-xs font-medium border-2 ${targetSize===s?'bg-stone-900 text-white border-stone-900':s===gridSize?'border-stone-200 text-stone-400 bg-stone-50':'border-stone-300 hover:border-stone-600'}`}>
+                    {s}×{s}{s===gridSize?' ←':''}
+                  </button>
+                ))}
+              </div>
+              <label className="block text-xs text-stone-500 mb-1">Custom: {targetSize}×{targetSize}</label>
+              <input type="range" min="4" max="64" value={targetSize}
+                onChange={e=>setTargetSize(parseInt(e.target.value))} className="w-full"/>
+            </div>
+            <div className="flex gap-4 items-start mb-5">
+              <div className="flex-1 text-center">
+                <p className="text-xs text-stone-400 mb-1">Current ({gridSize}×{gridSize})</p>
+                <div className="border-2 border-stone-200 inline-block"><ResamplePreview pixels={pixels} fromSize={gridSize} toSize={gridSize}/></div>
+              </div>
+              <div className="flex items-center pt-8 text-stone-400 font-bold text-lg">→</div>
+              <div className="flex-1 text-center">
+                <p className="text-xs text-stone-400 mb-1">Preview ({targetSize}×{targetSize})</p>
+                <div className="border-2 border-stone-600 inline-block"><ResamplePreview pixels={pixels} fromSize={gridSize} toSize={targetSize}/></div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={()=>setShowResample(false)} className="flex-1 py-2 text-xs font-medium border-2 border-stone-300 hover:bg-stone-100">Cancel</button>
+              <button onClick={()=>{setPixelsWithRef(resampleNearest(pixels,gridSize,targetSize));setGridSize(targetSize);setShowResample(false);}}
+                disabled={targetSize===gridSize}
+                className="flex-1 py-2 text-xs font-medium bg-stone-900 text-white hover:bg-stone-700 disabled:opacity-40">
+                Apply {targetSize}×{targetSize}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Load ── */}
+      {confirmLoad&&(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={()=>setConfirmLoad(null)}>
+          <div className="bg-white p-6 shadow-2xl w-72" onClick={e=>e.stopPropagation()}>
+            <h2 className="font-bold text-sm mb-1">Load "{confirmLoad.name}"?</h2>
+            <p className="text-xs text-stone-500 mb-4">Current canvas will be replaced. Save it first if needed.</p>
+            <img src={confirmLoad.thumb} alt="preview" className="w-20 h-20 mx-auto mb-4 border-2 border-stone-200" style={{imageRendering:'pixelated'}}/>
+            <div className="flex gap-2">
+              <button onClick={()=>setConfirmLoad(null)} className="flex-1 py-2 text-xs font-medium border-2 border-stone-300 hover:bg-stone-100">Cancel</button>
+              <button onClick={()=>loadVersion(confirmLoad)} className="flex-1 py-2 text-xs font-medium bg-stone-900 text-white hover:bg-stone-700">Load</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Export Modal ── */}
+      {showExport&&(
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={()=>setShowExport(false)}>
+          <div className="bg-white p-6 shadow-2xl max-w-sm w-full mx-4" onClick={e=>e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="font-bold text-sm">Export PNG</h2>
+              <button onClick={()=>setShowExport(false)} className="text-stone-400 hover:text-stone-900 font-bold text-lg">✕</button>
+            </div>
+            <p className="text-xs text-stone-500 mb-3">Right-click the image → <strong>Save Image As…</strong></p>
+            <div className="border-2 border-stone-200 bg-stone-50 p-2 flex justify-center">
+              <img src={exportURL} alt="export" style={{width:256,height:256,imageRendering:'pixelated',display:'block'}}/>
+            </div>
+            <p className="text-xs text-stone-400 mt-2 text-center">512×512px · no grid lines</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+    // ── Mount ──────────────────────────────────────────────────────────────────
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<PixelArtTool />);
+
+  </script>
+</body>
+</html>
