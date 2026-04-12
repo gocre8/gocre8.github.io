@@ -4,33 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pixel Art Tool</title>
-
-  <!-- React 18 -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-  <!-- Babel (JSX transpilation in-browser) -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; }
-    #root { width: 100%; height: 100vh; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    #root { width: 100%; height: 100vh; display: flex; flex-direction: column; }
   </style>
 </head>
 <body>
   <div id="root"></div>
-
   <script type="text/babel">
     const { useState, useRef, useEffect, useCallback } = React;
-
-    const CANVAS_SIZE = 512;
-    const MAX_VERSIONS = 10;
-    const MAX_HISTORY = 20;
-    const LS_KEY = 'pixelart-versions';
 
 
 const CANVAS_SIZE = 512;
@@ -821,10 +808,9 @@ function PixelArtTool() {
   );
 }
 
-    // ── Mount ──────────────────────────────────────────────────────────────────
+
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<PixelArtTool />);
-
   </script>
 </body>
 </html>
