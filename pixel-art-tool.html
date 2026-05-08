@@ -58,6 +58,15 @@ function hexToRgbObj(hex) {
 function rgbToHex(r,g,b) {
   return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
 }
+function blendHex(existingHex, targetHex, strength) {
+  const a=hexToRgbObj(existingHex??'#ffffff'), b=hexToRgbObj(targetHex);
+  return rgbToHex(a.r+(b.r-a.r)*strength, a.g+(b.g-a.g)*strength, a.b+(b.b-a.b)*strength);
+}
+function ditherPaint(cx, cy, color, prev, spacing, gridSz) {
+  const next=prev.map(r=>[...r]);
+  if((cx%spacing===0)&&(cy%spacing===0)&&cx>=0&&cx<gridSz&&cy>=0&&cy<gridSz) next[cy][cx]=color;
+  return next;
+}
 
 // ── OKLCH Sliders ─────────────────────────────────────────────────────────────
 function OklchSliders({color,onChange}) {
@@ -106,23 +115,23 @@ const WHEEL_L = 0.65;
 const MAX_CHROMA = 0.37;
 
 function arcPath(cx,cy,innerR,outerR,startDeg,endDeg) {
-  const s=(startDeg-90)*Math.PI/180, e=(endDeg-90)*Math.PI/180;
+  const s=(-startDeg)*Math.PI/180, e=(-endDeg)*Math.PI/180;
   const lf=(endDeg-startDeg)>180?1:0;
   const p=n=>n.toFixed(2);
   if(innerR<0.5) {
     const x2=cx+outerR*Math.cos(s),y2=cy+outerR*Math.sin(s);
     const x3=cx+outerR*Math.cos(e),y3=cy+outerR*Math.sin(e);
-    return `M ${p(cx)} ${p(cy)} L ${p(x2)} ${p(y2)} A ${outerR} ${outerR} 0 ${lf} 1 ${p(x3)} ${p(y3)} Z`;
+    return `M ${p(cx)} ${p(cy)} L ${p(x2)} ${p(y2)} A ${outerR} ${outerR} 0 ${lf} 0 ${p(x3)} ${p(y3)} Z`;
   }
   const x1=cx+innerR*Math.cos(s),y1=cy+innerR*Math.sin(s);
   const x2=cx+outerR*Math.cos(s),y2=cy+outerR*Math.sin(s);
   const x3=cx+outerR*Math.cos(e),y3=cy+outerR*Math.sin(e);
   const x4=cx+innerR*Math.cos(e),y4=cy+innerR*Math.sin(e);
-  return `M ${p(x1)} ${p(y1)} L ${p(x2)} ${p(y2)} A ${outerR} ${outerR} 0 ${lf} 1 ${p(x3)} ${p(y3)} L ${p(x4)} ${p(y4)} A ${innerR} ${innerR} 0 ${lf} 0 ${p(x1)} ${p(y1)} Z`;
+  return `M ${p(x1)} ${p(y1)} L ${p(x2)} ${p(y2)} A ${outerR} ${outerR} 0 ${lf} 0 ${p(x3)} ${p(y3)} L ${p(x4)} ${p(y4)} A ${innerR} ${innerR} 0 ${lf} 1 ${p(x1)} ${p(y1)} Z`;
 }
 
 function HueWheel({palette}) {
-  const SIZE=260, CX=SIZE/2, CY=SIZE/2, MAX_R=SIZE/2-5;
+  const SIZE=280, CX=SIZE/2, CY=SIZE/2, MAX_R=SIZE/2-16;
   const segments=[];
   WHEEL_RINGS.forEach(({innerFrac,outerFrac,chroma})=>{
     const innerR=innerFrac*MAX_R, outerR=outerFrac*MAX_R;
@@ -140,10 +149,16 @@ function HueWheel({palette}) {
           fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={0.75}/>
       ))}
       <circle cx={CX} cy={CY} r={MAX_R} fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth={1}/>
+      {[0,45,90,135,180,225,270,315].map(hue=>{
+        const rad=(-hue)*Math.PI/180, labelR=MAX_R+10;
+        const lx=CX+Math.cos(rad)*labelR, ly=CY+Math.sin(rad)*labelR;
+        return <text key={hue} x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor="middle" dominantBaseline="middle"
+          style={{fontSize:8,fill:'#78716c',fontFamily:'sans-serif',userSelect:'none'}}>{hue}</text>;
+      })}
       {palette.filter(p=>p.color).map(({color,pct,L,C,H},i)=>{
         const chroma=Math.min(C??0, MAX_CHROMA);
         const orbitR=(chroma/MAX_CHROMA)*MAX_R;
-        const rad=((H??0)-90)*Math.PI/180;
+        const rad=(-(H??0))*Math.PI/180;
         const x=CX+Math.cos(rad)*orbitR, y=CY+Math.sin(rad)*orbitR;
         const dotR=7+(pct/100)*9;
         const light=(L??0.5)>0.72;
@@ -353,10 +368,14 @@ function PixelArtTool() {
   const [tempName,setTempName]     = useState('');
   const [exportURL,setExportURL]   = useState('');
   const [showExport,setShowExport] = useState(false);
-  const [confirmLoad,setConfirmLoad] = useState(null);
-  const [showResample,setShowResample] = useState(false);
-  const [targetSize,setTargetSize]   = useState(16);
-  const [pdfStatus,setPdfStatus]     = useState('');
+  const [confirmLoad,setConfirmLoad]     = useState(null);
+  const [confirmDelete,setConfirmDelete] = useState(null);
+  const [confirmClear,setConfirmClear]   = useState(false);
+  const [showResample,setShowResample]   = useState(false);
+  const [targetSize,setTargetSize]       = useState(16);
+  const [pdfStatus,setPdfStatus]         = useState('');
+  const [blendStrength,setBlendStrength] = useState(100);
+  const [ditherSpacing,setDitherSpacing] = useState(2);
 
   // ── Internal pixel setter (keeps ref in sync) ──────────────────────────────
   const setPixelsWithRef = useCallback((updater) => {
@@ -405,7 +424,7 @@ function PixelArtTool() {
       if(tag==='input'||tag==='textarea') return;
       if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
       if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();redo();return;}
-      const map={d:'draw',e:'erase',f:'fill',c:'eyedropper'};
+      const map={d:'draw',e:'erase',f:'fill',c:'eyedropper',x:'dither'};
       if(map[e.key.toLowerCase()]) setTool(map[e.key.toLowerCase()]);
     };
     window.addEventListener('keydown',onKey);
@@ -449,14 +468,19 @@ function PixelArtTool() {
   const paintCells=useCallback((cx,cy,color,prev)=>{
     const offset=Math.floor((brushSize-1)/2);
     const next=prev.map(r=>[...r]);
+    const strength=blendStrength/100;
     for(let dx=0;dx<brushSize;dx++)for(let dy=0;dy<brushSize;dy++){
       const px=cx-offset+dx,py=cy-offset+dy;
-      if(px>=0&&px<gridSize&&py>=0&&py<gridSize) next[py][px]=color;
+      if(px>=0&&px<gridSize&&py>=0&&py<gridSize){
+        if(color===null) next[py][px]=null;
+        else if(strength>=1) next[py][px]=color;
+        else next[py][px]=blendHex(prev[py][px],color,strength);
+      }
     }
     return next;
-  },[brushSize,gridSize]);
+  },[brushSize,gridSize,blendStrength]);
 
-  const addToHistory2=(color)=>setColorHistory(prev=>[color,...prev.filter(c=>c!==color)].slice(0,8));
+  const addToHistory2=(color)=>setColorHistory(prev=>[color,...prev.filter(c=>c!==color)].slice(0,10));
 
   // ── Pointer events ─────────────────────────────────────────────────────────
   const handleMouseDown=(e)=>{
@@ -475,7 +499,6 @@ function PixelArtTool() {
       setTool('draw');
     } else if(tool==='fill'){
       const target=pixels[cy]?.[cx]??null;
-      const before=pixelsRef.current;
       setPixelsWithRef(prev=>{
         const next=fillMode==='contiguous'
           ?floodFill(prev,cx,cy,target,selectedColor,tolerance,gridSize)
@@ -484,13 +507,18 @@ function PixelArtTool() {
         return next;
       });
       addToHistory2(selectedColor);
+    } else if(tool==='dither'){
+      strokeStartRef.current=pixelsRef.current;
+      setPixelsWithRef(prev=>ditherPaint(cx,cy,selectedColor,prev,ditherSpacing,gridSize));
+      addToHistory2(selectedColor);
     }
   };
 
   const handleMouseMove=(e)=>{
-    if(!isDrawing||(tool!=='draw'&&tool!=='erase')) return;
+    if(!isDrawing||(tool!=='draw'&&tool!=='erase'&&tool!=='dither')) return;
     const{cx,cy}=getCellCoords(e);
-    setPixelsWithRef(prev=>paintCells(cx,cy,tool==='draw'?selectedColor:null,prev));
+    if(tool==='dither') setPixelsWithRef(prev=>ditherPaint(cx,cy,selectedColor,prev,ditherSpacing,gridSize));
+    else setPixelsWithRef(prev=>paintCells(cx,cy,tool==='draw'?selectedColor:null,prev));
   };
 
   const handleMouseUp=useCallback(()=>{
@@ -544,6 +572,7 @@ function PixelArtTool() {
     {id:'erase',      label:'Erase',      cursor:'cell',      key:'E'},
     {id:'fill',       label:'Fill',       cursor:'copy',      key:'F'},
     {id:'eyedropper', label:'Eyedropper', cursor:'crosshair', key:'C'},
+    {id:'dither',     label:'Dither',     cursor:'crosshair', key:'X'},
   ];
 
   return (
@@ -604,6 +633,35 @@ function PixelArtTool() {
           </div>
         )}
 
+        {/* Dither options */}
+        {tool==='dither'&&(
+          <div className="bg-stone-100 border border-stone-200 p-3 space-y-3">
+            <div>
+              <label className="block text-xs font-bold mb-2">Spacing</label>
+              <div className="flex gap-1">
+                {[1,2,3,4,5].map(s=>(
+                  <button key={s} onClick={()=>setDitherSpacing(s)}
+                    className={`flex-1 py-1 border-2 text-xs font-medium ${ditherSpacing===s?'bg-stone-900 text-white border-stone-900':'border-stone-300'}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-stone-400 mb-1">Pattern preview</label>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(5,10px)',gap:1,width:'fit-content'}}>
+                {Array.from({length:25},(_,i)=>{
+                  const x=i%5,y=Math.floor(i/5),filled=(x%ditherSpacing===0)&&(y%ditherSpacing===0);
+                  return <div key={i} style={{width:10,height:10,backgroundColor:filled?selectedColor:'#e7e5e4',border:'1px solid #d1d5db'}}/>;
+                })}
+              </div>
+              <p className="text-xs text-stone-400 mt-1">
+                {ditherSpacing===1?'Solid':ditherSpacing===2?'Checkerboard':ditherSpacing===3?'Sparse dot':ditherSpacing===4?'Very sparse':'Max spacing'}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Grid */}
         <div>
           <label className="block text-xs font-bold mb-1">Grid: {gridSize}×{gridSize}</label>
@@ -611,25 +669,48 @@ function PixelArtTool() {
             onChange={e=>handleGridSizeChange(parseInt(e.target.value))} className="w-full"/>
         </div>
 
-        {/* Zoom */}
+        {/* View */}
         <div>
-          <label className="block text-xs font-bold mb-1">Zoom: {displaySize}px</label>
+          <label className="block text-xs font-bold mb-1">View: {displaySize}px</label>
           <input type="range" min="240" max="1000" step="10" value={displaySize}
             onChange={e=>setDisplaySize(parseInt(e.target.value))} className="w-full"/>
         </div>
 
-        {/* Brush */}
-        <div>
-          <label className="block text-xs font-bold mb-1">Brush</label>
-          <div className="flex gap-1">
-            {[1,3,5].map(s=>(
-              <button key={s} onClick={()=>setBrushSize(s)}
-                className={`flex-1 py-1 border-2 text-xs font-medium ${brushSize===s?'bg-stone-900 text-white border-stone-900':'border-stone-300'}`}>
-                {s}px
-              </button>
-            ))}
+        {/* Brush — hidden for fill and dither */}
+        {(tool==='draw'||tool==='erase')&&(
+          <div>
+            <label className="block text-xs font-bold mb-1">Brush</label>
+            <div className="flex gap-1">
+              {[1,3,5].map(s=>(
+                <button key={s} onClick={()=>setBrushSize(s)}
+                  className={`flex-1 py-1 border-2 text-xs font-medium ${brushSize===s?'bg-stone-900 text-white border-stone-900':'border-stone-300'}`}>
+                  {s}px
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Strength — draw tool only */}
+        {tool==='draw'&&(
+          <div>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+              <label className="text-xs font-bold">Strength</label>
+              <span className="text-xs text-stone-400">{blendStrength}%</span>
+            </div>
+            <input type="range" min="10" max="100" step="5" value={blendStrength}
+              onChange={e=>setBlendStrength(parseInt(e.target.value))} className="w-full"/>
+            <p className="text-xs text-stone-400 mt-1">
+              {blendStrength===100?'Full paint':blendStrength>=60?'Heavy blend':blendStrength>=30?'Soft glaze':'Subtle tint'}
+            </p>
+          </div>
+        )}
+
+        {/* Save Version */}
+        <button onClick={saveVersion} disabled={versions.length>=MAX_VERSIONS}
+          className="w-full py-2 px-3 text-xs font-medium bg-stone-700 text-white border-2 border-stone-700 hover:bg-stone-600 disabled:opacity-40">
+          Save Version{versions.length>=MAX_VERSIONS?' (max)':''}
+        </button>
 
         {/* Color */}
         <div>
@@ -640,17 +721,17 @@ function PixelArtTool() {
           <div className="mt-3">
             <OklchSliders color={selectedColor} onChange={setSelectedColor}/>
           </div>
-          <div style={{display:'flex',flexDirection:'column',gap:0,marginTop:6}}>
+          <div style={{display:'flex',flexDirection:'column',gap:0,marginTop:6,maxHeight:320,overflowY:'auto',overflowX:'hidden'}}>
             {colorHistory.map((color,i)=>(
               <button key={`${color}-${i}`} onClick={()=>setSelectedColor(color)} title={color}
-                style={{backgroundColor:color,height:32,width:'100%',border:'none',padding:0,margin:0,display:'block',cursor:'pointer'}}/>
+                style={{backgroundColor:color,height:32,width:'100%',border:'none',padding:0,margin:0,display:'block',cursor:'pointer',flexShrink:0}}/>
             ))}
           </div>
         </div>
 
         {/* Actions */}
         <div className="mt-auto space-y-2">
-          <button onClick={()=>setPixelsWithRef(Array.from({length:gridSize},()=>Array(gridSize).fill(null)))}
+          <button onClick={()=>setConfirmClear(true)}
             className="w-full py-2 px-3 text-xs font-medium bg-stone-100 border-2 border-stone-300 hover:bg-stone-200">
             Clear Canvas
           </button>
@@ -658,19 +739,10 @@ function PixelArtTool() {
             className="w-full py-2 px-3 text-xs font-medium bg-white border-2 border-stone-400 hover:bg-stone-100">
             Resample…
           </button>
-          <button onClick={saveVersion} disabled={versions.length>=MAX_VERSIONS}
-            className="w-full py-2 px-3 text-xs font-medium bg-stone-700 text-white border-2 border-stone-700 hover:bg-stone-600 disabled:opacity-40">
-            Save Version{versions.length>=MAX_VERSIONS?' (max)':''}
-          </button>
           <button onClick={()=>handleExport()}
             className="w-full py-2 px-3 text-xs font-medium bg-stone-900 text-white border-2 border-stone-900 hover:bg-stone-700">
             Export PNG
           </button>
-          <button onClick={handleExportAllPDF} disabled={versions.length===0||pdfStatus==='loading'}
-            className="w-full py-2 px-3 text-xs font-medium bg-amber-700 text-white border-2 border-amber-700 hover:bg-amber-600 disabled:opacity-40">
-            {pdfStatus==='loading'?'Building PDF…':`Export All PDF (${versions.length})`}
-          </button>
-          {pdfStatus==='error'&&<p className="text-xs text-red-500 text-center">{versions.length===0?'Save a version first.':'PDF failed.'}</p>}
         </div>
       </div>
 
@@ -692,13 +764,12 @@ function PixelArtTool() {
               />
             </div>
             <p className="mt-2 text-xs text-stone-400 font-mono">
-              {gridSize}×{gridSize} · {displaySize}px · {tool}
+              {gridSize}×{gridSize} · {tool}
+              {(tool==='draw'||tool==='erase')?` · ${brushSize}px`:''}
+              {tool==='draw'&&blendStrength<100?` · ${blendStrength}%`:''}
+              {tool==='dither'?` · ×${ditherSpacing}`:''}
               {tool==='fill'?` · ${fillMode} tol ${tolerance}%`:''}
-              {(tool==='draw'||tool==='erase')?` · brush ${brushSize}px`:''}
-              {' · '}
-              <span className={canUndo?'text-stone-500':'text-stone-300'}>↩{historyState.idx}</span>
-              {' / '}
-              <span className={canRedo?'text-stone-500':'text-stone-300'}>{historyState.len-1-historyState.idx}↪</span>
+              {' · '}{canUndo?'✓undo':'undo'}{' '}{canRedo?'redo✓':'redo'}
             </p>
           </div>
         </div>
@@ -713,7 +784,7 @@ function PixelArtTool() {
           <p className="text-xs font-bold tracking-wide">VERSIONS</p>
           <p className="text-xs text-stone-400">{versions.length}/{MAX_VERSIONS}</p>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-2">
+        <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-0">
           {versions.length===0&&<p className="text-xs text-stone-400 text-center pt-6 px-2 leading-relaxed">Hit "Save Version" to checkpoint your work.</p>}
           {[...versions].reverse().map(v=>(
             <div key={v.id} className="bg-white border-2 border-stone-200 hover:border-stone-400 transition-colors">
@@ -734,11 +805,22 @@ function PixelArtTool() {
                 <p className="text-xs text-stone-400">{v.gridSize}×{v.gridSize} · {v.savedAt}</p>
                 <div className="flex gap-1 mt-1.5">
                   <button onClick={()=>handleExport(v.pixels,v.gridSize)} className="flex-1 text-xs py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-300">PNG</button>
-                  <button onClick={()=>deleteVersion(v.id)} className="flex-1 text-xs py-0.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600">Del</button>
+                  <button onClick={()=>setConfirmDelete(v)} className="flex-1 text-xs py-0.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600">Del</button>
                 </div>
               </div>
             </div>
           ))}
+        </div>
+        <div className="p-2 border-t border-stone-200 flex-shrink-0">
+          <button onClick={handleExportAllPDF} disabled={versions.length===0||pdfStatus==='loading'}
+            className="w-full py-2 px-2 text-xs font-medium bg-amber-700 text-white border-2 border-amber-700 hover:bg-amber-600 disabled:opacity-40">
+            {pdfStatus==='loading'?'Building…':`Export PDF (${versions.length})`}
+          </button>
+          {pdfStatus==='error'&&(
+            <p className="text-xs text-red-500 text-center mt-1">
+              {versions.length===0?'Save a version first.':'PDF failed.'}
+            </p>
+          )}
         </div>
       </div>
 
@@ -798,6 +880,35 @@ function PixelArtTool() {
             <div className="flex gap-2">
               <button onClick={()=>setConfirmLoad(null)} className="flex-1 py-2 text-xs font-medium border-2 border-stone-300 hover:bg-stone-100">Cancel</button>
               <button onClick={()=>loadVersion(confirmLoad)} className="flex-1 py-2 text-xs font-medium bg-stone-900 text-white hover:bg-stone-700">Load</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Delete ── */}
+      {confirmDelete&&(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={()=>setConfirmDelete(null)}>
+          <div className="bg-white p-6 shadow-2xl w-72" onClick={e=>e.stopPropagation()}>
+            <h2 className="font-bold text-sm mb-1">Delete "{confirmDelete.name}"?</h2>
+            <p className="text-xs text-stone-500 mb-4">This can't be undone.</p>
+            <img src={confirmDelete.thumb} alt="preview" className="w-20 h-20 mx-auto mb-4 border-2 border-stone-200" style={{imageRendering:'pixelated'}}/>
+            <div className="flex gap-2">
+              <button onClick={()=>setConfirmDelete(null)} className="flex-1 py-2 text-xs font-medium border-2 border-stone-300 hover:bg-stone-100">Cancel</button>
+              <button onClick={()=>{deleteVersion(confirmDelete.id);setConfirmDelete(null);}} className="flex-1 py-2 text-xs font-medium bg-red-600 text-white hover:bg-red-700">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Clear ── */}
+      {confirmClear&&(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={()=>setConfirmClear(false)}>
+          <div className="bg-white p-6 shadow-2xl w-72" onClick={e=>e.stopPropagation()}>
+            <h2 className="font-bold text-sm mb-1">Clear the canvas?</h2>
+            <p className="text-xs text-stone-500 mb-4">All pixels will be erased. Save a version first if you want to keep this.</p>
+            <div className="flex gap-2">
+              <button onClick={()=>setConfirmClear(false)} className="flex-1 py-2 text-xs font-medium border-2 border-stone-300 hover:bg-stone-100">Cancel</button>
+              <button onClick={()=>{setPixelsWithRef(Array.from({length:gridSize},()=>Array(gridSize).fill(null)));setConfirmClear(false);}} className="flex-1 py-2 text-xs font-medium bg-stone-900 text-white hover:bg-stone-700">Clear</button>
             </div>
           </div>
         </div>
