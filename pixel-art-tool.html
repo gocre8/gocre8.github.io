@@ -63,10 +63,11 @@ function blendHex(existingHex, targetHex, strength) {
   return rgbToHex(a.r+(b.r-a.r)*strength, a.g+(b.g-a.g)*strength, a.b+(b.b-a.b)*strength);
 }
 const DITHER_MODES=[
-  {label:'½', desc:'Checkerboard',   test:(x,y)=>(x+y)%2===0},
-  {label:'2',  desc:'2-gap grid',    test:(x,y)=>x%3===0&&y%3===0},
-  {label:'3',  desc:'3-gap grid',    test:(x,y)=>x%4===0&&y%4===0},
-  {label:'4',  desc:'Sparse checker',test:(x,y)=>(x+y)%4===0},
+  {label:'½',  desc:'Checkerboard',       test:(x,y)=>(x+y)%2===0},
+  {label:'2',  desc:'2-gap grid',         test:(x,y)=>x%3===0&&y%3===0},
+  {label:'3',  desc:'3-gap grid',         test:(x,y)=>x%4===0&&y%4===0},
+  {label:'3½', desc:'3-gap + midpoints',  test:(x,y)=>(x%4===0&&y%4===0)||(x%4===2&&y%4===2)},
+  {label:'4',  desc:'Diagonal, 2-apart',  test:(x,y)=>(x+y)%3===0},
 ];
 function ditherPaint(cx, cy, color, prev, mode, gridSz) {
   const next=prev.map(r=>[...r]);
