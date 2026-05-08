@@ -5,67 +5,74 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Color Space Explorer</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;1,300&family=Courier+Prime:ital,wght@0,400;1,400&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --border: #2a2a3a;
-    --text: #e8e8f0;
-    --muted: #6b6b80;
+    --white:       #ffffff;
+    --bg:          #f4f6f9;
+    --surface-alt: #eff1f4;
+    --ink:         #222222;
+    --ink-soft:    #666666;
+    --ink-ghost:   #aaaaaa;
+    --line:        #eaeaea;
+    --border:      #e0e3e8;
+    --border-soft: #eceef2;
+    --accent:      #2a4a82;
+    --accent-pale: #e5ecf7;
   }
-  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
-  .title-group h1 { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; }
-  .title-group p { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 1px; }
-  .tabs { display: flex; gap: 3px; background: var(--bg); padding: 3px; border-radius: 8px; border: 1px solid var(--border); }
-  .tab { font-family: 'DM Mono', monospace; font-size: 12px; padding: 5px 14px; border: none; background: transparent; color: var(--muted); cursor: pointer; border-radius: 5px; transition: all 0.2s; letter-spacing: 0.5px; }
-  .tab:hover { color: var(--text); }
-  .tab.active { background: var(--text); color: var(--bg); font-weight: 500; }
+  body { background: var(--bg); color: var(--ink); font-family: 'Jost', sans-serif; font-weight: 300; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--white); }
+  .title-group h1 { font-family: 'Jost', sans-serif; font-size: 18px; font-weight: 400; letter-spacing: -0.3px; }
+  .title-group p { font-size: 9px; color: var(--ink-soft); margin-top: 1px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .tabs { display: flex; gap: 3px; }
+  .tab { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 300; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border: 1px solid var(--border); background: var(--bg); color: var(--ink-soft); cursor: pointer; border-radius: 3px; transition: all 0.15s; }
+  .tab:hover { color: var(--ink); border-color: var(--ink); }
+  .tab.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
   .main { display: flex; flex: 1; overflow: hidden; }
-  #canvas-container { flex: 1; position: relative; cursor: grab; }
+  #canvas-container { flex: 1; position: relative; cursor: grab; overflow: hidden; }
   #canvas-container:active { cursor: grabbing; }
   #canvas-container canvas { display: block; }
 
   /* Floating label overlay */
   .label-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-  .color-label { position: absolute; transform: translate(-50%, -50%); font-family: 'DM Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.85); background: rgba(0,0,0,0.5); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); white-space: nowrap; pointer-events: none; display: none; }
+  .color-label { position: absolute; transform: translate(-50%, -50%); font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 300; color: var(--ink); background: rgba(255,255,255,0.88); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border); white-space: nowrap; pointer-events: none; display: none; }
 
-  .sidebar { width: 250px; border-left: 1px solid var(--border); background: var(--surface); overflow-y: auto; padding: 16px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
-  .panel-section h3 { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
-  .info-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
-  .info-card .space-name { font-size: 20px; font-weight: 800; margin-bottom: 5px; letter-spacing: -1px; }
-  .info-card .space-desc { font-family: 'DM Mono', monospace; font-size: 10px; line-height: 1.7; color: #9090a8; }
+  .sidebar { width: 264px; border-left: 1px solid var(--border); background: var(--white); overflow-y: auto; padding: 14px; flex-shrink: 0; display: flex; flex-direction: column; gap: 13px; }
+  .panel-section h3 { font-size: 9px; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 9px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .info-card { background: var(--bg); border: 1px solid var(--border-soft); border-radius: 3px; padding: 11px; }
+  .info-card .space-name { font-family: 'Jost', sans-serif; font-size: 19px; font-weight: 400; margin-bottom: 4px; color: var(--accent); }
+  .info-card .space-desc { font-size: 9px; line-height: 1.75; color: var(--ink-soft); }
   .axes-list { display: flex; flex-direction: column; gap: 7px; }
   .axis-item { display: flex; align-items: center; gap: 9px; }
   .axis-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-  .axis-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
-  .axis-label strong { color: var(--text); display: block; font-size: 11px; }
-  .controls-info { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); line-height: 1.9; }
-  .slider-group { display: flex; flex-direction: column; gap: 8px; }
-  .slider-row { display: flex; flex-direction: column; gap: 4px; }
-  .slider-row label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; display: flex; justify-content: space-between; }
-  input[type=range] { width: 100%; accent-color: var(--text); cursor: pointer; }
-  .divider { height: 1px; background: var(--border); }
-  .tag { display: inline-block; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 5px; }
+  .axis-label { font-family: 'Courier Prime', monospace; font-size: 10px; color: var(--ink-soft); }
+  .axis-label strong { color: var(--ink); display: block; font-size: 10px; font-weight: 400; }
+  .controls-info { font-size: 9px; color: var(--ink-soft); line-height: 1.9; }
+  .slider-group { display: flex; flex-direction: column; gap: 9px; }
+  .slider-row { display: flex; flex-direction: column; gap: 3px; }
+  .slider-row label { font-size: 9px; color: var(--ink-soft); letter-spacing: 0.08em; text-transform: uppercase; display: flex; justify-content: space-between; }
+  .slider-row label strong { font-family: 'Courier Prime', monospace; color: var(--ink-soft); font-size: 11px; font-weight: 400; }
+  input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+  .divider { height: 1px; background: var(--line); }
+  .tag { display: inline-block; background: var(--accent-pale); border: 1px solid var(--border); border-radius: 3px; padding: 2px 7px; font-family: 'Jost', sans-serif; font-size: 9px; color: var(--accent); margin-top: 5px; }
 
   /* Color picker section */
   .color-picker-wrap { display: flex; flex-direction: column; gap: 8px; }
   .picker-row { display: flex; align-items: center; gap: 10px; }
-  input[type=color] { width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; padding: 2px; flex-shrink: 0; }
-  .picker-info { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); line-height: 1.7; flex: 1; }
-  .picker-info strong { color: var(--text); }
-  .picker-coords { font-family: 'DM Mono', monospace; font-size: 10px; color: #9090a8; line-height: 1.8; }
+  input[type=color] { width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 3px; background: none; cursor: pointer; padding: 2px; flex-shrink: 0; }
+  .picker-info { font-size: 9px; color: var(--ink-soft); line-height: 1.7; flex: 1; }
+  .picker-info strong { color: var(--ink); }
+  .picker-coords { font-family: 'Courier Prime', monospace; font-size: 10px; color: var(--ink-soft); line-height: 1.8; }
 
   /* Slice section */
   .slice-toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .toggle-btn { font-family: 'DM Mono', monospace; font-size: 10px; padding: 4px 12px; border: 1px solid var(--border); background: transparent; color: var(--muted); border-radius: 4px; cursor: pointer; transition: all 0.2s; }
-  .toggle-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .toggle-btn { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 300; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 10px; border: 1px solid var(--border); background: transparent; color: var(--ink-soft); border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+  .toggle-btn.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
   .slice-axis-btns { display: flex; gap: 4px; margin-bottom: 8px; }
-  .axis-btn { font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); border-radius: 4px; cursor: pointer; transition: all 0.2s; }
-  .axis-btn.active { background: rgba(255,255,255,0.12); color: var(--text); }
+  .axis-btn { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 300; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 10px; border: 1px solid var(--border); background: transparent; color: var(--ink-soft); border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+  .axis-btn.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
 
-  footer { padding: 8px 20px; border-top: 1px solid var(--border); background: var(--surface); font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; flex-shrink: 0; }
+  footer { padding: 6px 20px; border-top: 1px solid var(--border); background: var(--white); font-size: 9px; color: var(--ink-soft); display: flex; justify-content: space-between; flex-shrink: 0; }
 
   /* Highlighted point marker */
   #color-marker { position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px rgba(255,255,255,0.8); transform: translate(-50%,-50%); pointer-events: none; display: none; transition: left 0.3s, top 0.3s; }
@@ -76,7 +83,7 @@
 <header>
   <div class="title-group">
     <h1>Color Space Explorer</h1>
-    <p>Drag to orbit · Scroll to zoom · Switch tabs to compare</p>
+    <p>RGB · HSL · HSV — Drag to orbit · Scroll to zoom</p>
   </div>
   <div class="tabs">
     <button class="tab active" data-space="rgb">RGB</button>
@@ -129,7 +136,7 @@
       <h3>Cross-Section Slice</h3>
       <div class="slice-toggle">
         <button class="toggle-btn" id="slice-toggle">Enable</button>
-        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">Cut through the space</span>
+        <span class="toggle-label" style="font-size:9px;color:var(--ink-soft)">Cut through the space</span>
       </div>
       <div id="slice-controls" style="opacity:0.3;pointer-events:none">
         <div class="slice-axis-btns">
@@ -138,7 +145,7 @@
           <button class="axis-btn" data-axis="z">Z</button>
         </div>
         <div class="slider-row">
-          <label>Slice Position <span id="slice-val">50%</span></label>
+          <label>Slice Position <strong id="slice-val">50%</strong></label>
           <input type="range" id="slice-slider" min="0" max="100" value="50">
         </div>
       </div>
@@ -151,11 +158,11 @@
       <h3>Settings</h3>
       <div class="slider-group">
         <div class="slider-row">
-          <label>Point Density <span id="density-val">18</span></label>
+          <label>Point Density <strong id="density-val">18</strong></label>
           <input type="range" id="density" min="5" max="28" value="18">
         </div>
         <div class="slider-row">
-          <label>Point Size <span id="size-val">1.0</span>×</label>
+          <label>Point Size <strong id="size-val">1.0</strong>×</label>
           <input type="range" id="point-size" min="5" max="25" value="10">
         </div>
       </div>
@@ -164,7 +171,7 @@
     <div class="divider"></div>
     <div class="panel-section">
       <h3>Controls</h3>
-      <div class="controls-info">🖱 Left drag — Orbit<br>🖱 Right drag — Pan<br>🖱 Scroll — Zoom</div>
+      <div class="controls-info">Left drag — Orbit<br>Right drag — Pan<br>Scroll — Zoom</div>
     </div>
   </div>
 </div>
@@ -193,7 +200,7 @@ let W = container.clientWidth, H = container.clientHeight;
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(W, H);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setClearColor(0x0a0a0f);
+renderer.setClearColor(0xaaaaaa);
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
