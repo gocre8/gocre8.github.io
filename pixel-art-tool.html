@@ -113,15 +113,16 @@ function OklchSliders({color,onChange}) {
 // ── Hue Wheel (coloured background) ──────────────────────────────────────────
 const HUE_STEPS = 36;   // 10° each
 const WHEEL_RINGS = [
-  {innerFrac:0.25, outerFrac:0.44, chroma:0.10},
-  {innerFrac:0.44, outerFrac:0.63, chroma:0.19},
-  {innerFrac:0.63, outerFrac:0.81, chroma:0.28},
-  {innerFrac:0.81, outerFrac:1.00, chroma:0.37},
+  {innerFrac:0.25, outerFrac:0.41, chroma:0.05},
+  {innerFrac:0.41, outerFrac:0.57, chroma:0.10},
+  {innerFrac:0.57, outerFrac:0.73, chroma:0.16},
+  {innerFrac:0.73, outerFrac:0.87, chroma:0.21},
+  {innerFrac:0.87, outerFrac:1.00, chroma:0.25},
 ];
 const WHEEL_L = 0.65;
-const MAX_CHROMA = 0.37;
+const MAX_CHROMA = 0.25;
 const WHEEL_CENTER_FRAC = 0.25; // neutral gray center radius
-const WHEEL_HUE_OFFSET = 0;
+const WHEEL_HUE_OFFSET = 20;   // OKLCH yellow (#ffff00) is H≈110°, offset puts it at 12 o'clock
 
 function arcPath(cx,cy,innerR,outerR,startDeg,endDeg) {
   const s=(-startDeg)*Math.PI/180, e=(-endDeg)*Math.PI/180;
