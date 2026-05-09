@@ -166,7 +166,7 @@ function HueWheel({palette}) {
         const rad=(-hue)*Math.PI/180, labelR=MAX_R+10;
         const lx=CX+Math.cos(rad)*labelR, ly=CY+Math.sin(rad)*labelR;
         return <text key={hue} x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor="middle" dominantBaseline="middle"
-          style={{fontSize:8,fill:'#78716c',fontFamily:'sans-serif',userSelect:'none'}}>{(hue+WHEEL_HUE_OFFSET)%360}</text>;
+          style={{fontSize:8,fill:'#78716c',fontFamily:'sans-serif',userSelect:'none'}}>{hue}</text>;
       })}
       {palette.filter(p=>p.color).map(({color,pct,L,C,H},i)=>{
         const chroma=Math.min(C??0, MAX_CHROMA);
