@@ -113,13 +113,14 @@ function OklchSliders({color,onChange}) {
 // ── Hue Wheel (coloured background) ──────────────────────────────────────────
 const HUE_STEPS = 36;   // 10° each
 const WHEEL_RINGS = [
-  {innerFrac:0,    outerFrac:0.28, chroma:0.07},
-  {innerFrac:0.28, outerFrac:0.52, chroma:0.17},
-  {innerFrac:0.52, outerFrac:0.76, chroma:0.27},
-  {innerFrac:0.76, outerFrac:1.0,  chroma:0.37},
+  {innerFrac:0.25, outerFrac:0.44, chroma:0.10},
+  {innerFrac:0.44, outerFrac:0.63, chroma:0.19},
+  {innerFrac:0.63, outerFrac:0.81, chroma:0.28},
+  {innerFrac:0.81, outerFrac:1.00, chroma:0.37},
 ];
 const WHEEL_L = 0.65;
 const MAX_CHROMA = 0.37;
+const WHEEL_CENTER_FRAC = 0.25; // neutral gray center radius
 
 function arcPath(cx,cy,innerR,outerR,startDeg,endDeg) {
   const s=(-startDeg)*Math.PI/180, e=(-endDeg)*Math.PI/180;
@@ -156,6 +157,9 @@ function HueWheel({palette}) {
           fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={0.75}/>
       ))}
       <circle cx={CX} cy={CY} r={MAX_R} fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth={1}/>
+      <circle cx={CX} cy={CY} r={WHEEL_CENTER_FRAC*MAX_R}
+        fill={`oklch(${WHEEL_L} 0 0)`}
+        stroke="rgba(255,255,255,0.4)" strokeWidth={0.75}/>
       {[0,45,90,135,180,225,270,315].map(hue=>{
         const rad=(-hue)*Math.PI/180, labelR=MAX_R+10;
         const lx=CX+Math.cos(rad)*labelR, ly=CY+Math.sin(rad)*labelR;
