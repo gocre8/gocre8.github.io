@@ -517,6 +517,15 @@ function PixelArtTool() {
   // ── Persist versions ───────────────────────────────────────────────────────
   useEffect(()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(versions));}catch{}},[versions]);
 
+  // ── Auto-height for iframe embed ───────────────────────────────────────────
+  useEffect(()=>{
+    const report=()=>window.parent.postMessage({type:'phgrid-height',height:document.body.scrollHeight},'*');
+    const ro=new ResizeObserver(report);
+    ro.observe(document.body);
+    report();
+    return ()=>ro.disconnect();
+  },[]);
+
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useEffect(()=>{
     const onKey=(e)=>{
