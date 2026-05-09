@@ -77,9 +77,28 @@ function maxInGamutC(L, H) {
   for(let i=0;i<20;i++){const mid=(lo+hi)/2; if(inGamut(mid)) lo=mid; else hi=mid;}
   return lo;
 }
-function blendHex(existingHex, targetHex, strength) {
-  const a=hexToRgbObj(existingHex??'#ffffff'), b=hexToRgbObj(targetHex);
-  return rgbToHex(a.r+(b.r-a.r)*strength, a.g+(b.g-a.g)*strength, a.b+(b.b-a.b)*strength);
+// ── LCH pixel helpers ─────────────────────────────────────────────────────────
+function lchToStyle(p){return p?`oklch(${p.L.toFixed(4)} ${p.C.toFixed(4)} ${p.H.toFixed(2)}deg)`:'#ffffff';}
+function lchToHex(p){if(!p)return '#ffffff';const{r,g,b}=oklchToRgb(p.L,p.C,p.H);return rgbToHex(r,g,b);}
+function blendLch(e,t,s){
+  const ex=e??{L:1,C:0,H:t.H};
+  const L=ex.L+(t.L-ex.L)*s, C=ex.C+(t.C-ex.C)*s;
+  let dH=t.H-ex.H; if(dH>180)dH-=360; if(dH<-180)dH+=360;
+  return{L,C:Math.max(0,C),H:((ex.H+dH*s)%360+360)%360};
+}
+function lchDistance(a,b){
+  if(!a&&!b)return 0; if(!a||!b)return 1;
+  const dL=a.L-b.L, dC=a.C-b.C;
+  let dH=a.H-b.H; if(dH>180)dH-=360; if(dH<-180)dH+=360;
+  return Math.sqrt(dL*dL+dC*dC+(dH/360)**2);
+}
+function lchMatch(a,b,tol){return lchDistance(a,b)<=(tol/100)*1.5;}
+function migratePixels(rows){
+  return rows.map(row=>row.map(cell=>{
+    if(!cell)return null;
+    if(typeof cell==='string'){const{r,g,b}=hexToRgbObj(cell);return rgbToOklch(r,g,b);}
+    return cell;
+  }));
 }
 const DITHER_MODES=[
   {label:'½',  desc:'Checkerboard',       test:(x,y)=>(x+y)%2===0},
@@ -95,21 +114,27 @@ function ditherPaint(cx, cy, color, prev, mode, gridSz) {
 }
 
 // ── OKLCH Sliders ─────────────────────────────────────────────────────────────
-function OklchSliders({color,onChange}) {
-  const [lch,setLch]=useState(()=>{const{r,g,b}=hexToRgbObj(color);return rgbToOklch(r,g,b);});
-  const internal=useRef(false);
-  useEffect(()=>{if(internal.current){internal.current=false;return;}const{r,g,b}=hexToRgbObj(color);setLch(rgbToOklch(r,g,b));},[color]);
+// Accepts lch={L,C,H} and calls onChange({L,C,H}) — no hex conversion.
+function OklchSliders({lch:lchProp, onChange}) {
+  const [lch,setLch]=useState(lchProp);
+  const skipRef=useRef(false);
+  useEffect(()=>{
+    if(skipRef.current){skipRef.current=false;return;}
+    setLch(lchProp);
+  },[lchProp.L,lchProp.C,lchProp.H]);
   const update=(newLch)=>{
     const maxC=maxInGamutC(newLch.L,newLch.H);
     const clamped={...newLch,C:Math.min(newLch.C,maxC)};
+    skipRef.current=true;
     setLch(clamped);
-    const{r,g,b}=oklchToRgb(clamped.L,clamped.C,clamped.H);
-    internal.current=true;onChange(rgbToHex(r,g,b));
+    onChange(clamped);
   };
   const{L,C,H}=lch;
+  const maxCVal=maxInGamutC(L,H);
+  const maxCPct=Math.max(1,Math.round(maxCVal*100));
   const minC=Math.max(0.08,C);
   const lGrad=`linear-gradient(to right,oklch(0 ${C.toFixed(3)} ${H.toFixed(1)}deg),oklch(1 ${C.toFixed(3)} ${H.toFixed(1)}deg))`;
-  const cGrad=`linear-gradient(to right,oklch(${L.toFixed(3)} 0 ${H.toFixed(1)}deg),oklch(${L.toFixed(3)} 0.37 ${H.toFixed(1)}deg))`;
+  const cGrad=`linear-gradient(to right,oklch(${L.toFixed(3)} 0 ${H.toFixed(1)}deg),oklch(${L.toFixed(3)} ${maxCVal.toFixed(3)} ${H.toFixed(1)}deg))`;
   const hGrad=`linear-gradient(to right,${[0,60,120,180,240,300,360].map(d=>`oklch(${Math.max(0.55,L).toFixed(2)} ${minC.toFixed(3)} ${d}deg)`).join(',')})`;
   const trackStyle=(grad)=>({WebkitAppearance:'none',appearance:'none',width:'100%',height:12,borderRadius:6,background:grad,outline:'none',cursor:'pointer',border:'1px solid #d1d5db',display:'block'});
   return (
@@ -117,7 +142,7 @@ function OklchSliders({color,onChange}) {
       <style>{`.lch-s::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:white;border:2px solid #44403c;box-shadow:0 1px 3px rgba(0,0,0,.4);cursor:pointer}.lch-s::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:white;border:2px solid #44403c;cursor:pointer}`}</style>
       {[
         {label:'L',unit:'%',val:+(L*100).toFixed(1),min:0,max:100,step:1,grad:lGrad,key:'L',toInt:v=>v/100},
-        {label:'C',unit:'%',val:+(C*100).toFixed(1),min:0,max:40,step:0.5,grad:cGrad,key:'C',toInt:v=>v/100},
+        {label:'C',unit:'%',val:+(C*100).toFixed(1),min:0,max:maxCPct,step:0.5,grad:cGrad,key:'C',toInt:v=>v/100},
         {label:'H',unit:'°',val:+H.toFixed(1),min:0,max:360,step:1,grad:hGrad,key:'H',toInt:v=>v},
       ].map(({label,unit,val,min,max,step,grad,key,toInt})=>(
         <div key={key} style={{marginBottom:8}}>
@@ -130,7 +155,7 @@ function OklchSliders({color,onChange}) {
             style={trackStyle(grad)}/>
         </div>
       ))}
-      <div style={{fontFamily:'monospace',fontSize:10,color:'#78716c',textAlign:'center',marginTop:2}}>{color.toUpperCase()}</div>
+      <div style={{fontFamily:'monospace',fontSize:10,color:'#78716c',textAlign:'center',marginTop:2}}>{lchToHex(lch).toUpperCase()}</div>
     </div>
   );
 }
@@ -277,15 +302,20 @@ function ColourAnalysis({pixels,gridSize}) {
   const refresh=()=>{
     const counts={};
     for(let y=0;y<gridSize;y++)
-      for(let x=0;x<gridSize;x++){const c=pixels[y]?.[x]??'#ffffff';counts[c]=(counts[c]||0)+1;}
-    const total=Object.values(counts).reduce((a,b)=>a+b,0)||1;
-    const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([color,count])=>{
-      const{r,g,b}=hexToRgbObj(color);
-      const{L,C,H}=rgbToOklch(r,g,b);
-      return{color,pct:Math.round((count/total)*100),L,C,H};
-    });
-    // Pad to always 5 entries
-    while(top.length<5) top.push({color:null,pct:null,L:null,C:null,H:null});
+      for(let x=0;x<gridSize;x++){
+        const p=pixels[y]?.[x]??null;
+        const key=p?`${p.L.toFixed(3)},${p.C.toFixed(3)},${p.H.toFixed(1)}`:'__null__';
+        if(!counts[key])counts[key]={lch:p,count:0};
+        counts[key].count++;
+      }
+    const total=Object.values(counts).reduce((a,b)=>a+b.count,0)||1;
+    const top=Object.entries(counts)
+      .sort((a,b)=>b[1].count-a[1].count).slice(0,5)
+      .map(([,{lch,count}])=>{
+        const color=lch?lchToHex(lch):'#ffffff';
+        return{color,pct:Math.round((count/total)*100),L:lch?.L??1,C:lch?.C??0,H:lch?.H??0};
+      });
+    while(top.length<5)top.push({color:null,pct:null,L:null,C:null,H:null});
     setPalette(top);
   };
 
@@ -333,23 +363,20 @@ function ColourAnalysis({pixels,gridSize}) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function colorDistance(a,b){if(a===b)return 0;if(!a||!b)return 441;const ra=hexToRgbObj(a),rb=hexToRgbObj(b);return Math.sqrt((ra.r-rb.r)**2+(ra.g-rb.g)**2+(ra.b-rb.b)**2);}
-function colorsMatch(a,b,tol){return colorDistance(a,b)<=(tol/100)*441;}
 function floodFill(pixels,sx,sy,target,fill,tol,gs){
   const next=pixels.map(r=>[...r]),vis=Array.from({length:gs},()=>Array(gs).fill(false)),q=[[sx,sy]];
-  while(q.length){const[x,y]=q.shift();if(x<0||x>=gs||y<0||y>=gs||vis[y][x])continue;if(!colorsMatch(next[y][x],target,tol))continue;vis[y][x]=true;next[y][x]=fill;q.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);}
+  while(q.length){const[x,y]=q.shift();if(x<0||x>=gs||y<0||y>=gs||vis[y][x])continue;if(!lchMatch(next[y][x],target,tol))continue;vis[y][x]=true;next[y][x]=fill?{...fill}:null;q.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);}
   return next;
 }
-function globalFill(pixels,target,fill,tol){return pixels.map(row=>row.map(c=>colorsMatch(c,target,tol)?fill:c));}
+function globalFill(pixels,target,fill,tol){return pixels.map(row=>row.map(c=>lchMatch(c,target,tol)?fill?{...fill}:null:c));}
 function renderToDataURL(pixels,gs,size,withGrid=false){
   const ec=document.createElement('canvas');ec.width=size;ec.height=size;
   const ctx=ec.getContext('2d');
   ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,size,size);
-  // Integer-snap each cell boundary to eliminate sub-pixel gaps
   for(let y=0;y<gs;y++)for(let x=0;x<gs;x++)if(pixels[y]?.[x]){
     const px=Math.round(x*size/gs), py=Math.round(y*size/gs);
     const pw=Math.round((x+1)*size/gs)-px, ph=Math.round((y+1)*size/gs)-py;
-    ctx.fillStyle=pixels[y][x];ctx.fillRect(px,py,pw,ph);
+    ctx.fillStyle=lchToStyle(pixels[y][x]);ctx.fillRect(px,py,pw,ph);
   }
   if(withGrid){
     const cell=size/gs;
@@ -367,7 +394,7 @@ function ResamplePreview({pixels,fromSize,toSize,previewPx=140}){
     const canvas=ref.current;if(!canvas)return;
     const ctx=canvas.getContext('2d'),rs=resampleNearest(pixels,fromSize,toSize),cell=previewPx/toSize;
     ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,previewPx,previewPx);
-    for(let y=0;y<toSize;y++)for(let x=0;x<toSize;x++)if(rs[y]?.[x]){ctx.fillStyle=rs[y][x];ctx.fillRect(x*cell,y*cell,cell,cell);}
+    for(let y=0;y<toSize;y++)for(let x=0;x<toSize;x++)if(rs[y]?.[x]){ctx.fillStyle=lchToStyle(rs[y][x]);ctx.fillRect(x*cell,y*cell,cell,cell);}
     ctx.strokeStyle='#D1D5DB';ctx.lineWidth=0.5;
     for(let i=0;i<=toSize;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,previewPx);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(previewPx,i*cell);ctx.stroke();}
   },[pixels,fromSize,toSize,previewPx]);
@@ -376,7 +403,7 @@ function ResamplePreview({pixels,fromSize,toSize,previewPx=140}){
 
 // ── App ───────────────────────────────────────────────────────────────────────
 const PRESET_SIZES=[8,12,16,24,32,48,64];
-const INIT_GRID=24;
+const INIT_GRID=8;
 const initPixels=()=>Array.from({length:INIT_GRID},()=>Array(INIT_GRID).fill(null));
 
 function PixelArtTool() {
@@ -387,7 +414,7 @@ function PixelArtTool() {
   const pixelsRef                          = useRef(initialPx.current);
   const [gridSize,setGridSize]             = useState(INIT_GRID);
   const [displaySize,setDisplaySize]       = useState(512);
-  const [selectedColor,setSelectedColor]   = useState('#FF6B35');
+  const [selectedLch,setSelectedLch]       = useState(()=>{const{r,g,b}=hexToRgbObj('#FF6B35');return rgbToOklch(r,g,b);});
   const [colorHistory,setColorHistory]     = useState([]);
   const [tool,setTool]                     = useState('draw');
   const [brushSize,setBrushSize]           = useState(1);
@@ -404,7 +431,7 @@ function PixelArtTool() {
   const canRedo = historyState.idx<historyState.len-1;
 
   // Versions
-  const [versions,setVersions]     = useState(()=>{try{return JSON.parse(localStorage.getItem(LS_KEY))||[];}catch{return [];}});
+  const [versions,setVersions]     = useState(()=>{try{const vs=JSON.parse(localStorage.getItem(LS_KEY))||[];return vs.map(v=>({...v,pixels:migratePixels(v.pixels)}));}catch{return [];}});
   const [editingId,setEditingId]   = useState(null);
   const [tempName,setTempName]     = useState('');
   const [exportURL,setExportURL]   = useState('');
@@ -417,6 +444,7 @@ function PixelArtTool() {
   const [pdfStatus,setPdfStatus]         = useState('');
   const [blendStrength,setBlendStrength] = useState(100);
   const [ditherMode,setDitherMode]       = useState(0);
+  const [showGrid,setShowGrid]           = useState(true);
 
   // ── Internal pixel setter (keeps ref in sync) ──────────────────────────────
   const setPixelsWithRef = useCallback((updater) => {
@@ -473,7 +501,7 @@ function PixelArtTool() {
   },[undo,redo]);
 
   // ── Render canvas ──────────────────────────────────────────────────────────
-  const render=useCallback((pd,gs)=>{
+  const render=useCallback((pd,gs,sg)=>{
     const canvas=canvasRef.current;if(!canvas)return;
     const ctx=canvas.getContext('2d');
     ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
@@ -481,14 +509,16 @@ function PixelArtTool() {
     for(let y=0;y<gs;y++)for(let x=0;x<gs;x++)if(pd[y]?.[x]){
       const px=Math.round(x*CANVAS_SIZE/gs),py=Math.round(y*CANVAS_SIZE/gs);
       const pw=Math.round((x+1)*CANVAS_SIZE/gs)-px,ph=Math.round((y+1)*CANVAS_SIZE/gs)-py;
-      ctx.fillStyle=pd[y][x];ctx.fillRect(px,py,pw,ph);
+      ctx.fillStyle=lchToStyle(pd[y][x]);ctx.fillRect(px,py,pw,ph);
     }
-    const cell=CANVAS_SIZE/gs;
-    ctx.strokeStyle='#D1D5DB';ctx.lineWidth=0.5;
-    for(let i=0;i<=gs;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,CANVAS_SIZE);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(CANVAS_SIZE,i*cell);ctx.stroke();}
+    if(sg){
+      const cell=CANVAS_SIZE/gs;
+      ctx.strokeStyle='#D1D5DB';ctx.lineWidth=0.5;
+      for(let i=0;i<=gs;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,CANVAS_SIZE);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(CANVAS_SIZE,i*cell);ctx.stroke();}
+    }
   },[]);
 
-  useEffect(()=>{render(pixels,gridSize);},[pixels,gridSize,render]);
+  useEffect(()=>{render(pixels,gridSize,showGrid);},[pixels,gridSize,showGrid,render]);
 
   // ── Grid resize ────────────────────────────────────────────────────────────
   const handleGridSizeChange=(newSize)=>{
@@ -515,13 +545,13 @@ function PixelArtTool() {
       if(px>=0&&px<gridSize&&py>=0&&py<gridSize){
         if(color===null) next[py][px]=null;
         else if(strength>=1) next[py][px]=color;
-        else next[py][px]=blendHex(prev[py][px],color,strength);
+        else next[py][px]=blendLch(prev[py][px],color,strength);
       }
     }
     return next;
   },[brushSize,gridSize,blendStrength]);
 
-  const addToHistory2=(color)=>setColorHistory(prev=>[color,...prev.filter(c=>c!==color)].slice(0,10));
+  const addToHistory2=(lch)=>{const hex=lchToHex(lch);setColorHistory(prev=>[{lch,hex},...prev.filter(c=>c.hex!==hex)].slice(0,10));};
 
   // ── Pointer events ─────────────────────────────────────────────────────────
   const handleMouseDown=(e)=>{
@@ -529,37 +559,37 @@ function PixelArtTool() {
     const{cx,cy}=getCellCoords(e);
     if(tool==='draw'){
       strokeStartRef.current=pixelsRef.current;
-      setPixelsWithRef(prev=>paintCells(cx,cy,selectedColor,prev));
-      addToHistory2(selectedColor);
+      setPixelsWithRef(prev=>paintCells(cx,cy,selectedLch,prev));
+      addToHistory2(selectedLch);
     } else if(tool==='erase'){
       strokeStartRef.current=pixelsRef.current;
       setPixelsWithRef(prev=>paintCells(cx,cy,null,prev));
     } else if(tool==='eyedropper'){
-      const color=pixels[cy]?.[cx];
-      if(color){setSelectedColor(color);addToHistory2(color);}
+      const lch=pixels[cy]?.[cx];
+      if(lch){setSelectedLch(lch);addToHistory2(lch);}
       setTool('draw');
     } else if(tool==='fill'){
       const target=pixels[cy]?.[cx]??null;
       setPixelsWithRef(prev=>{
         const next=fillMode==='contiguous'
-          ?floodFill(prev,cx,cy,target,selectedColor,tolerance,gridSize)
-          :globalFill(prev,target,selectedColor,tolerance);
+          ?floodFill(prev,cx,cy,target,selectedLch,tolerance,gridSize)
+          :globalFill(prev,target,selectedLch,tolerance);
         pushHistory(next);
         return next;
       });
-      addToHistory2(selectedColor);
+      addToHistory2(selectedLch);
     } else if(tool==='dither'){
       strokeStartRef.current=pixelsRef.current;
-      setPixelsWithRef(prev=>ditherPaint(cx,cy,selectedColor,prev,ditherMode,gridSize));
-      addToHistory2(selectedColor);
+      setPixelsWithRef(prev=>ditherPaint(cx,cy,selectedLch,prev,ditherMode,gridSize));
+      addToHistory2(selectedLch);
     }
   };
 
   const handleMouseMove=(e)=>{
     if(!isDrawing||(tool!=='draw'&&tool!=='erase'&&tool!=='dither')) return;
     const{cx,cy}=getCellCoords(e);
-    if(tool==='dither') setPixelsWithRef(prev=>ditherPaint(cx,cy,selectedColor,prev,ditherMode,gridSize));
-    else setPixelsWithRef(prev=>paintCells(cx,cy,tool==='draw'?selectedColor:null,prev));
+    if(tool==='dither') setPixelsWithRef(prev=>ditherPaint(cx,cy,selectedLch,prev,ditherMode,gridSize));
+    else setPixelsWithRef(prev=>paintCells(cx,cy,tool==='draw'?selectedLch:null,prev));
   };
 
   const handleMouseUp=useCallback(()=>{
@@ -693,7 +723,7 @@ function PixelArtTool() {
               <div style={{display:'grid',gridTemplateColumns:'repeat(8,10px)',gap:1,width:'fit-content'}}>
                 {Array.from({length:64},(_,i)=>{
                   const x=i%8,y=Math.floor(i/8),filled=DITHER_MODES[ditherMode].test(x,y);
-                  return <div key={i} style={{width:10,height:10,backgroundColor:filled?selectedColor:'#e7e5e4',border:'1px solid #d1d5db'}}/>;
+                  return <div key={i} style={{width:10,height:10,backgroundColor:filled?lchToHex(selectedLch):'#e7e5e4',border:'1px solid #d1d5db'}}/>;
                 })}
               </div>
               <p className="text-xs text-stone-400 mt-1">{DITHER_MODES[ditherMode].desc}</p>
@@ -789,7 +819,6 @@ function PixelArtTool() {
               {tool==='draw'&&blendStrength<100?` · ${blendStrength}%`:''}
               {tool==='dither'?` · ${DITHER_MODES[ditherMode].label}`:''}
               {tool==='fill'?` · ${fillMode} tol ${tolerance}%`:''}
-              {' · '}{canUndo?'✓undo':'undo'}{' '}{canRedo?'redo✓':'redo'}
             </p>
           </div>
         </div>
@@ -798,7 +827,7 @@ function PixelArtTool() {
         <ColourAnalysis pixels={pixels} gridSize={gridSize}/>
 
         {/* ── Versions strip ── */}
-        <div className="border-t border-stone-200 bg-stone-50 flex-shrink-0">
+        <div className="border-t border-stone-200 bg-stone-50 flex-1">
           <div className="flex items-center justify-between px-3 py-2 border-b border-stone-200">
             <p className="text-xs font-bold tracking-wide">VERSIONS</p>
             <div className="flex items-center gap-3">
@@ -844,15 +873,22 @@ function PixelArtTool() {
 
       {/* ── Right: Color / OKLCH ── */}
       <div className="w-56 bg-stone-50 border-l border-stone-200 p-4 overflow-y-auto flex flex-col gap-4 flex-shrink-0">
+        {/* Grid toggle */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span className="text-xs font-bold">Grid</span>
+          <button onClick={()=>setShowGrid(g=>!g)}
+            style={{width:40,height:22,borderRadius:11,background:showGrid?'#1c1917':'#d1d5db',
+              position:'relative',cursor:'pointer',border:'none',flexShrink:0,transition:'background 0.2s'}}>
+            <span style={{position:'absolute',top:3,left:showGrid?21:3,width:16,height:16,borderRadius:'50%',
+              background:'white',transition:'left 0.18s',boxShadow:'0 1px 3px rgba(0,0,0,.35)'}}/>
+          </button>
+        </div>
         <label className="block text-xs font-bold">Color · OKLCH</label>
-        <input type="color" value={selectedColor}
-          onChange={e=>setSelectedColor(e.target.value)}
-          className="w-full h-12 border-2 border-stone-300 block" style={{padding:0,cursor:'pointer'}}/>
-        <OklchSliders color={selectedColor} onChange={setSelectedColor}/>
+        <OklchSliders lch={selectedLch} onChange={setSelectedLch}/>
         <div style={{display:'flex',flexDirection:'column',gap:0,overflowY:'auto',overflowX:'hidden',flex:1}}>
-          {colorHistory.map((color,i)=>(
-            <button key={`${color}-${i}`} onClick={()=>setSelectedColor(color)} title={color}
-              style={{backgroundColor:color,height:32,width:'100%',border:'none',padding:0,margin:0,display:'block',cursor:'pointer',flexShrink:0}}/>
+          {colorHistory.map(({lch,hex},i)=>(
+            <button key={`${hex}-${i}`} onClick={()=>setSelectedLch(lch)} title={hex}
+              style={{backgroundColor:hex,height:32,width:'100%',border:'none',padding:0,margin:0,display:'block',cursor:'pointer',flexShrink:0}}/>
           ))}
         </div>
       </div>

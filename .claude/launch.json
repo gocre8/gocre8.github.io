@@ -6,6 +6,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "--directory", "/Users/geoffreymillerair/Documents/gocre8.github.io", "8091"],
       "port": 8091
+    },
+    {
+      "name": "pixel-art-tool",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "--directory", "/Users/geoffreymillerair/Documents/gocre8.github.io", "8092"],
+      "port": 8092
     }
   ]
 }
