@@ -815,7 +815,7 @@ function PixelArtTool() {
         )}
 
         {/* Actions */}
-        <div className="mt-auto space-y-2">
+        <div className="space-y-2">
           <button onClick={saveVersion} disabled={versions.length>=MAX_VERSIONS}
             className="w-full py-2 px-3 text-xs font-medium bg-stone-700 text-white border-2 border-stone-700 hover:bg-stone-600 disabled:opacity-40">
             Save Version{versions.length>=MAX_VERSIONS?' (max)':''}
