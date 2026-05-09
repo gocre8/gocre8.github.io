@@ -121,6 +121,7 @@ const WHEEL_RINGS = [
 const WHEEL_L = 0.65;
 const MAX_CHROMA = 0.37;
 const WHEEL_CENTER_FRAC = 0.25; // neutral gray center radius
+const WHEEL_HUE_OFFSET = 20;   // rotate wheel CW so OKLCH yellow (H≈110) sits at 12 o'clock
 
 function arcPath(cx,cy,innerR,outerR,startDeg,endDeg) {
   const s=(-startDeg)*Math.PI/180, e=(-endDeg)*Math.PI/180;
@@ -145,7 +146,7 @@ function HueWheel({palette}) {
     const innerR=innerFrac*MAX_R, outerR=outerFrac*MAX_R;
     for(let h=0;h<HUE_STEPS;h++) {
       const s=h*(360/HUE_STEPS), e=(h+1)*(360/HUE_STEPS), mid=(h+0.5)*(360/HUE_STEPS);
-      segments.push(<path key={`${innerFrac}-${h}`} d={arcPath(CX,CY,innerR,outerR,s,e)}
+      segments.push(<path key={`${innerFrac}-${h}`} d={arcPath(CX,CY,innerR,outerR,s-WHEEL_HUE_OFFSET,e-WHEEL_HUE_OFFSET)}
         fill={`oklch(${WHEEL_L} ${chroma} ${mid.toFixed(1)}deg)`} stroke="none"/>);
     }
   });
@@ -164,12 +165,12 @@ function HueWheel({palette}) {
         const rad=(-hue)*Math.PI/180, labelR=MAX_R+10;
         const lx=CX+Math.cos(rad)*labelR, ly=CY+Math.sin(rad)*labelR;
         return <text key={hue} x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor="middle" dominantBaseline="middle"
-          style={{fontSize:8,fill:'#78716c',fontFamily:'sans-serif',userSelect:'none'}}>{hue}</text>;
+          style={{fontSize:8,fill:'#78716c',fontFamily:'sans-serif',userSelect:'none'}}>{(hue+WHEEL_HUE_OFFSET)%360}</text>;
       })}
       {palette.filter(p=>p.color).map(({color,pct,L,C,H},i)=>{
         const chroma=Math.min(C??0, MAX_CHROMA);
         const orbitR=(chroma/MAX_CHROMA)*MAX_R;
-        const rad=(-(H??0))*Math.PI/180;
+        const rad=(-(H??0)+WHEEL_HUE_OFFSET)*Math.PI/180;
         const x=CX+Math.cos(rad)*orbitR, y=CY+Math.sin(rad)*orbitR;
         const dotR=7+(pct/100)*9;
         const light=(L??0.5)>0.72;
