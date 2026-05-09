@@ -745,31 +745,12 @@ function PixelArtTool() {
           </div>
         )}
 
-        {/* Save Version */}
-        <button onClick={saveVersion} disabled={versions.length>=MAX_VERSIONS}
-          className="w-full py-2 px-3 text-xs font-medium bg-stone-700 text-white border-2 border-stone-700 hover:bg-stone-600 disabled:opacity-40">
-          Save Version{versions.length>=MAX_VERSIONS?' (max)':''}
-        </button>
-
-        {/* Color */}
-        <div>
-          <label className="block text-xs font-bold mb-2">Color · OKLCH</label>
-          <input type="color" value={selectedColor}
-            onChange={e=>setSelectedColor(e.target.value)}
-            className="w-full h-12 border-2 border-stone-300 block" style={{padding:0,cursor:'pointer'}}/>
-          <div className="mt-3">
-            <OklchSliders color={selectedColor} onChange={setSelectedColor}/>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:0,marginTop:6,maxHeight:320,overflowY:'auto',overflowX:'hidden'}}>
-            {colorHistory.map((color,i)=>(
-              <button key={`${color}-${i}`} onClick={()=>setSelectedColor(color)} title={color}
-                style={{backgroundColor:color,height:32,width:'100%',border:'none',padding:0,margin:0,display:'block',cursor:'pointer',flexShrink:0}}/>
-            ))}
-          </div>
-        </div>
-
         {/* Actions */}
         <div className="mt-auto space-y-2">
+          <button onClick={saveVersion} disabled={versions.length>=MAX_VERSIONS}
+            className="w-full py-2 px-3 text-xs font-medium bg-stone-700 text-white border-2 border-stone-700 hover:bg-stone-600 disabled:opacity-40">
+            Save Version{versions.length>=MAX_VERSIONS?' (max)':''}
+          </button>
           <button onClick={()=>setConfirmClear(true)}
             className="w-full py-2 px-3 text-xs font-medium bg-stone-100 border-2 border-stone-300 hover:bg-stone-200">
             Clear Canvas
@@ -815,51 +796,64 @@ function PixelArtTool() {
 
         {/* Colour analysis strip */}
         <ColourAnalysis pixels={pixels} gridSize={gridSize}/>
+
+        {/* ── Versions strip ── */}
+        <div className="border-t border-stone-200 bg-stone-50 flex-shrink-0">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-stone-200">
+            <p className="text-xs font-bold tracking-wide">VERSIONS</p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-stone-400">{versions.length}/{MAX_VERSIONS}</p>
+              <button onClick={handleExportAllPDF} disabled={versions.length===0||pdfStatus==='loading'}
+                className="py-1 px-2 text-xs font-medium bg-amber-700 text-white border border-amber-700 hover:bg-amber-600 disabled:opacity-40">
+                {pdfStatus==='loading'?'Building…':`Export PDF (${versions.length})`}
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto p-2" style={{minHeight:versions.length===0?48:undefined}}>
+            {versions.length===0
+              ? <p className="text-xs text-stone-400 self-center px-2">Hit "Save Version" to checkpoint your work.</p>
+              : [...versions].reverse().map(v=>(
+                <div key={v.id} className="flex-shrink-0 w-24 bg-white border-2 border-stone-200 hover:border-stone-400 transition-colors">
+                  <div className="relative group cursor-pointer" onClick={()=>setConfirmLoad(v)}>
+                    <img src={v.thumb} alt={v.name} style={{width:'100%',aspectRatio:'1',imageRendering:'pixelated',display:'block'}}/>
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-25 flex items-center justify-center transition-all">
+                      <span className="text-white text-xs font-bold opacity-0 group-hover:opacity-100 drop-shadow">Load</span>
+                    </div>
+                  </div>
+                  <div className="p-1">
+                    {editingId===v.id
+                      ? <input autoFocus value={tempName} onChange={e=>setTempName(e.target.value)}
+                          onBlur={commitRename} onKeyDown={e=>{if(e.key==='Enter')commitRename();if(e.key==='Escape')setEditingId(null);}}
+                          className="w-full text-xs border border-stone-400 px-1 py-0.5 outline-none"/>
+                      : <p className="text-xs font-medium truncate cursor-text" title="Double-click to rename"
+                          onDoubleClick={()=>{setEditingId(v.id);setTempName(v.name);}}>{v.name}</p>
+                    }
+                    <p className="text-xs text-stone-400">{v.gridSize}×{v.gridSize}</p>
+                    <div className="flex gap-1 mt-1">
+                      <button onClick={()=>handleExport(v.pixels,v.gridSize)} className="flex-1 text-xs py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-300">PNG</button>
+                      <button onClick={()=>setConfirmDelete(v)} className="flex-1 text-xs py-0.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600">Del</button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+          {pdfStatus==='error'&&<p className="text-xs text-red-500 px-3 pb-2">{versions.length===0?'Save a version first.':'PDF failed.'}</p>}
+        </div>
       </div>
 
-      {/* ── Versions ── */}
-      <div className="w-48 bg-stone-50 border-l border-stone-200 flex flex-col flex-shrink-0">
-        <div className="p-3 border-b border-stone-200 flex items-baseline justify-between">
-          <p className="text-xs font-bold tracking-wide">VERSIONS</p>
-          <p className="text-xs text-stone-400">{versions.length}/{MAX_VERSIONS}</p>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-0">
-          {versions.length===0&&<p className="text-xs text-stone-400 text-center pt-6 px-2 leading-relaxed">Hit "Save Version" to checkpoint your work.</p>}
-          {[...versions].reverse().map(v=>(
-            <div key={v.id} className="bg-white border-2 border-stone-200 hover:border-stone-400 transition-colors">
-              <div className="relative group cursor-pointer" onClick={()=>setConfirmLoad(v)}>
-                <img src={v.thumb} alt={v.name} style={{width:'100%',aspectRatio:'1',imageRendering:'pixelated',display:'block'}}/>
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-25 flex items-center justify-center transition-all">
-                  <span className="text-white text-xs font-bold opacity-0 group-hover:opacity-100 drop-shadow">Load</span>
-                </div>
-              </div>
-              <div className="p-1.5">
-                {editingId===v.id
-                  ? <input autoFocus value={tempName} onChange={e=>setTempName(e.target.value)}
-                      onBlur={commitRename} onKeyDown={e=>{if(e.key==='Enter')commitRename();if(e.key==='Escape')setEditingId(null);}}
-                      className="w-full text-xs border border-stone-400 px-1 py-0.5 outline-none"/>
-                  : <p className="text-xs font-medium truncate cursor-text" title="Double-click to rename"
-                      onDoubleClick={()=>{setEditingId(v.id);setTempName(v.name);}}>{v.name}</p>
-                }
-                <p className="text-xs text-stone-400">{v.gridSize}×{v.gridSize} · {v.savedAt}</p>
-                <div className="flex gap-1 mt-1.5">
-                  <button onClick={()=>handleExport(v.pixels,v.gridSize)} className="flex-1 text-xs py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-300">PNG</button>
-                  <button onClick={()=>setConfirmDelete(v)} className="flex-1 text-xs py-0.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600">Del</button>
-                </div>
-              </div>
-            </div>
+      {/* ── Right: Color / OKLCH ── */}
+      <div className="w-56 bg-stone-50 border-l border-stone-200 p-4 overflow-y-auto flex flex-col gap-4 flex-shrink-0">
+        <label className="block text-xs font-bold">Color · OKLCH</label>
+        <input type="color" value={selectedColor}
+          onChange={e=>setSelectedColor(e.target.value)}
+          className="w-full h-12 border-2 border-stone-300 block" style={{padding:0,cursor:'pointer'}}/>
+        <OklchSliders color={selectedColor} onChange={setSelectedColor}/>
+        <div style={{display:'flex',flexDirection:'column',gap:0,overflowY:'auto',overflowX:'hidden',flex:1}}>
+          {colorHistory.map((color,i)=>(
+            <button key={`${color}-${i}`} onClick={()=>setSelectedColor(color)} title={color}
+              style={{backgroundColor:color,height:32,width:'100%',border:'none',padding:0,margin:0,display:'block',cursor:'pointer',flexShrink:0}}/>
           ))}
-        </div>
-        <div className="p-2 border-t border-stone-200 flex-shrink-0">
-          <button onClick={handleExportAllPDF} disabled={versions.length===0||pdfStatus==='loading'}
-            className="w-full py-2 px-2 text-xs font-medium bg-amber-700 text-white border-2 border-amber-700 hover:bg-amber-600 disabled:opacity-40">
-            {pdfStatus==='loading'?'Building…':`Export PDF (${versions.length})`}
-          </button>
-          {pdfStatus==='error'&&(
-            <p className="text-xs text-red-500 text-center mt-1">
-              {versions.length===0?'Save a version first.':'PDF failed.'}
-            </p>
-          )}
         </div>
       </div>
 
