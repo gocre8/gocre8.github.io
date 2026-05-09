@@ -58,38 +58,6 @@ function hexToRgbObj(hex) {
 function rgbToHex(r,g,b) {
   return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
 }
-// Convert OKLCH directly to Display P3 — avoids the browser's sRGB-clamping path.
-// Wider gamut means saturated yellows / cyans / greens that get clipped in sRGB
-// can render closer to their true OKLCH values on a P3-capable display.
-function lchToP3CSS(L, C, H) {
-  const h = (H*Math.PI)/180, a = C*Math.cos(h), b = C*Math.sin(h);
-  const l_ = L + 0.3963377774*a + 0.2158037573*b;
-  const m_ = L - 0.1055613458*a - 0.0638541728*b;
-  const s_ = L - 0.0894841775*a - 1.2914855480*b;
-  const l = l_*l_*l_, m = m_*m_*m_, s = s_*s_*s_;
-  // OKLab LMS → linear D65 P3 (composed: sRGB→P3 matrix × OKLab LMS→sRGB matrix)
-  const rLin = +3.1276*l - 2.2570*m + 0.1294*s;
-  const gLin = -1.0910*l + 2.4137*m - 0.3223*s;
-  const bLin = -0.0259*l - 0.5080*m + 1.5340*s;
-  const enc = v => { v = Math.max(0,Math.min(1,v)); return v<=0.0031308 ? 12.92*v : 1.055*Math.pow(v,1/2.4)-0.055; };
-  return `color(display-p3 ${enc(rLin).toFixed(4)} ${enc(gLin).toFixed(4)} ${enc(bLin).toFixed(4)})`;
-}
-
-// For each hue, the L value at which max in-gamut chroma is highest in sRGB.
-// This is the "cusp" — the naturally-saturated lightness for that hue.
-// Yellow ≈ 0.95, green ≈ 0.87, cyan ≈ 0.91, blue ≈ 0.45, magenta ≈ 0.65, red ≈ 0.63.
-const _cuspL = {};
-function cuspL(H) {
-  const k = Math.round(H);
-  if (_cuspL[k] !== undefined) return _cuspL[k];
-  let bestL = 0.5, bestC = 0;
-  for (let L = 0.05; L < 0.99; L += 0.01) {
-    const c = maxInGamutC(L, H);
-    if (c > bestC) { bestC = c; bestL = L; }
-  }
-  return _cuspL[k] = bestL;
-}
-
 // Binary-search for the maximum OKLCH chroma that stays inside the sRGB gamut
 // at a given L and H. Runs ~20 iterations of the color math — fast enough for real-time use.
 function maxInGamutC(L, H) {
@@ -192,83 +160,86 @@ function OklchSliders({lch:lchProp, onChange}) {
   );
 }
 
-// ── Hue Wheel ─────────────────────────────────────────────────────────────────
+// ── Hue Wheel (coloured background) ──────────────────────────────────────────
+const HUE_STEPS = 36;   // 10° each
+// Rings span from WHEEL_CENTER_FRAC to 1.0; chroma maps linearly into that zone.
+// Dot formula: orbitFrac = WHEEL_CENTER_FRAC + (C/MAX_CHROMA)*(1-WHEEL_CENTER_FRAC)
+// Ring boundaries below are derived from the same formula so dots land in the right ring.
+const WHEEL_RINGS = [
+  {innerFrac:0.25, outerFrac:0.40, chroma:0.04},
+  {innerFrac:0.40, outerFrac:0.55, chroma:0.12},
+  {innerFrac:0.55, outerFrac:0.70, chroma:0.20},
+  {innerFrac:0.70, outerFrac:0.85, chroma:0.28},
+  {innerFrac:0.85, outerFrac:1.00, chroma:0.36},
+];
 const WHEEL_L = 0.65;
 const MAX_CHROMA = 0.40;
-const WHEEL_CENTER_FRAC = 0.125;
+const WHEEL_CENTER_FRAC = 0.25; // neutral gray center radius
+const WHEEL_HUE_OFFSET = 0;
 
-// gamma LUT — avoids Math.pow per pixel
-const _gammaLUT = new Float32Array(1024);
-for (let i=0;i<1024;i++){const v=i/1023;_gammaLUT[i]=v<=0.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-0.055;}
-const _gc = v => _gammaLUT[Math.round(Math.max(0,Math.min(1,v))*1023)];
+function arcPath(cx,cy,innerR,outerR,startDeg,endDeg) {
+  const s=(-startDeg)*Math.PI/180, e=(-endDeg)*Math.PI/180;
+  const lf=(endDeg-startDeg)>180?1:0;
+  const p=n=>n.toFixed(2);
+  if(innerR<0.5) {
+    const x2=cx+outerR*Math.cos(s),y2=cy+outerR*Math.sin(s);
+    const x3=cx+outerR*Math.cos(e),y3=cy+outerR*Math.sin(e);
+    return `M ${p(cx)} ${p(cy)} L ${p(x2)} ${p(y2)} A ${outerR} ${outerR} 0 ${lf} 0 ${p(x3)} ${p(y3)} Z`;
+  }
+  const x1=cx+innerR*Math.cos(s),y1=cy+innerR*Math.sin(s);
+  const x2=cx+outerR*Math.cos(s),y2=cy+outerR*Math.sin(s);
+  const x3=cx+outerR*Math.cos(e),y3=cy+outerR*Math.sin(e);
+  const x4=cx+innerR*Math.cos(e),y4=cy+innerR*Math.sin(e);
+  return `M ${p(x1)} ${p(y1)} L ${p(x2)} ${p(y2)} A ${outerR} ${outerR} 0 ${lf} 0 ${p(x3)} ${p(y3)} L ${p(x4)} ${p(y4)} A ${innerR} ${innerR} 0 ${lf} 1 ${p(x1)} ${p(y1)} Z`;
+}
 
 function HueWheel({palette}) {
-  const canvasRef=React.useRef(null);
   const SIZE=280, CX=SIZE/2, CY=SIZE/2, MAX_R=SIZE/2-16;
-  React.useEffect(()=>{
-    const canvas=canvasRef.current; if(!canvas)return;
-    const ctx=canvas.getContext('2d');
-    const img=ctx.createImageData(SIZE,SIZE); const d=img.data;
-    // precompute per-hue max gamut chroma at WHEEL_L
-    const maxC=new Float32Array(360);
-    for(let h=0;h<360;h++) maxC[h]=maxInGamutC(WHEEL_L,h);
-    for(let py=0;py<SIZE;py++){
-      for(let px=0;px<SIZE;px++){
-        const dx=px-CX, dy=py-CY;
-        const r=Math.sqrt(dx*dx+dy*dy);
-        if(r>MAX_R) continue;
-        const t=r/MAX_R;
-        const H=((-(Math.atan2(dy,dx)*180/Math.PI))%360+360)%360;
-        const hi=Math.round(H)%360;
-        const C=t*maxC[hi];
-        const hRad=H*Math.PI/180;
-        const a=C*Math.cos(hRad), b=C*Math.sin(hRad);
-        const l_=WHEEL_L+0.3963377774*a+0.2158037573*b;
-        const m_=WHEEL_L-0.1055613458*a-0.0638541728*b;
-        const s_=WHEEL_L-0.0894841775*a-1.2914855480*b;
-        const lc=l_*l_*l_, mc=m_*m_*m_, sc=s_*s_*s_;
-        const R= 4.0767416621*lc-3.3077115913*mc+0.2309699292*sc;
-        const G=-1.2684380046*lc+2.6097574011*mc-0.3413193965*sc;
-        const B=-0.0041960863*lc-0.7034186147*mc+1.7076147010*sc;
-        const i4=(py*SIZE+px)*4;
-        d[i4]=Math.round(_gc(R)*255); d[i4+1]=Math.round(_gc(G)*255);
-        d[i4+2]=Math.round(_gc(B)*255); d[i4+3]=255;
-      }
+  const segments=[];
+  WHEEL_RINGS.forEach(({innerFrac,outerFrac,chroma})=>{
+    const innerR=innerFrac*MAX_R, outerR=outerFrac*MAX_R;
+    for(let h=0;h<HUE_STEPS;h++) {
+      const s=h*(360/HUE_STEPS), e=(h+1)*(360/HUE_STEPS), mid=(h+0.5)*(360/HUE_STEPS);
+      segments.push(<path key={`${innerFrac}-${h}`} d={arcPath(CX,CY,innerR,outerR,s-WHEEL_HUE_OFFSET,e-WHEEL_HUE_OFFSET)}
+        fill={`oklch(${WHEEL_L} ${chroma} ${mid.toFixed(1)}deg)`} stroke="none"/>);
     }
-    ctx.putImageData(img,0,0);
-    ctx.beginPath(); ctx.arc(CX,CY,MAX_R,0,Math.PI*2);
-    ctx.strokeStyle='rgba(0,0,0,0.15)'; ctx.lineWidth=1; ctx.stroke();
-  },[]);
+  });
   return (
-    <div style={{position:'relative',width:SIZE,height:SIZE,flexShrink:0}}>
-      <canvas ref={canvasRef} width={SIZE} height={SIZE} style={{display:'block'}}/>
-      <svg width={SIZE} height={SIZE} style={{position:'absolute',top:0,left:0,overflow:'visible'}}>
-        {[30,90,140,195,260,330].map(hue=>{
-          const rad=(-hue)*Math.PI/180, labelR=MAX_R+10;
-          const lx=CX+Math.cos(rad)*labelR, ly=CY+Math.sin(rad)*labelR;
-          return <text key={hue} x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor="middle" dominantBaseline="middle"
-            style={{fontSize:8,fill:'#78716c',fontFamily:'sans-serif',userSelect:'none'}}>{hue}</text>;
-        })}
-        {palette.filter(p=>p.color).map(({color,pct,L,C,H},i)=>{
-          const chroma=Math.min(C??0,MAX_CHROMA);
-          const orbitR=chroma<0.02?0:(chroma/maxInGamutC(WHEEL_L,H??0))*MAX_R;
-          const rad=(-(H??0))*Math.PI/180;
-          const x=CX+Math.cos(rad)*orbitR, y=CY+Math.sin(rad)*orbitR;
-          const dotR=7+(pct/100)*9;
-          const light=(L??0.5)>0.72;
-          return (
-            <g key={i}>
-              <circle cx={x} cy={y} r={dotR+2.5} fill="white" opacity={0.6}/>
-              <circle cx={x} cy={y} r={dotR} fill={color} stroke="white" strokeWidth={1.5}/>
-              <text x={x} y={y+3.5} textAnchor="middle"
-                style={{fontSize:8,fontWeight:700,fill:light?'#44403c':'white',fontFamily:'sans-serif'}}>
-                {pct}%
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
+    <svg width={SIZE} height={SIZE} style={{display:'block',flexShrink:0}}>
+      {segments}
+      {WHEEL_RINGS.map(({outerFrac})=>(
+        <circle key={outerFrac} cx={CX} cy={CY} r={outerFrac*MAX_R}
+          fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={0.75}/>
+      ))}
+      <circle cx={CX} cy={CY} r={MAX_R} fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth={1}/>
+      <circle cx={CX} cy={CY} r={WHEEL_CENTER_FRAC*MAX_R}
+        fill={`oklch(${WHEEL_L} 0 0)`}
+        stroke="rgba(255,255,255,0.4)" strokeWidth={0.75}/>
+      {[0,45,90,135,180,225,270,315].map(hue=>{
+        const rad=(-hue)*Math.PI/180, labelR=MAX_R+10;
+        const lx=CX+Math.cos(rad)*labelR, ly=CY+Math.sin(rad)*labelR;
+        return <text key={hue} x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor="middle" dominantBaseline="middle"
+          style={{fontSize:8,fill:'#78716c',fontFamily:'sans-serif',userSelect:'none'}}>{hue}</text>;
+      })}
+      {palette.filter(p=>p.color).map(({color,pct,L,C,H},i)=>{
+        const chroma=Math.min(C??0, MAX_CHROMA);
+        const orbitR=(WHEEL_CENTER_FRAC+(chroma/MAX_CHROMA)*(1-WHEEL_CENTER_FRAC))*MAX_R;
+        const rad=(-(H??0)+WHEEL_HUE_OFFSET)*Math.PI/180;
+        const x=CX+Math.cos(rad)*orbitR, y=CY+Math.sin(rad)*orbitR;
+        const dotR=7+(pct/100)*9;
+        const light=(L??0.5)>0.72;
+        return (
+          <g key={i}>
+            <circle cx={x} cy={y} r={dotR+2.5} fill="white" opacity={0.6}/>
+            <circle cx={x} cy={y} r={dotR} fill={color} stroke="white" strokeWidth={1.5}/>
+            <text x={x} y={y+3.5} textAnchor="middle"
+              style={{fontSize:8,fontWeight:700,fill:light?'#44403c':'white',fontFamily:'sans-serif'}}>
+              {pct}%
+            </text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -444,7 +415,6 @@ function PixelArtTool() {
   const [gridSize,setGridSize]             = useState(INIT_GRID);
   const [displaySize,setDisplaySize]       = useState(512);
   const [selectedLch,setSelectedLch]       = useState(()=>{const{r,g,b}=hexToRgbObj('#FF6B35');return rgbToOklch(r,g,b);});
-  const [previousLch,setPreviousLch]       = useState(null);
   const [colorHistory,setColorHistory]     = useState([]);
   const [tool,setTool]                     = useState('draw');
   const [brushSize,setBrushSize]           = useState(1);
@@ -470,7 +440,6 @@ function PixelArtTool() {
   const [confirmDelete,setConfirmDelete] = useState(null);
   const [confirmClear,setConfirmClear]   = useState(false);
   const [showResample,setShowResample]   = useState(false);
-  const [showRandomFill,setShowRandomFill] = useState(false);
   const [targetSize,setTargetSize]       = useState(16);
   const [pdfStatus,setPdfStatus]         = useState('');
   const [blendStrength,setBlendStrength] = useState(100);
@@ -589,7 +558,6 @@ function PixelArtTool() {
     setIsDrawing(true);
     const{cx,cy}=getCellCoords(e);
     if(tool==='draw'){
-      setPreviousLch(selectedLch);
       strokeStartRef.current=pixelsRef.current;
       setPixelsWithRef(prev=>paintCells(cx,cy,selectedLch,prev));
       addToHistory2(selectedLch);
@@ -598,10 +566,9 @@ function PixelArtTool() {
       setPixelsWithRef(prev=>paintCells(cx,cy,null,prev));
     } else if(tool==='eyedropper'){
       const lch=pixels[cy]?.[cx];
-      if(lch){setPreviousLch(selectedLch);setSelectedLch(lch);addToHistory2(lch);}
+      if(lch){setSelectedLch(lch);addToHistory2(lch);}
       setTool('draw');
     } else if(tool==='fill'){
-      setPreviousLch(selectedLch);
       const target=pixels[cy]?.[cx]??null;
       setPixelsWithRef(prev=>{
         const next=fillMode==='contiguous'
@@ -612,7 +579,6 @@ function PixelArtTool() {
       });
       addToHistory2(selectedLch);
     } else if(tool==='dither'){
-      setPreviousLch(selectedLch);
       strokeStartRef.current=pixelsRef.current;
       setPixelsWithRef(prev=>ditherPaint(cx,cy,selectedLch,prev,ditherMode,gridSize));
       addToHistory2(selectedLch);
@@ -670,18 +636,6 @@ function PixelArtTool() {
       pdf.save('pixel-art-designs.pdf');
       setPdfStatus('');
     }catch(err){console.error(err);setPdfStatus('error');}
-  };
-
-  const applyRandomFill=()=>{
-    const H=Math.random()*360;
-    const L=0.35+Math.random()*0.45;
-    const maxC=maxInGamutC(L,H);
-    const C=Math.max(0,0.05+Math.random()*(maxC-0.05));
-    const color={L,C,H};
-    const filled=Array.from({length:gridSize},()=>Array(gridSize).fill(color));
-    setPixelsWithRef(filled);
-    pushHistory(filled);
-    setShowRandomFill(false);
   };
 
   const toolList=[
@@ -777,10 +731,17 @@ function PixelArtTool() {
           </div>
         )}
 
+        {/* Grid */}
+        <div>
+          <label className="block text-xs font-bold mb-1">Grid: {gridSize}×{gridSize}</label>
+          <input type="range" min="8" max="64" value={gridSize}
+            onChange={e=>handleGridSizeChange(parseInt(e.target.value))} className="w-full"/>
+        </div>
+
         {/* View */}
         <div>
           <label className="block text-xs font-bold mb-1">View: {displaySize}px</label>
-          <input type="range" min="100" max="2000" step="10" value={displaySize}
+          <input type="range" min="240" max="1000" step="10" value={displaySize}
             onChange={e=>setDisplaySize(parseInt(e.target.value))} className="w-full"/>
         </div>
 
@@ -823,13 +784,6 @@ function PixelArtTool() {
           <button onClick={()=>setConfirmClear(true)}
             className="w-full py-2 px-3 text-xs font-medium bg-stone-100 border-2 border-stone-300 hover:bg-stone-200">
             Clear Canvas
-          </button>
-          <button onClick={()=>{
-            const isEmpty=pixels.every(r=>r.every(c=>c===null));
-            if(isEmpty) applyRandomFill(); else setShowRandomFill(true);
-          }}
-            className="w-full py-2 px-3 text-xs font-medium bg-stone-100 border-2 border-stone-300 hover:bg-stone-200">
-            Random Fill
           </button>
           <button onClick={()=>{setTargetSize(gridSize>16?16:32);setShowResample(true);}}
             className="w-full py-2 px-3 text-xs font-medium bg-white border-2 border-stone-400 hover:bg-stone-100">
@@ -930,16 +884,6 @@ function PixelArtTool() {
           </button>
         </div>
         <label className="block text-xs font-bold">Color · OKLCH</label>
-        <div>
-          <div style={{display:'flex',height:44,border:'2px solid #d1d5db',flexShrink:0}}>
-            <div style={{flex:1,backgroundColor:previousLch?lchToHex(previousLch):'#e7e5e4'}}/>
-            <div style={{flex:1,backgroundColor:lchToHex(selectedLch)}}/>
-          </div>
-          <div style={{display:'flex',justifyContent:'space-between',marginTop:2}}>
-            <span style={{fontSize:9,fontFamily:'monospace',color:'#78716c'}}>prev</span>
-            <span style={{fontSize:9,fontFamily:'monospace',color:'#78716c'}}>cur</span>
-          </div>
-        </div>
         <OklchSliders lch={selectedLch} onChange={setSelectedLch}/>
         <div style={{display:'flex',flexDirection:'column',gap:0,overflowY:'auto',overflowX:'hidden',flex:1}}>
           {colorHistory.map(({lch,hex},i)=>(
@@ -1020,20 +964,6 @@ function PixelArtTool() {
             <div className="flex gap-2">
               <button onClick={()=>setConfirmDelete(null)} className="flex-1 py-2 text-xs font-medium border-2 border-stone-300 hover:bg-stone-100">Cancel</button>
               <button onClick={()=>{deleteVersion(confirmDelete.id);setConfirmDelete(null);}} className="flex-1 py-2 text-xs font-medium bg-red-600 text-white hover:bg-red-700">Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Confirm Random Fill ── */}
-      {showRandomFill&&(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={()=>setShowRandomFill(false)}>
-          <div className="bg-white p-6 shadow-2xl w-72" onClick={e=>e.stopPropagation()}>
-            <h2 className="font-bold text-sm mb-1">Replace canvas with random fill?</h2>
-            <p className="text-xs text-stone-500 mb-4">Current pixels will be overwritten. Save a version first if you want to keep this.</p>
-            <div className="flex gap-2">
-              <button onClick={()=>setShowRandomFill(false)} className="flex-1 py-2 text-xs font-medium border-2 border-stone-300 hover:bg-stone-100">Cancel</button>
-              <button onClick={applyRandomFill} className="flex-1 py-2 text-xs font-medium bg-stone-900 text-white hover:bg-stone-700">Fill</button>
             </div>
           </div>
         </div>
