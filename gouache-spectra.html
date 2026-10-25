@@ -40,6 +40,7 @@ p{margin:0;max-width:66ch}
 #tri text{font:400 11px var(--f-num);fill:var(--ink-soft);pointer-events:none}
 #tri line{stroke:var(--line);stroke-width:1}
 .detail{display:grid;gap:12px}
+.tripanel{display:grid;gap:10px}
 .dhead{display:flex;gap:14px;align-items:center}
 .bigsw{width:64px;height:64px;border-radius:3px;border:1px solid rgba(0,0,0,.12);flex:none}
 .dname{font:400 20px/1.2 var(--f-ui)}
@@ -114,7 +115,11 @@ details.arch>summary .btn{pointer-events:none}
   <section aria-labelledby="h-chart">
     <h2 id="h-chart">The chart</h2>
     <div class="chartgrid">
-      <div class="panel"><svg id="tri" viewBox="0 0 440 400" role="group" aria-label="Chart swatches arranged by mixture"></svg></div>
+      <div class="panel tripanel">
+        <div class="bar" role="group" aria-label="Layout"><button class="btn" id="lay-s" aria-pressed="true">As painted</button><button class="btn" id="lay-m" aria-pressed="false">Measured spacing</button></div>
+        <svg id="tri" viewBox="0 0 440 400" role="group" aria-label="Chart swatches arranged by mixture"></svg>
+        <p class="more" id="layNote"></p>
+      </div>
       <div class="panel detail" id="detail" aria-live="polite"></div>
     </div>
   </section>
@@ -217,21 +222,67 @@ function plot(host,series,{h=230}={}){
 
 // ---------- chart ----------
 let sel="CY";
+// ---------- measured layout: place each swatch so distances on the page match measured colour differences (CIEDE2000) ----------
+function dE00(p,q){const[L1,a1,b1]=p,[L2,a2,b2]=q,rad=Math.PI/180,C1=Math.hypot(a1,b1),C2=Math.hypot(a2,b2),Cb=(C1+C2)/2,G=.5*(1-Math.sqrt(Cb**7/(Cb**7+25**7)));
+  const a1p=a1*(1+G),a2p=a2*(1+G),C1p=Math.hypot(a1p,b1),C2p=Math.hypot(a2p,b2),h1=(Math.atan2(b1,a1p)/rad+360)%360,h2=(Math.atan2(b2,a2p)/rad+360)%360;
+  let dh=h2-h1;if(C1p*C2p===0)dh=0;else if(dh>180)dh-=360;else if(dh<-180)dh+=360;
+  const dL=L2-L1,dC=C2p-C1p,dH=2*Math.sqrt(C1p*C2p)*Math.sin(dh*rad/2),Lb=(L1+L2)/2,Cbp=(C1p+C2p)/2;
+  let hb=h1+h2;if(C1p*C2p!==0)hb=Math.abs(h1-h2)>180?(h1+h2+(h1+h2<360?360:-360))/2:(h1+h2)/2;
+  const T=1-.17*Math.cos((hb-30)*rad)+.24*Math.cos(2*hb*rad)+.32*Math.cos((3*hb+6)*rad)-.2*Math.cos((4*hb-63)*rad);
+  const SL=1+.015*(Lb-50)**2/Math.sqrt(20+(Lb-50)**2),SC=1+.045*Cbp,SH=1+.015*Cbp*T,RT=-2*Math.sqrt(Cbp**7/(Cbp**7+25**7))*Math.sin(60*Math.exp(-(((hb-275)/25)**2))*rad);
+  return Math.sqrt((dL/SL)**2+(dC/SC)**2+(dH/SH)**2+RT*(dC/SC)*(dH/SH))}
+const labOf=it=>[it.L,it.C*Math.cos(it.h*Math.PI/180),it.C*Math.sin(it.h*Math.PI/180)];
+let MEAS=null;
+function measured(){
+  if(MEAS)return MEAS;
+  const K=Object.keys(P).filter(k=>slotItem(k)),n=K.length,L=K.map(k=>labOf(slotItem(k)));
+  const D=K.map((_,i)=>K.map((_,j)=>dE00(L[i],L[j])));
+  // classical multidimensional scaling to 2-D
+  const D2=D.map(r=>r.map(v=>v*v)),rm=D2.map(r=>r.reduce((a,b)=>a+b)/n),gm=rm.reduce((a,b)=>a+b)/n;
+  const B=D2.map((r,i)=>r.map((v,j)=>-.5*(v-rm[i]-rm[j]+gm)));
+  const eig=(M,prev)=>{let v=K.map((_,i)=>Math.sin(i+1+(prev?3:0)));for(let it=0;it<500;it++){let w=M.map(r=>r.reduce((a,b,j)=>a+b*v[j],0));
+      if(prev){const d=w.reduce((a,b,i)=>a+b*prev[i],0);w=w.map((x,i)=>x-d*prev[i])}const nr=Math.hypot(...w);v=w.map(x=>x/nr)}
+    const lam=M.map(r=>r.reduce((a,b,j)=>a+b*v[j],0)).reduce((a,b,i)=>a+b*v[i],0);return[v,lam]};
+  const[v1,l1]=eig(B),[v2,l2]=eig(B,v1);
+  let X=K.map((_,i)=>[v1[i]*Math.sqrt(Math.max(l1,0)),v2[i]*Math.sqrt(Math.max(l2,0))]);
+  // turn, flip and scale the map to line up with the painted triangle (Procrustes), then fit it in the frame
+  const Y=K.map(k=>P[k]),cy=[0,1].map(d=>Y.reduce((a,p)=>a+p[d],0)/n),cx=[0,1].map(d=>X.reduce((a,p)=>a+p[d],0)/n);
+  const Yc=Y.map(p=>[p[0]-cy[0],p[1]-cy[1]]),Xc0=X.map(p=>[p[0]-cx[0],p[1]-cx[1]]);
+  let best=null;
+  for(const f of[1,-1]){const Xc=Xc0.map(p=>[p[0]*f,p[1]]);let sd=0,sc=0,xx=0;Xc.forEach((p,i)=>{sd+=p[0]*Yc[i][0]+p[1]*Yc[i][1];sc+=p[0]*Yc[i][1]-p[1]*Yc[i][0];xx+=p[0]**2+p[1]**2});
+    const th=Math.atan2(sc,sd),s=Math.hypot(sd,sc)/xx,c=Math.cos(th),sn=Math.sin(th);
+    const Z=Xc.map(p=>[s*(c*p[0]-sn*p[1]),s*(sn*p[0]+c*p[1])]),res=Z.reduce((a,p,i)=>a+(p[0]-Yc[i][0])**2+(p[1]-Yc[i][1])**2,0);
+    if(!best||res<best.res)best={Z,res}}
+  let Z=best.Z;const xs=Z.map(p=>p[0]),ys=Z.map(p=>p[1]),k=Math.min(360/(Math.max(...xs)-Math.min(...xs)),300/(Math.max(...ys)-Math.min(...ys)));
+  const ox=220-k*(Math.max(...xs)+Math.min(...xs))/2,oy=196-k*(Math.max(...ys)+Math.min(...ys))/2;
+  const pos={};K.forEach((key,i)=>pos[key]=[ox+k*Z[i][0],oy+k*Z[i][1]]);
+  // how well a flat map can hold the measured differences: average relative error over all pairs
+  let num=0,den=0,cnt=0,sum=0;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const dm=Math.hypot(pos[K[i]][0]-pos[K[j]][0],pos[K[i]][1]-pos[K[j]][1]);num+=dm*D[i][j];den+=D[i][j]**2}
+  const scale=num/den;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const dm=Math.hypot(pos[K[i]][0]-pos[K[j]][0],pos[K[i]][1]-pos[K[j]][1])/scale;sum+=Math.abs(dm-D[i][j])/D[i][j];cnt++}
+  MEAS={pos,err:Math.round(100*sum/cnt)};return MEAS}
+let layout="s";
 function drawTri(){
   const svg=document.getElementById("tri");svg.innerHTML="";
-  for(const [a,b] of [["Y","C"],["C","M"],["M","Y"]])el("line",{x1:P[a][0],y1:P[a][1],x2:P[b][0],y2:P[b][1]},svg);
-  for(const k of ["Y","C","M","CY","YM","CM"])el("line",{x1:P.N[0],y1:P.N[1],x2:P[k][0],y2:P[k][1]},svg);
+  const Q=layout==="m"?{...P,...measured().pos}:P,r=layout==="m"?15:21;
+  for(const [a,b] of [["Y","CYY"],["CYY","CY"],["CY","CCY"],["CCY","C"],["C","CCM"],["CCM","CM"],["CM","CMM"],["CMM","M"],["M","YMM"],["YMM","YM"],["YM","YYM"],["YYM","Y"]])el("line",{x1:Q[a][0],y1:Q[a][1],x2:Q[b][0],y2:Q[b][1]},svg);
+  for(const k of ["Y","C","M","CY","YM","CM"]){const nk="N"+(k==="CM"?"MC":k);for(const [a,b] of [["N",nk],[nk,k]])el("line",{x1:Q[a][0],y1:Q[a][1],x2:Q[b][0],y2:Q[b][1]},svg)}
   for(const k of Object.keys(P)){
     const it=slotItem(k),g=el("g",{class:"slot"+(k===sel?" sel":""),tabindex:0,role:"button","aria-label":`${k}, ${NAMES[k]}`},svg);
-    const r=21;   // one size for every swatch, so the gaps between circles match the (equal) distances between centres
-    el("circle",{cx:P[k][0],cy:P[k][1],r:r+3,fill:"var(--panel)",class:"ring",stroke:"var(--line)","stroke-width":1},g);
-    el("circle",{cx:P[k][0],cy:P[k][1],r,fill:it?it.hex:"var(--well)",stroke:"rgba(0,0,0,.12)","stroke-width":1,"stroke-dasharray":it&&!chartItem[k]?"3 3":"none"},g);
-    const below=P[k][1]>300,t=el("text",{x:P[k][0],y:P[k][1]+(below?r+16:-r-8),"text-anchor":"middle"},g);t.textContent=k;
+    // one size for every swatch, so gaps between circles match the distances between centres
+    el("circle",{cx:Q[k][0],cy:Q[k][1],r:r+3,fill:"var(--panel)",class:"ring",stroke:"var(--line)","stroke-width":1},g);
+    el("circle",{cx:Q[k][0],cy:Q[k][1],r,fill:it?it.hex:"var(--well)",stroke:"rgba(0,0,0,.12)","stroke-width":1,"stroke-dasharray":it&&!chartItem[k]?"3 3":"none"},g);
+    const below=Q[k][1]>300,t=el("text",{x:Q[k][0],y:Q[k][1]+(below?r+16:-r-8),"text-anchor":"middle"},g);t.textContent=k;
     if(["Y","C","M"].includes(k))t.setAttribute("style","font-weight:700;fill:var(--ink)");
     g.addEventListener("click",()=>{sel=k;drawTri();drawDetail()});
     g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();sel=k;drawTri();drawDetail()}});
   }
+  document.getElementById("lay-s").setAttribute("aria-pressed",layout==="s");document.getElementById("lay-m").setAttribute("aria-pressed",layout==="m");
+  document.getElementById("layNote").textContent=layout==="m"
+    ?`Each swatch is placed so that distances on the page follow the measured colour difference between swatches (CIEDE2000). A flat page can't hold every difference exactly; here the distances are right to within about ${measured().err} % on average. Dashed circles are working mixes, not final values.`
+    :"Arranged by recipe: secondaries halfway along each edge, tertiaries between, gray in the centre, and the neutral mixes halfway between gray and their colour.";
 }
+document.getElementById("lay-s").addEventListener("click",()=>{layout="s";drawTri()});
+document.getElementById("lay-m").addEventListener("click",()=>{layout="m";drawTri()});
 function drawDetail(){
   const d=document.getElementById("detail"),it=slotItem(sel),fin=!!chartItem[sel];
   if(!it){d.innerHTML=`<div class="dname">${sel} · ${NAMES[sel]}</div><p class="more">Not scanned yet.</p>`;return}
