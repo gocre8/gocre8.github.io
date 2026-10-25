@@ -287,13 +287,28 @@ function drawDetail(){
   const d=document.getElementById("detail"),it=slotItem(sel),fin=!!chartItem[sel];
   if(!it){d.innerHTML=`<div class="dname">${sel} · ${NAMES[sel]}</div><p class="more">Not scanned yet.</p>`;return}
   const par=(PARENTS[sel]||[]).map(slotItem).filter(Boolean);
-  d.innerHTML=`<div class="dhead"><div class="bigsw" style="background:${it.hex}"></div><div><div class="dname">${sel} · ${NAMES[sel]}<span class="pill ${fin?"final":""}">${fin?"chart value":"in progress"}</span></div><div class="dsub num">${fmt(it)}</div></div></div><div class="plot" id="dplot"></div>
-  <p class="more">${par.length?`Dashed: the two colours it sits between (${(PARENTS[sel]).join(" and ")}).`:sel==="N"?"The gray made from all three primaries.":"A primary, straight from the tube. Paper shown dashed for reference."}</p>
+  d.innerHTML=`<div class="dhead"><div class="bigsw" style="background:${it.hex}"></div><div><div class="dname">${sel} · ${NAMES[sel]}<span class="pill ${fin?"final":""}">${fin?"chart value":"in progress"}</span></div><div class="dsub num">${fmt(it)}</div></div></div>${par.length===2?'<div id="between"></div>':''}<div class="plot" id="dplot"></div>
+  <p class="more">${par.length?`Dashed: the two colours it sits between (${(PARENTS[sel]).join(" and ")}). Curves show light, not how different colours look, so a mix that looks exactly halfway won't always sit halfway between the curves; the bar above shows the difference you see.`:sel==="N"?"The gray made from all three primaries.":"A primary, straight from the tube. Paper shown dashed for reference."}</p>
   <details class="more"><summary>Details</summary><p class="num">${it.paints||""}${it.pigments?" · "+it.pigments:""}<br>${it.recipe?"Recipe "+it.recipe+"<br>":""}${it.by||""}${it.term?" · "+it.term:""} · ${it.n} scan${it.n>1?"s":""}${fin?"":"<br>Working swatch: "+it.name}</p></details>`;
   const series=[{it,w:3}];
   if(par.length)par.forEach(p=>series.push({it:p,dash:true,w:1.8,label:key(p)}));
   else if(sel!=="N")series.push({it:chartItem.Paper,dash:true,w:1.5,label:"Paper"});
   plot(document.getElementById("dplot"),series);
+  if(par.length===2)drawBetween(sel,it,par);
+}
+// how far the mix is, as the eye sees it (CIEDE2000), from each of the two colours it sits between
+function drawBetween(k,it,par){
+  const [A,B]=PARENTS[k],da=dE00(labOf(it),labOf(par[0])),db=dE00(labOf(it),labOf(par[1])),t=da/(da+db),gap=Math.abs(da-db);
+  const verdict=gap<=1.5?"evenly between":gap<=3?"nearly evenly between":`closer to ${da<db?A:B}`;
+  const host=document.getElementById("between"),w=600,h=64,x0=40,x1=w-40,xm=x0+t*(x1-x0);
+  host.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${k} is ${da.toFixed(1)} from ${A} and ${db.toFixed(1)} from ${B}" style="display:block;width:100%;height:auto">
+    <line x1="${x0}" y1="30" x2="${x1}" y2="30" stroke="var(--border)" stroke-width="3"/>
+    <line x1="${(x0+x1)/2}" y1="18" x2="${(x0+x1)/2}" y2="42" stroke="var(--ink-ghost)" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <circle cx="${x0}" cy="30" r="13" fill="${par[0].hex}" stroke="rgba(0,0,0,.15)"/><circle cx="${x1}" cy="30" r="13" fill="${par[1].hex}" stroke="rgba(0,0,0,.15)"/>
+    <circle cx="${xm}" cy="30" r="11" fill="${it.hex}" stroke="var(--ink)" stroke-width="2"/>
+    <text x="${x0}" y="60" text-anchor="middle" style="font:400 12px var(--f-num);fill:var(--ink-soft)">${A}</text><text x="${x1}" y="60" text-anchor="middle" style="font:400 12px var(--f-num);fill:var(--ink-soft)">${B}</text>
+    <text x="${(x0+xm)/2}" y="14" text-anchor="middle" style="font:400 12px var(--f-num);fill:var(--ink)">${da.toFixed(1)}</text><text x="${(xm+x1)/2}" y="14" text-anchor="middle" style="font:400 12px var(--f-num);fill:var(--ink)">${db.toFixed(1)}</text>
+  </svg><p class="more"><strong>${k} is ${verdict} ${A} and ${B}</strong>: it looks ${da.toFixed(1)} different from ${A} and ${db.toFixed(1)} from ${B} (colour difference ΔE00; the dashed tick marks exactly halfway).</p>`;
 }
 
 // ---------- ideas ----------
