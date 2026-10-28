@@ -1,0 +1,2430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mix Feedback</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;1,300&family=Courier+Prime:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --white: #ffffff;
+  --bg: #f4f6f9;
+  --surface-alt: #eff1f4;
+  --ink: #222222;
+  --ink-soft: #666666;
+  --ink-ghost: #aaaaaa;
+  --line: #eaeaea;
+  --border: #e0e3e8;
+  --border-soft: #eceef2;
+  --accent: #2a4a82;
+  --accent-pale: #e5ecf7;
+  --ok: #1a5c2a;
+  --err: #8a1010;
+  --warn: #8a5a10;
+  --radius: 3px;
+  --ui: 'Jost', system-ui, sans-serif;
+  --num: 'Courier Prime', ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--ui); font-weight: 300; font-size: 15px; line-height: 1.45; }
+#app { max-width: 1100px; margin: 0 auto; padding: 12px; }
+h2 { font-size: 1.05rem; font-weight: 400; margin: 0 0 6px; }
+.label { font-size: 9px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-soft); margin: 0 0 6px; }
+.num { font-family: var(--num); font-size: 0.8rem; color: var(--ink-soft); }
+.muted { color: var(--ink-soft); font-size: 0.85rem; }
+.panel { background: var(--white); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; }
+
+/* steps */
+.steps { display: flex; gap: 6px; margin-bottom: 10px; }
+.steps button { flex: 1; }
+.step-dot { display: inline-block; width: 18px; height: 18px; line-height: 18px; border-radius: 50%; background: var(--ink-ghost); color: var(--white); font-size: 11px; text-align: center; margin-right: 6px; font-family: var(--num); }
+.steps .on .step-dot { background: var(--ink); }
+
+/* buttons and inputs */
+button, .btn { font-family: var(--ui); font-weight: 300; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; border-radius: var(--radius); border: 1px solid var(--border); background: var(--white); color: var(--ink); padding: 10px 12px; min-height: 44px; cursor: pointer; }
+button.primary, .btn.primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
+button.on { background: var(--accent-pale); border-color: var(--accent); color: var(--accent); }
+button:disabled { opacity: 0.45; cursor: default; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.row > * { flex: 0 0 auto; }
+select, input[type=text], input[type=number] { font-family: var(--ui); font-weight: 300; font-size: 15px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-alt); color: var(--ink); padding: 8px; min-height: 44px; max-width: 100%; }
+input[type=number] { font-family: var(--num); width: 5.2em; }
+label.field { display: block; margin: 8px 0; }
+label.field > span { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-soft); margin-bottom: 3px; font-weight: 400; }
+.upload input[type=file] { display: none; }
+
+/* thumbnails */
+.thumbs { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; }
+.thumbs button { padding: 0; width: 64px; height: 64px; overflow: hidden; }
+.thumbs button img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumbs button.on { outline: 2px solid var(--ink); }
+
+/* workspace */
+.work { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.work > * { min-width: 0; } /* a zoomed canvas must scroll inside the stage, not widen the column */
+@media (min-width: 900px) { .work { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); } }
+.toolbar { background: var(--surface-alt); border-radius: var(--radius); padding: 6px; display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.stage { position: relative; overflow: auto; max-height: 70vh; background: var(--surface-alt); border-radius: var(--radius); }
+.stage canvas.view { display: block; touch-action: none; cursor: crosshair; }
+.loupe { position: absolute; pointer-events: none; width: 120px; height: 120px; border-radius: 50%; border: 2px solid var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.25); display: none; background: var(--white); }
+.hint { font-size: 0.85rem; color: var(--ink-soft); margin: 4px 0; }
+
+/* chips and readouts */
+.chip { display: inline-block; width: 28px; height: 28px; border-radius: var(--radius); border: 1px solid var(--border); vertical-align: middle; }
+.chips { display: flex; gap: 6px; align-items: center; }
+.readout { font-family: var(--num); font-size: 0.85rem; }
+.readout .main { color: var(--ink); font-size: 0.95rem; }
+.readout .sub { color: var(--ink-soft); }
+
+/* results */
+.verdict { font-size: 1.15rem; font-weight: 400; margin: 2px 0 8px; }
+.level-ok { color: var(--ok); }
+.level-little { color: var(--warn); }
+.level-lot { color: var(--err); }
+.swatch-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); }
+.swatch-row:first-child { border-top: none; }
+.swatch-row .text { flex: 1; min-width: 0; }
+.swatch-row .text .head { font-weight: 400; }
+.tag { display: inline-block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 6px; border-radius: var(--radius); background: var(--surface-alt); color: var(--ink-soft); margin-left: 4px; }
+.tag.best { background: var(--accent-pale); color: var(--accent); }
+details.more { background: var(--white); border: 1px solid var(--border-soft); border-radius: var(--radius); margin-bottom: 8px; }
+details.more > summary { cursor: pointer; padding: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; list-style: none; min-height: 44px; }
+details.more > summary::before { content: '▸ '; }
+details.more[open] > summary::before { content: '▾ '; }
+details.more > .body { padding: 0 12px 12px; }
+table.data { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+table.data th { text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); font-weight: 400; padding: 4px; border-bottom: 1px solid var(--line); }
+table.data td { padding: 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.data td.n { font-family: var(--num); }
+.scroll-x { overflow-x: auto; }
+.corner-map { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; max-width: 260px; }
+.corner-map div { background: var(--surface-alt); border-radius: var(--radius); padding: 6px; font-family: var(--num); font-size: 0.8rem; }
+.error-msg { color: var(--err); font-size: 0.85rem; }
+.preview canvas { max-width: 100%; display: block; border-radius: var(--radius); touch-action: pan-y; }
+
+@media (max-width: 680px) {
+  #app { padding: 8px; }
+  .steps button { padding: 8px 4px; font-size: 10px; }
+}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ---- color.js ---- */
+// Color math: sRGB <-> linear <-> XYZ <-> CIELAB <-> LCh, CIEDE2000.
+// D65 white, 2° (sRGB's own white). LS171 values are D65/10° and are treated as being in this
+// space; the known-color fit absorbs the remainder (spec §8, README).
+const MF_color = (() => {
+  const WHITE = [0.95047, 1.0, 1.08883];
+  const RGB2XYZ = [
+    [0.4124564, 0.3575761, 0.1804375],
+    [0.2126729, 0.7151522, 0.0721750],
+    [0.0193339, 0.1191920, 0.9503041],
+  ];
+  const XYZ2RGB = [
+    [3.2404542, -1.5371385, -0.4985314],
+    [-0.9692660, 1.8760108, 0.0415560],
+    [0.0556434, -0.2040259, 1.0572252],
+  ];
+  const mul = (m, v) => m.map(row => row[0] * v[0] + row[1] * v[1] + row[2] * v[2]);
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+  const srgbToLinear = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const linearToSrgb = v => (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055);
+
+  const rgbToLinear = rgb => rgb.map(v => srgbToLinear(v / 255));
+  const linearToRgb = lin => lin.map(v => clamp(Math.round(linearToSrgb(clamp(v, 0, 1)) * 255), 0, 255));
+
+  const f = t => (t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116);
+  const finv = t => (t * t * t > 216 / 24389 ? t * t * t : (116 * t - 16) / (24389 / 27));
+
+  function xyzToLab(xyz) {
+    const [fx, fy, fz] = xyz.map((v, i) => f(v / WHITE[i]));
+    return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+  }
+  function labToXyz([L, a, b]) {
+    const fy = (L + 16) / 116, fx = fy + a / 500, fz = fy - b / 200;
+    return [finv(fx) * WHITE[0], finv(fy) * WHITE[1], finv(fz) * WHITE[2]];
+  }
+  const linearToLab = lin => xyzToLab(mul(RGB2XYZ, lin));
+  const labToLinear = lab => mul(XYZ2RGB, labToXyz(lab));
+  const rgbToLab = rgb => linearToLab(rgbToLinear(rgb));
+  const labToRgb = lab => linearToRgb(labToLinear(lab));
+
+  function labToLch([L, a, b]) {
+    let h = Math.atan2(b, a) * 180 / Math.PI;
+    if (h < 0) h += 360;
+    return [L, Math.hypot(a, b), h];
+  }
+  function lchToLab([L, C, h]) {
+    const r = h * Math.PI / 180;
+    return [L, C * Math.cos(r), C * Math.sin(r)];
+  }
+  function hueDiff(h1, h2) {
+    let d = (h1 - h2) % 360;
+    if (d > 180) d -= 360;
+    if (d <= -180) d += 360;
+    return d;
+  }
+  const toHex = rgb => '#' + rgb.map(v => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0')).join('');
+
+  // CIEDE2000 (Sharma, Wu & Dalal 2005), kL = kC = kH = 1.
+  function de00(lab1, lab2) {
+    const [L1, a1, b1] = lab1, [L2, a2, b2] = lab2;
+    const rad = Math.PI / 180;
+    const C1 = Math.hypot(a1, b1), C2 = Math.hypot(a2, b2);
+    const Cb7 = Math.pow((C1 + C2) / 2, 7);
+    const G = 0.5 * (1 - Math.sqrt(Cb7 / (Cb7 + Math.pow(25, 7))));
+    const a1p = a1 * (1 + G), a2p = a2 * (1 + G);
+    const C1p = Math.hypot(a1p, b1), C2p = Math.hypot(a2p, b2);
+    const hp = (a, b) => (a === 0 && b === 0 ? 0 : (Math.atan2(b, a) / rad + 360) % 360);
+    const h1p = hp(a1p, b1), h2p = hp(a2p, b2);
+    const dLp = L2 - L1, dCp = C2p - C1p;
+    let dhp = 0;
+    if (C1p * C2p !== 0) {
+      dhp = h2p - h1p;
+      if (dhp > 180) dhp -= 360; else if (dhp < -180) dhp += 360;
+    }
+    const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp * rad / 2);
+    const Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
+    let hbp = h1p + h2p;
+    if (C1p * C2p !== 0) {
+      if (Math.abs(h1p - h2p) <= 180) hbp /= 2;
+      else hbp = (h1p + h2p < 360) ? (hbp + 360) / 2 : (hbp - 360) / 2;
+    }
+    const T = 1 - 0.17 * Math.cos((hbp - 30) * rad) + 0.24 * Math.cos(2 * hbp * rad)
+      + 0.32 * Math.cos((3 * hbp + 6) * rad) - 0.20 * Math.cos((4 * hbp - 63) * rad);
+    const dTheta = 30 * Math.exp(-Math.pow((hbp - 275) / 25, 2));
+    const Cbp7 = Math.pow(Cbp, 7);
+    const RC = 2 * Math.sqrt(Cbp7 / (Cbp7 + Math.pow(25, 7)));
+    const SL = 1 + 0.015 * Math.pow(Lbp - 50, 2) / Math.sqrt(20 + Math.pow(Lbp - 50, 2));
+    const SC = 1 + 0.045 * Cbp, SH = 1 + 0.015 * Cbp * T;
+    const RT = -Math.sin(2 * dTheta * rad) * RC;
+    return Math.sqrt(Math.pow(dLp / SL, 2) + Math.pow(dCp / SC, 2) + Math.pow(dHp / SH, 2)
+      + RT * (dCp / SC) * (dHp / SH));
+  }
+
+  return { srgbToLinear, linearToSrgb, rgbToLinear, linearToRgb, linearToLab, labToLinear,
+    rgbToLab, labToRgb, labToLch, lchToLab, hueDiff, toHex, de00 };
+})();
+if (typeof module !== 'undefined') module.exports = MF_color;
+
+</script>
+<script>
+/* ---- data.js ---- */
+// GENERATED by build_data.py 2026-10-27 23:53. Do not edit. Sources: mixlab_state.json (updated 2026-10-27 23:43), mixlab.sqlite LS171 and Spectro paper readings.
+const MF_data = {
+ "updated": "2026-10-27 23:43",
+ "paper": {
+  "lab": [
+   94.98,
+   2.29,
+   2.47
+  ],
+  "n": 2,
+  "source": "LS171 bare paper, mean of 2 readings"
+ },
+ "paperCheck": {
+  "lab": [
+   94.28,
+   -0.08,
+   3.56
+  ],
+  "n": 7,
+  "source": "Spectro bare paper, mean of 7 readings"
+ },
+ "chart": {
+  "Y": {
+   "lab": [
+    88.19,
+    3.22,
+    88.09
+   ],
+   "status": "final",
+   "name": "Yellow"
+  },
+  "M": {
+   "lab": [
+    48.23,
+    63.88,
+    7.88
+   ],
+   "status": "final",
+   "name": "Red (magenta)"
+  },
+  "C": {
+   "lab": [
+    48.62,
+    -6.54,
+    -43.99
+   ],
+   "status": "final",
+   "name": "Blue (cyan)"
+  },
+  "CY": {
+   "lab": [
+    52.03,
+    -29.47,
+    23.95
+   ],
+   "status": "final",
+   "name": "Green"
+  },
+  "YM": {
+   "lab": [
+    63.96,
+    39.53,
+    54.28
+   ],
+   "status": "final",
+   "name": "Orange"
+  },
+  "CM": {
+   "lab": [
+    35.16,
+    16.26,
+    -25.72
+   ],
+   "status": "final",
+   "name": "Purple"
+  },
+  "N": {
+   "lab": [
+    40.15,
+    -1.63,
+    0.71
+   ],
+   "status": "final",
+   "name": "Center neutral"
+  },
+  "NY": {
+   "lab": [
+    57.82,
+    -1.12,
+    39.18
+   ],
+   "status": "final",
+   "name": "Neutral yellow"
+  },
+  "NM": {
+   "lab": [
+    40.2,
+    14.85,
+    1.93
+   ],
+   "status": "final",
+   "name": "Neutral red"
+  },
+  "NC": {
+   "lab": [
+    39.4,
+    -2.03,
+    -17.06
+   ],
+   "status": "final",
+   "name": "Neutral blue"
+  },
+  "CYY": {
+   "lab": [
+    68.31,
+    -21.56,
+    55.45
+   ],
+   "status": "final",
+   "name": "Yellow-green"
+  },
+  "CCY": {
+   "lab": [
+    45.94,
+    -24.05,
+    -7.37
+   ],
+   "status": "final",
+   "name": "Blue-green"
+  },
+  "YYM": {
+   "lab": [
+    68.58,
+    33.93,
+    64.4
+   ],
+   "status": "provisional",
+   "name": "Yellow-orange"
+  },
+  "YMM": {
+   "lab": [
+    60.12,
+    48.17,
+    46.26
+   ],
+   "status": "provisional",
+   "name": "Red-orange"
+  },
+  "CCM": {
+   "lab": [
+    38.34,
+    7.78,
+    -37.92
+   ],
+   "status": "final",
+   "name": "Blue-purple"
+  },
+  "CMM": {
+   "lab": [
+    35.46,
+    29.45,
+    -13.59
+   ],
+   "status": "provisional",
+   "name": "Red-purple"
+  },
+  "NYM": {
+   "lab": [
+    49.16,
+    19.04,
+    23.03
+   ],
+   "status": "provisional",
+   "name": "Neutral orange"
+  },
+  "NMC": {
+   "lab": [
+    36.62,
+    4.68,
+    -7.99
+   ],
+   "status": "final",
+   "name": "Neutral purple"
+  }
+ },
+ "unpainted": [
+  "NCY"
+ ],
+ "names": {
+  "Y": "Yellow",
+  "M": "Red (magenta)",
+  "C": "Blue (cyan)",
+  "CY": "Green",
+  "YM": "Orange",
+  "CM": "Purple",
+  "N": "Center neutral",
+  "NY": "Neutral yellow",
+  "NM": "Neutral red",
+  "NC": "Neutral blue",
+  "CYY": "Yellow-green",
+  "CCY": "Blue-green",
+  "YYM": "Yellow-orange",
+  "YMM": "Red-orange",
+  "CCM": "Blue-purple",
+  "CMM": "Red-purple",
+  "NCY": "Neutral green",
+  "NYM": "Neutral orange",
+  "NMC": "Neutral purple"
+ },
+ "paintSets": {
+  "wn-designers-gouache": {
+   "name": "Winsor & Newton Designers Gouache",
+   "default": true,
+   "hasTargets": true
+  },
+  "wn-student-gouache": {
+   "name": "Winsor & Newton student-grade gouache",
+   "default": false,
+   "hasTargets": false
+  },
+  "holbein-gouache": {
+   "name": "Holbein Artists' Gouache",
+   "default": false,
+   "hasTargets": false
+  },
+  "utrecht-gouache": {
+   "name": "Utrecht gouache",
+   "default": false,
+   "hasTargets": false
+  },
+  "davinci-gouache": {
+   "name": "Da Vinci gouache",
+   "default": false,
+   "hasTargets": false
+  }
+ },
+ "cards": [],
+ "classes": {
+  "2.3": {
+   "title": "2.3 Hue: six colors by measured drops",
+   "codes": [
+    "Y",
+    "M",
+    "C",
+    "CY",
+    "YM",
+    "CM"
+   ]
+  },
+  "3.3": {
+   "title": "3.3 Value: white to black scale",
+   "codes": [],
+   "note": "Value targets not set yet."
+  },
+  "4.3": {
+   "title": "4.3 Saturation: neutrals",
+   "codes": [
+    "N",
+    "NY",
+    "NM",
+    "NC"
+   ]
+  },
+  "5.3": {
+   "title": "5.3 Group Paint: one swatch to a measured goal",
+   "codes": [
+    "Y",
+    "M",
+    "C",
+    "CY",
+    "YM",
+    "CM",
+    "N",
+    "NY",
+    "NM",
+    "NC",
+    "CYY",
+    "CCY",
+    "YYM",
+    "YMM",
+    "CCM",
+    "CMM",
+    "NCY",
+    "NYM",
+    "NMC"
+   ],
+   "picker": true
+  },
+  "6.3": {
+   "title": "6.3 Contrast: three paintings",
+   "codes": [],
+   "subModes": [
+    {
+     "id": "saturation",
+     "title": "Saturation"
+    },
+    {
+     "id": "comp-neutral",
+     "title": "Complements through neutral"
+    },
+    {
+     "id": "comp-hue",
+     "title": "Complements around the hue circle"
+    }
+   ]
+  }
+ }
+};
+if (typeof module !== 'undefined') module.exports = MF_data;
+
+</script>
+<script>
+/* ---- scoring.js ---- */
+// Mix scoring: port of judge() and its tables from python files/mixlab_step.py (lines 114-150).
+// Gap = ΔE00 to neighbor 1 minus ΔE00 to neighbor 2. Lean (neutral mixes) = ΔE00 to the same L, C at the
+// color neighbor's hue (KB_PAINT_MIXING §2).
+const MF_scoring = (() => {
+  const C = (typeof require !== 'undefined') ? require('./color.js') : MF_color;
+  const STAR = 1.5;
+
+  const NB = { CY: ['Y', 'C'], YM: ['Y', 'M'], CM: ['C', 'M'],
+    CYY: ['Y', 'CY'], CCY: ['CY', 'C'], YYM: ['Y', 'YM'], YMM: ['YM', 'M'], CCM: ['C', 'CM'], CMM: ['CM', 'M'],
+    NY: ['N', 'Y'], NC: ['N', 'C'], NM: ['N', 'M'], NCY: ['N', 'CY'], NYM: ['N', 'YM'], NMC: ['N', 'CM'] };
+  // paint to add when too close to neighbor 0 / neighbor 1
+  const ADD = { CY: ['C', 'Y'], YM: ['M', 'Y'], CM: ['M', 'C'], CYY: ['C', 'Y'], CCY: ['C', 'Y'], YYM: ['M', 'Y'],
+    YMM: ['M', 'Y'], CCM: ['M', 'C'], CMM: ['M', 'C'],
+    NY: ['Y', 'C+M (equal, tiny)'], NC: ['C', 'Y+M (equal, tiny)'], NM: ['M', 'Y+C (equal, tiny)'],
+    NCY: ['C+Y (as in CY)', 'M'], NYM: ['Y+M (as in YM)', 'C'], NMC: ['C+M (as in CM)', 'Y'] };
+  // neutral mixes: ring neighbors of the color (lean direction) and the paint that turns the hue back
+  const SIDE = { NY: ['CY', 'YM'], NC: ['CY', 'CM'], NM: ['CM', 'YM'], NCY: ['Y', 'C'], NYM: ['Y', 'M'], NMC: ['C', 'M'] };
+  const LEANFIX = { NY: { CY: 'M', YM: 'C' }, NC: { CY: 'M', CM: 'Y' }, NM: { CM: 'Y', YM: 'C' },
+    NCY: { Y: 'C', C: 'Y' }, NYM: { Y: 'M', M: 'Y' }, NMC: { C: 'M', M: 'C' } };
+
+  const ALIASES = {};
+  for (const k of [...Object.keys(NB), 'Y', 'C', 'M', 'N']) ALIASES[k.split('').sort().join('')] = k;
+  const normMix = s => ALIASES[String(s || '').toUpperCase().split('').sort().join('')] || null;
+
+  // mixlab_step.sdeg: ((a - b + 180) mod 360) - 180, Python modulo (always positive)
+  const sdeg = (a, b) => ((((a - b + 180) % 360) + 360) % 360) - 180;
+
+  function needed(mix) {
+    if (!NB[mix]) return [];
+    const n = [...NB[mix]];
+    if (SIDE[mix]) n.push(SIDE[mix][0]);
+    return n;
+  }
+
+  // hueRef: optional {code: lab or {lab}} (the chart) used only to tell which way a neutral mix leans when the
+  // student hasn't pinned the side neighbor. Hue order is the same for any CMY paint set.
+  function judge(mix, lab, neighbors, hueRef) {
+    if (mix === 'N') {
+      const chromaN = C.labToLch(lab)[1];
+      return { chromaN, worst: chromaN };
+    }
+    if (!NB[mix]) return { worst: 0 };
+    const [a, b] = NB[mix];
+    const missing = [a, b].filter(k => !neighbors[k]);
+    if (missing.length) return { missing, worst: 0 };
+    const out = {};
+    out.d1 = C.de00(lab, neighbors[a]);
+    out.d2 = C.de00(lab, neighbors[b]);
+    out.gap = out.d1 - out.d2;
+    let worst = Math.abs(out.gap);
+    if (Math.abs(out.gap) > STAR) {
+      out.near = out.gap < 0 ? a : b;
+      out.addPaint = out.gap < 0 ? ADD[mix][0] : ADD[mix][1];
+    }
+    if (SIDE[mix]) {
+      const [L, Cc, h] = C.labToLch(lab);
+      const colH = C.labToLch(neighbors[b])[2];
+      const off = sdeg(h, colH);
+      out.lean = C.de00(lab, C.lchToLab([L, Cc, colH]));
+      out.hueOff = off;
+      const ref = hueRef && hueRef[SIDE[mix][0]];
+      const s0 = neighbors[SIDE[mix][0]] || (ref && (ref.lab || ref));
+      out.leanTo = (s0 && Math.sign(sdeg(C.labToLch(s0)[2], colH) || 1) === Math.sign(off || 1)) ? SIDE[mix][0] : SIDE[mix][1];
+      if (out.lean > STAR) out.leanFix = LEANFIX[mix][out.leanTo];
+      worst = Math.max(worst, out.lean);
+    }
+    out.worst = worst;
+    return out;
+  }
+
+  function neighborSet(mix, ownLabs, chart) {
+    const labs = {};
+    let own = 0, fromChart = 0;
+    for (const k of needed(mix)) {
+      if (ownLabs && ownLabs[k]) { labs[k] = ownLabs[k]; own++; }
+      else if (chart && chart[k]) { labs[k] = chart[k].lab || chart[k]; fromChart++; }
+    }
+    const source = own && !fromChart ? 'own' : own ? 'mixed' : 'chart';
+    return { labs, source };
+  }
+
+  function absDiff(lab, target) {
+    const s = C.labToLch(lab), t = C.labToLch(target);
+    return { dL: s[0] - t[0], dC: s[1] - t[1], dh: C.hueDiff(s[2], t[2]), de: C.de00(lab, target) };
+  }
+
+  return { STAR, NB, ADD, SIDE, LEANFIX, normMix, judge, neighborSet, absDiff, needed };
+})();
+if (typeof module !== 'undefined') module.exports = MF_scoring;
+
+</script>
+<script>
+/* ---- calibrate.js ---- */
+// Photo correction (spec §8). All fitting happens in linear sRGB.
+//  paper:  diagonal white balance that maps the photo's paper to the measured paper.
+//  matrix: weighted least-squares 3×3 over paper (weight 10) + known colors (weight 1), used when there are
+//          3+ colorful known colors spread around the hue circle (no gap over THRESH.maxHueGap).
+// error:   how far the photo can be trusted, in ΔE00. Leave-one-out with 4+ knowns.
+const MF_calibrate = (() => {
+  const C = (typeof require !== 'undefined') ? require('./color.js') : MF_color;
+
+  const THRESH = {
+    minChroma: 15,       // PROVISIONAL (spec §12.5): knowns below this C* don't count toward hue coverage
+    maxHueGap: 200,      // PROVISIONAL (spec §12.5): colorful knowns must leave no larger gap on the hue circle
+    paperOnlyError: 6,   // PROVISIONAL (spec §12.5): assumed photo error with no known colors
+    minError: 1,         // PROVISIONAL (spec §12.5): floor so a near-perfect fit never claims meter accuracy
+    outlier: 15,         // PROVISIONAL (spec §12.5): a known still this far off after paper-only correction is misplaced
+    threeKnownFloor: 3,  // PROVISIONAL (spec §12.5): a 3-known fit is nearly exact in-sample, so don't trust it below this
+    minGain: 0.25,       // PROVISIONAL (spec §12.5): paper white-balance gain limits per channel.
+    maxGain: 4,          // Real outdoor shade needed ×2.86 on red (IMG_0080); a W pin on a swatch is caught by the paper check.
+    paperWeight: 10,
+  };
+
+  const apply3 = (M, v) => [0, 1, 2].map(r => M[r * 3] * v[0] + M[r * 3 + 1] * v[1] + M[r * 3 + 2] * v[2]);
+
+  function solve3(A, b) {
+    const [a, b1, c, d, e, f, g, h, i] = A;
+    const det = a * (e * i - f * h) - b1 * (d * i - f * g) + c * (d * h - e * g);
+    if (Math.abs(det) < 1e-12) return null;
+    const inv = [
+      (e * i - f * h), -(b1 * i - c * h), (b1 * f - c * e),
+      -(d * i - f * g), (a * i - c * g), -(a * f - c * d),
+      (d * h - e * g), -(a * h - b1 * g), (a * e - b1 * d),
+    ].map(v => v / det);
+    return apply3(inv, b);
+  }
+
+  // Largest empty gap (degrees) on the hue circle among colorful knowns; 360 when fewer than 3 count.
+  function hueGap(labs) {
+    const hues = labs.map(C.labToLch).filter(l => l[1] >= THRESH.minChroma).map(l => l[2]).sort((a, b) => a - b);
+    if (hues.length < 3) return 360;
+    let gap = 360 - hues[hues.length - 1] + hues[0];
+    for (let i = 1; i < hues.length; i++) gap = Math.max(gap, hues[i] - hues[i - 1]);
+    return gap;
+  }
+
+  function fitMatrix(rows) { // rows: [{x: rawLin, y: trueLin, w}]
+    const XtX = new Array(9).fill(0);
+    const Xty = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (const { x, y, w } of rows) {
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) XtX[r * 3 + c] += w * x[r] * x[c];
+        for (let ch = 0; ch < 3; ch++) Xty[ch][r] += w * x[r] * y[ch];
+      }
+    }
+    const M = [];
+    for (let ch = 0; ch < 3; ch++) {
+      const row = solve3(XtX, Xty[ch]);
+      if (!row) return null;
+      M.push(...row);
+    }
+    return M;
+  }
+
+  function makeCorrection(M, method) {
+    const applyLin = rgb => apply3(M, C.rgbToLinear(rgb));
+    return {
+      method, M,
+      apply: rgb => C.linearToRgb(applyLin(rgb)),
+      applyLab: rgb => C.linearToLab(applyLin(rgb)),
+    };
+  }
+
+  // Gains are clamped: a W pin on a swatch would otherwise ask for ×20 or ×500 on one channel.
+  function paperMatrix(paper) {
+    const raw = C.rgbToLinear(paper.raw).map(v => Math.max(v, 1e-4));
+    const tru = C.labToLinear(paper.true);
+    const g = i => Math.min(THRESH.maxGain, Math.max(THRESH.minGain, tru[i] / raw[i]));
+    return [g(0), 0, 0, 0, g(1), 0, 0, 0, g(2)];
+  }
+
+  function fitOn(paper, knowns) {
+    if (knowns.length >= 3 && hueGap(knowns.map(k => k.true)) <= THRESH.maxHueGap) {
+      const rows = [{ x: C.rgbToLinear(paper.raw), y: C.labToLinear(paper.true), w: THRESH.paperWeight },
+        ...knowns.map(k => ({ x: C.rgbToLinear(k.raw), y: C.labToLinear(k.true), w: 1 }))];
+      const M = fitMatrix(rows);
+      if (M) return makeCorrection(M, 'matrix');
+    }
+    return makeCorrection(paperMatrix(paper), 'paper');
+  }
+
+  // A true color outside sRGB can't be recorded by an sRGB photo (it clips), so it would bend the fit.
+  // Y and C on the current chart are both outside (Y needs red > 1, C needs red < 0).
+  const inGamut = lab => C.labToLinear(lab).every(v => v >= -0.01 && v <= 1.01);
+
+  function fitCorrection({ paper, knowns: allKnowns = [] }) {
+    // Paper-only correction is the trusted baseline. A known pin that is still far off after it was most
+    // likely placed on the wrong swatch (or typed wrong), so it is left out instead of wrecking the fit.
+    const base = makeCorrection(paperMatrix(paper), 'paper');
+    const outlier = k => C.de00(base.applyLab(k.raw), k.true) > THRESH.outlier;
+    const knowns = allKnowns.filter(k => inGamut(k.true) && !outlier(k));
+    const corr = fitOn(paper, knowns);
+    corr.perKnown = allKnowns.map(k => {
+      const out = { id: k.id, de: C.de00(corr.applyLab(k.raw), k.true) };
+      if (!inGamut(k.true)) out.outOfGamut = true;
+      else if (outlier(k)) out.outlier = true;
+      return out;
+    });
+    const fitted = corr.perKnown.filter(p => !p.outOfGamut && !p.outlier);
+    const inSample = fitted.length ? fitted.reduce((s, p) => s + p.de, 0) / fitted.length : 0;
+    if (corr.method === 'paper') {
+      // Knowns that only cover part of the hue circle can't vouch for the rest of it.
+      corr.error = Math.max(THRESH.paperOnlyError, inSample * 1.5);
+    } else if (knowns.length >= 4) {
+      const loo = knowns.map((k, i) => {
+        const rest = knowns.filter((_, j) => j !== i);
+        return C.de00(fitOn(paper, rest).applyLab(k.raw), k.true);
+      });
+      corr.error = Math.max(THRESH.minError, loo.reduce((s, v) => s + v, 0) / loo.length);
+    } else {
+      corr.error = Math.max(THRESH.threeKnownFloor, inSample * 1.5);
+    }
+    return corr;
+  }
+
+  return { THRESH, fitCorrection, hueGap, inGamut };
+})();
+if (typeof module !== 'undefined') module.exports = MF_calibrate;
+
+</script>
+<script>
+/* ---- sampler.js ---- */
+// Pixel sampling on the downscaled photo. Images are {data: Uint8ClampedArray RGBA, width, height}.
+const MF_sampler = (() => {
+  const C = (typeof require !== 'undefined') ? require('./color.js') : MF_color;
+  const luma = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+  function downscaleSize(w, h, maxEdge = 2000) {
+    const s = Math.min(1, maxEdge / Math.max(w, h));
+    return { w: Math.round(w * s), h: Math.round(h * s) };
+  }
+
+  // Trimmed mean over a (2*half+1)² window clipped to the image: drops the brightest and darkest 10% by
+  // luma so paper grain, glare and brush edges don't skew it. Returns null when the window is off the image.
+  function samplePatch(img, x, y, half = 7) {
+    const cx = Math.round(x), cy = Math.round(y);
+    const x0 = Math.max(0, cx - half), x1 = Math.min(img.width - 1, cx + half);
+    const y0 = Math.max(0, cy - half), y1 = Math.min(img.height - 1, cy + half);
+    if (x0 > x1 || y0 > y1) return null;
+    const px = [];
+    let clipped = 0;
+    for (let yy = y0; yy <= y1; yy++) {
+      for (let xx = x0; xx <= x1; xx++) {
+        const i = (yy * img.width + xx) * 4;
+        const r = img.data[i], g = img.data[i + 1], b = img.data[i + 2];
+        if (r >= 254 || g >= 254 || b >= 254) clipped++;
+        px.push([r, g, b, luma(r, g, b)]);
+      }
+    }
+    const n = px.length;
+    px.sort((p, q) => p[3] - q[3]);
+    const cut = Math.floor(n * 0.1);
+    const kept = px.slice(cut, n - cut);
+    const rgb = [0, 1, 2].map(c => kept.reduce((s, p) => s + p[c], 0) / kept.length);
+    return { rgb, n, clippedFrac: clipped / n };
+  }
+
+  // Variance of a 4-neighbor Laplacian on luma over the central 60% of the image.
+  function focusScore(img) {
+    const { width: w, height: h, data } = img;
+    const x0 = Math.max(1, Math.floor(w * 0.2)), x1 = Math.min(w - 2, Math.ceil(w * 0.8));
+    const y0 = Math.max(1, Math.floor(h * 0.2)), y1 = Math.min(h - 2, Math.ceil(h * 0.8));
+    const L = (x, y) => { const i = (y * w + x) * 4; return luma(data[i], data[i + 1], data[i + 2]); };
+    let sum = 0, sum2 = 0, n = 0;
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const v = 4 * L(x, y) - L(x - 1, y) - L(x + 1, y) - L(x, y - 1) - L(x, y + 1);
+        sum += v; sum2 += v * v; n++;
+      }
+    }
+    if (!n) return 0;
+    const mean = sum / n;
+    return Math.max(0, sum2 / n - mean * mean);
+  }
+
+  // Average color of the brightest pixels (95th to 99th percentile of luma, every 4th pixel).
+  // On a page photo this is the paper, whatever the light, so the W pin can be checked against it.
+  function brightRef(img) {
+    const px = [];
+    for (let i = 0; i < img.data.length; i += 16) {
+      const r = img.data[i], g = img.data[i + 1], b = img.data[i + 2];
+      px.push([r, g, b, luma(r, g, b)]);
+    }
+    if (!px.length) return null;
+    px.sort((p, q) => p[3] - q[3]);
+    const kept = px.slice(Math.floor(px.length * 0.95), Math.max(Math.floor(px.length * 0.99), Math.floor(px.length * 0.95) + 1));
+    return [0, 1, 2].map(c => kept.reduce((s, p) => s + p[c], 0) / kept.length);
+  }
+
+  // Spread of luma in a window: paper is smooth, concrete, tables and fabric are not.
+  function lumaStd(img, x, y, half) {
+    let n = 0, sum = 0, sum2 = 0;
+    for (let yy = Math.max(0, y - half); yy <= Math.min(img.height - 1, y + half); yy++) {
+      for (let xx = Math.max(0, x - half); xx <= Math.min(img.width - 1, x + half); xx++) {
+        const i = (yy * img.width + xx) * 4, l = luma(img.data[i], img.data[i + 1], img.data[i + 2]);
+        sum += l; sum2 += l * l; n++;
+      }
+    }
+    return n ? Math.sqrt(Math.max(0, sum2 / n - (sum / n) ** 2)) : Infinity;
+  }
+
+  // Place the four light probes on paper: walk from each photo corner along the diagonal toward the center
+  // and stop at the first smooth patch that matches the photo's brightest area (the paper), then step a
+  // little further in for margin. Falls back to the inset corners when nothing matches.
+  // PROVISIONAL (spec §12.5): ΔE00 to the bright area, luma spread, brightness as a share of the bright area's
+  // (paper IS the bright area; average concrete is well below its own brightest grit), and how light the bright
+  // area must be to count as paper at all.
+  const PAPER_MATCH = 8, PAPER_SMOOTH = 8, PAPER_MIN_RATIO = 0.9, PAPER_MIN_L = 45;
+  const DEFAULT_CORNERS = [[0.06, 0.06], [0.94, 0.06], [0.94, 0.94], [0.06, 0.94]];
+  function findPaperCorners(img) {
+    const ref = brightRef(img);
+    const refLab = ref && C.rgbToLab(ref);
+    const half = Math.max(4, Math.round(Math.min(img.width, img.height) * 0.01));
+    const isPaper = (fx, fy) => {
+      const x = Math.round(fx * img.width), y = Math.round(fy * img.height);
+      const s = samplePatch(img, x, y, half);
+      if (!s || !refLab) return false;
+      const lab = C.rgbToLab(s.rgb);
+      return refLab[0] >= PAPER_MIN_L && C.de00(lab, refLab) <= PAPER_MATCH
+        && luma(...s.rgb) >= PAPER_MIN_RATIO * luma(...ref) && lumaStd(img, x, y, half) <= PAPER_SMOOTH;
+    };
+    return DEFAULT_CORNERS.map(([cx, cy]) => {
+      const sx = cx < 0.5 ? 1 : -1, sy = cy < 0.5 ? 1 : -1, ox = cx < 0.5 ? 0 : 1, oy = cy < 0.5 ? 0 : 1;
+      for (let d = 0.02; d <= 0.45; d += 0.01) {
+        if (!isPaper(ox + sx * d, oy + sy * d)) continue;
+        const dm = Math.min(0.45, d + 0.03);
+        const use = isPaper(ox + sx * dm, oy + sy * dm) ? dm : d;
+        return { x: +(ox + sx * use).toFixed(3), y: +(oy + sy * use).toFixed(3), found: true };
+      }
+      return { x: cx, y: cy, found: false };
+    });
+  }
+
+  return { downscaleSize, samplePatch, focusScore, brightRef, findPaperCorners };
+})();
+if (typeof module !== 'undefined') module.exports = MF_sampler;
+
+</script>
+<script>
+/* ---- checks.js ---- */
+// Photo checks (spec §8). Every number compares the photo's raw paper with the measured paper.
+// Δ = raw − true: +db too warm, −db too cool, +da too magenta, −da too green, −dL too dark.
+const MF_checks = (() => {
+  const C = (typeof require !== 'undefined') ? require('./color.js') : MF_color;
+
+  // All PROVISIONAL (spec §12.5): set before any real photos with meter readings exist.
+  const THRESHOLDS = {
+    paperPin: { maxChroma: 15, minL: 35, brightMatch: 12 },
+    preEdited: { bleachedL: 98.5, bleachedC: 1, clippedFrac: 0.3 },
+    exposure: { ok: 6, little: 12 }, // set from 60 Fall photos: paper ~6 L* under the class paper still reads white
+    warmth: { ok: 2, little: 6 },
+    tint: { ok: 2, little: 6 },
+    evenness: { okL: 4, okB: 2, littleL: 10, littleB: 5 },
+    focus: { ok: 60, little: 25 },
+  };
+
+  const band = (v, t) => (Math.abs(v) <= t.ok ? 'ok' : Math.abs(v) <= t.little ? 'little' : 'lot');
+  const range = vals => Math.max(...vals) - Math.min(...vals);
+
+  // brightLab: the photo's brightest area (sampler.brightRef). A strong cast colors the paper too, so a colorful
+  // W reading only means "not paper" when it also differs from the brightest area of the photo.
+  // corners: L*a*b* of the U pins that are on paper; cornerIdx: which U pin (0–3) each one is.
+  function runChecks({ rawPaperLab, truePaperLab, paperClippedFrac = 0, corners = [], cornerIdx, focus, brightLab }) {
+    const T = THRESHOLDS;
+    const [L, Cc] = C.labToLch(rawPaperLab);
+    const dL = rawPaperLab[0] - truePaperLab[0];
+    const da = rawPaperLab[1] - truePaperLab[1];
+    const db = rawPaperLab[2] - truePaperLab[2];
+    const out = [];
+
+    const matchesBright = brightLab ? C.de00(rawPaperLab, brightLab) <= T.paperPin.brightMatch : false;
+    const offPaper = L < T.paperPin.minL || (Cc > T.paperPin.maxChroma && !matchesBright);
+    out.push({ id: 'paperPin', level: offPaper ? 'lot' : 'ok', values: { L, C: Cc, matchesBright } });
+
+    // Bleached (white and colorless) points to an edit or filter. Clipped highlights alone can be the
+    // camera's own overexposure, so that is reported as an exposure problem instead.
+    const bleached = L >= T.preEdited.bleachedL && Cc < T.preEdited.bleachedC;
+    out.push({ id: 'preEdited', level: bleached ? 'lot' : 'ok', values: { L, C: Cc } });
+
+    const clipped = paperClippedFrac > T.preEdited.clippedFrac;
+    // severity: how far past the 'a little' limit a check is (1 = at the limit). The headline goes to the largest.
+    out.push({ id: 'exposure', level: clipped ? 'lot' : band(dL, T.exposure),
+      values: { dL, clipped, clippedFrac: paperClippedFrac, severity: Math.abs(dL) / T.exposure.little } });
+    out.push({ id: 'warmth', level: band(db, T.warmth), values: { db, severity: Math.abs(db) / T.warmth.little } });
+    out.push({ id: 'tint', level: band(da, T.tint), values: { da, severity: Math.abs(da) / T.tint.little } });
+
+    if (corners.length >= 2) {
+      const rL = range(corners.map(c => c[0])), rB = range(corners.map(c => c[2]));
+      const e = T.evenness;
+      const level = (rL <= e.okL && rB <= e.okB) ? 'ok' : (rL <= e.littleL && rB <= e.littleB) ? 'little' : 'lot';
+      const local = corners.reduce((m, c, i) => (c[0] < corners[m][0] ? i : m), 0);
+      const darkest = cornerIdx ? cornerIdx[local] : local;
+      out.push({ id: 'evenness', level, values: { rangeL: rL, rangeB: rB, darkest, severity: Math.max(rL / e.littleL, rB / e.littleB) } });
+    } else {
+      out.push({ id: 'evenness', level: 'ok', values: {} });
+    }
+
+    const f = Number.isFinite(focus) ? focus : T.focus.ok;
+    out.push({ id: 'focus', level: f >= T.focus.ok ? 'ok' : f >= T.focus.little ? 'little' : 'lot',
+      values: { focus: f, severity: T.focus.little / Math.max(f, 1) } });
+    return out;
+  }
+
+  return { THRESHOLDS, runChecks };
+})();
+if (typeof module !== 'undefined') module.exports = MF_checks;
+
+</script>
+<script>
+/* ---- phrases.js ---- */
+// Fixed phrase table (spec §9). Student voice per KB_VOICE: short sentences, no em dashes, no semicolons.
+// Photo-based results never show ★ or ✓ (those are meter-only).
+const MF_phrases = (() => {
+  const PRIORITY = ['paperPin', 'preEdited', 'exposure', 'warmth', 'tint', 'evenness', 'focus'];
+  const RANK = { ok: 0, little: 1, lot: 2 };
+  const CORNER = ['top left', 'top right', 'bottom right', 'bottom left'];
+  const amount = level => (level === 'lot' ? 'a lot' : 'a little');
+
+  const PHRASES = {
+    paperPin: {
+      ok: () => 'The paper pin is on bare paper.',
+      lot: () => "Your paper pin isn't on bare paper. Move the W pin to a clean white spot.",
+    },
+    preEdited: {
+      ok: () => 'The paper still looks like paper. Good.',
+      lot: () => 'This photo looks pre-edited. The paper went pure white. Upload the original photo.',
+    },
+    exposure: {
+      ok: () => 'Brightness looks right.',
+      little: v => (v.dL < 0 ? 'A little dark. Raise Exposure a little.' : 'A little bright. Lower Exposure a little.'),
+      lot: v => (v.clipped ? 'The paper is blown out. Lower Exposure, or reshoot with less light.'
+        : v.dL < 0 ? 'Too dark. Raise Exposure a lot, or reshoot in brighter light.'
+          : 'Too bright. Lower Exposure a lot, or reshoot with less light.'),
+    },
+    warmth: {
+      ok: () => 'Warm and cool balance looks right.',
+      little: v => (v.db > 0 ? 'A little warm. Lower Warmth a little.' : 'A little cool. Raise Warmth a little.'),
+      lot: v => (v.db > 0 ? 'Too warm. Lower Warmth a lot.' : 'Too cool. Raise Warmth a lot.'),
+    },
+    tint: {
+      ok: () => 'Green and magenta balance looks right.',
+      little: v => (v.da < 0 ? 'Tint leans green. Move Tint toward magenta a little.'
+        : 'Tint leans magenta. Move Tint toward green a little.'),
+      lot: v => (v.da < 0 ? 'Tint leans green. Move Tint toward magenta a lot.'
+        : 'Tint leans magenta. Move Tint toward green a lot.'),
+    },
+    evenness: {
+      ok: () => 'The light is even across the page.',
+      little: v => `The light is a little uneven. The ${CORNER[v.darkest || 0]} is darker. Shoot in even light.`,
+      lot: v => `The light is uneven. The ${CORNER[v.darkest || 0]} is much darker. Move away from shadows and lamps.`,
+    },
+    focus: {
+      ok: () => 'Sharp enough.',
+      little: () => 'A little soft. Hold still and tap to focus.',
+      lot: () => 'Blurry. Hold still, tap to focus, and reshoot.',
+    },
+  };
+
+  // Problems that make every other reading wrong come first. After that, the check furthest past its limit
+  // (values.severity) leads, so a strong cast isn't hidden behind a slightly dark photo. Ties go by PRIORITY.
+  const blocking = c => c.level === 'lot' && (c.id === 'paperPin' || c.id === 'preEdited' || (c.values && c.values.clipped));
+  const weight = c => (blocking(c) ? Infinity : c.values && Number.isFinite(c.values.severity) ? c.values.severity : RANK[c.level]);
+  function photoHeadline(checks) {
+    let worst = null;
+    for (const c of checks) {
+      if (RANK[c.level] === 0) continue;
+      if (!worst || weight(c) > weight(worst)
+        || (weight(c) === weight(worst) && PRIORITY.indexOf(c.id) < PRIORITY.indexOf(worst.id))) worst = c;
+    }
+    if (!worst) return { text: 'This photo looks true. Good to upload.', checkId: null, level: 'ok' };
+    return { text: PHRASES[worst.id][worst.level](worst.values || {}), checkId: worst.id, level: worst.level };
+  }
+
+  function paintWords(p) {
+    const m = /^(\w)\+(\w) \(equal, tiny\)$/.exec(p);
+    if (m) return `a tiny equal amount of ${m[1]} and ${m[2]}`;
+    const n = /^(\w)\+(\w) \(as in (\w+)\)$/.exec(p);
+    if (n) return `a little ${n[1]} and ${n[2]} together (as in ${n[3]})`;
+    return `a little ${p}`;
+  }
+
+  function absLines(abs) {
+    const out = [];
+    if (abs.dL > 3) out.push('Lighter than the target.');
+    else if (abs.dL < -3) out.push('Darker than the target.');
+    if (abs.dC < -3) out.push('Grayer than the target.');
+    else if (abs.dC > 3) out.push('Stronger color than the target.');
+    if (Math.abs(abs.dh) > 5) out.push(`Hue is off by ${Math.round(Math.abs(abs.dh))} degrees.`);
+    return out;
+  }
+
+  function swatchFeedback({ mix, judged, abs, error, isProvisional, blocked }) {
+    if (blocked) return { state: 'blocked', headline: 'Fix the photo first. Mix feedback needs the W pin on bare paper and a photo that is not blown out.', detail: [] };
+    const tag = t => (isProvisional ? `${t} (provisional target)` : t);
+    const detail = abs ? absLines(abs).map(tag) : [];
+    const hasJudge = judged && !judged.missing && judged.worst !== undefined && (mix in RELATIVE || mix === 'N');
+    if (!hasJudge && !abs) {
+      if (judged && judged.missing) {
+        return { state: 'missing', headline: `Add a pin on your ${judged.missing.join(' and ')} swatch to compare.`, detail };
+      }
+      return { state: 'look', headline: 'No goal color for this pin yet. Pick which color you were mixing.', detail };
+    }
+    const miss = hasJudge ? judged.worst : abs.de;
+    const gate = Math.max(3, 2 * (error || 0));
+    if (miss <= gate) {
+      return { state: 'close', headline: 'Too close to call from this photo. Check it with the meter.', detail: [] };
+    }
+    let headline;
+    if (hasJudge && judged.addPaint) headline = `Too close to ${judged.near}. Add ${paintWords(judged.addPaint)}.`;
+    else if (hasJudge && judged.leanFix) headline = `Leans toward ${judged.leanTo}. Add a very little ${judged.leanFix}.`;
+    else if (mix === 'N') headline = 'Not gray yet. It still has some color.';
+    else if (detail.length) headline = detail[0];
+    else headline = 'Off from the target.';
+    return { state: 'direction', headline, detail };
+  }
+
+  // Mixes judged relative to neighbors (anything with a neighbor pair in mixlab_step's NB table).
+  const RELATIVE = { CY: 1, YM: 1, CM: 1, CYY: 1, CCY: 1, YYM: 1, YMM: 1, CCM: 1, CMM: 1,
+    NY: 1, NC: 1, NM: 1, NCY: 1, NYM: 1, NMC: 1 };
+
+  return { PHRASES, PRIORITY, photoHeadline, swatchFeedback, paintWords };
+})();
+if (typeof module !== 'undefined') module.exports = MF_phrases;
+
+</script>
+<script>
+/* ---- state.js ---- */
+// Session model: photos, pins (roles), corner probes, calibration card placement (spec §7, §10a, §10b).
+// Positions are 0–1 fractions of the photo, so they survive any display size.
+const MF_state = (() => {
+  let nextId = 1;
+  const uid = p => `${p}${nextId++}`;
+  const clamp01 = v => Math.min(1, Math.max(0, v));
+
+  function createSession({ classId = '2.3', paintSet = 'wn-designers-gouache' } = {}) {
+    return { classId, subMode: null, paintSet, studentName: '', photos: [], activePhoto: null };
+  }
+
+  function addPhoto(session, { name, w, h }) {
+    const photo = {
+      id: uid('photo'), name, w, h,
+      paperPin: { x: 0.5, y: 0.06 },
+      corners: [{ x: 0.06, y: 0.06 }, { x: 0.94, y: 0.06 }, { x: 0.94, y: 0.94 }, { x: 0.06, y: 0.94 }],
+      pins: [], card: null,
+    };
+    session.photos.push(photo);
+    session.activePhoto = photo.id;
+    return photo;
+  }
+
+  const getPhoto = (session, id) => session.photos.find(p => p.id === id) || null;
+
+  function addPin(photo, { x, y, role = 'look', label } = {}) {
+    const pin = { id: uid('pin'), label: label || `Pin ${photo.pins.length + 1}`, x: clamp01(x), y: clamp01(y), role };
+    photo.pins.push(pin);
+    return pin;
+  }
+
+  function movePin(photo, id, x, y) {
+    const pin = photo.pins.find(p => p.id === id);
+    if (pin) { pin.x = clamp01(x); pin.y = clamp01(y); }
+    return pin || null;
+  }
+
+  function deletePin(photo, id) {
+    photo.pins = photo.pins.filter(p => p.id !== id);
+  }
+
+  function setRole(pin, role, payload) {
+    delete pin.known; delete pin.goal;
+    pin.role = role;
+    if (role === 'known') pin.known = payload || { lab: null };
+    if (role === 'goal') pin.goal = payload || {};
+    return pin;
+  }
+
+  // Solve an n×n linear system by Gaussian elimination with partial pivoting.
+  function solve(A, b) {
+    const n = b.length;
+    const M = A.map((row, i) => [...row, b[i]]);
+    for (let c = 0; c < n; c++) {
+      let p = c;
+      for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+      if (Math.abs(M[p][c]) < 1e-12) return null;
+      [M[c], M[p]] = [M[p], M[c]];
+      for (let r = 0; r < n; r++) {
+        if (r === c) continue;
+        const f = M[r][c] / M[c][c];
+        for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k];
+      }
+    }
+    return M.map((row, i) => row[n] / row[i]);
+  }
+
+  // Projective map taking 4 source points to 4 destination points ([x, y] pairs).
+  function homography(src, dst) {
+    const A = [], b = [];
+    for (let i = 0; i < 4; i++) {
+      const [x, y] = src[i], [u, v] = dst[i];
+      A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+      A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+    }
+    const h = solve(A, b);
+    return h ? [...h, 1] : null;
+  }
+
+  function applyH(H, [x, y]) {
+    const w = H[6] * x + H[7] * y + H[8];
+    return [(H[0] * x + H[1] * y + H[2]) / w, (H[3] * x + H[4] * y + H[5]) / w];
+  }
+
+  // corners: the card's top-left, top-right, bottom-right, bottom-left as tapped on the photo.
+  function placeCard(photo, cardType, corners) {
+    const H = homography([[0, 0], [1, 0], [1, 1], [0, 1]], corners.map(c => [c.x, c.y]));
+    if (!H) return [];
+    photo.pins = photo.pins.filter(p => !p.fromCard);
+    photo.card = { typeId: cardType.id, corners: corners.map(c => ({ x: c.x, y: c.y })) };
+    return cardType.patches.map(patch => {
+      const [x, y] = applyH(H, [patch.u, patch.v]);
+      const pin = addPin(photo, { x, y, role: 'known', label: patch.name });
+      pin.known = { lab: patch.lab };
+      pin.fromCard = true;
+      return pin;
+    });
+  }
+
+  function allGoalPins(session) {
+    const out = [];
+    for (const photo of session.photos) for (const pin of photo.pins) if (pin.role === 'goal') out.push({ photoId: photo.id, pin });
+    return out;
+  }
+
+  // 26F_Color_2.3_FirstLast. Aug–Dec is fall (F), Jan–Jul spring (S).
+  function filenameBase(session, date = new Date()) {
+    const yy = String(date.getFullYear()).slice(-2);
+    const sem = date.getMonth() >= 7 ? 'F' : 'S';
+    const name = (session.studentName || '').replace(/[^A-Za-z0-9]/g, '') || 'YourName';
+    return `${yy}${sem}_Color_${session.classId}_${name}`;
+  }
+
+  return { createSession, addPhoto, getPhoto, addPin, movePin, deletePin, setRole, homography, applyH,
+    placeCard, allGoalPins, filenameBase };
+})();
+if (typeof module !== 'undefined') module.exports = MF_state;
+
+</script>
+<script>
+/* ---- storage.js ---- */
+// localStorage that never breaks the app: Safari private mode and blocked iframes throw on access.
+// Falls back to an in-memory map for the session. Also validates teacher uploads (spec §6 #3, §10a).
+const MF_storage = (() => {
+  const mem = new Map();
+  const PREFIX = 'mixfeedback.';
+
+  function ls() {
+    try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (e) { return null; }
+  }
+
+  function get(key, fallback) {
+    if (mem.has(key)) return mem.get(key);
+    try {
+      const s = ls();
+      const raw = s ? s.getItem(PREFIX + key) : null;
+      return raw === null || raw === undefined ? fallback : JSON.parse(raw);
+    } catch (e) { return fallback; }
+  }
+
+  function set(key, value) {
+    mem.set(key, value);
+    try { const s = ls(); if (s) s.setItem(PREFIX + key, JSON.stringify(value)); } catch (e) { /* session only */ }
+  }
+
+  const isLab = v => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite)
+    && v[0] >= 0 && v[0] <= 100 && Math.abs(v[1]) <= 128 && Math.abs(v[2]) <= 128;
+  const isUnit = v => Number.isFinite(v) && v >= 0 && v <= 1;
+
+  function validateTeacherJson(obj) {
+    const errors = [];
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { ok: false, errors: ['The file is not a settings object.'] };
+    if (!obj.paper && !obj.cards && !obj.targets) errors.push('Nothing to load. Expected paper, cards or targets.');
+    if (obj.paper && !isLab(obj.paper.lab)) errors.push('paper.lab must be three numbers: L 0 to 100, a and b within 128.');
+    if (obj.cards) {
+      if (!Array.isArray(obj.cards)) errors.push('cards must be a list.');
+      else obj.cards.forEach((c, i) => {
+        if (!c || !c.id) errors.push(`Card ${i + 1} needs an id.`);
+        if (!c || !Array.isArray(c.patches) || !c.patches.length) { errors.push(`Card ${i + 1} needs patches.`); return; }
+        c.patches.forEach((p, j) => {
+          if (!p.name) errors.push(`Card ${i + 1} patch ${j + 1} needs a name.`);
+          if (!isUnit(p.u) || !isUnit(p.v)) errors.push(`Card ${i + 1} patch ${j + 1}: u and v must be between 0 and 1.`);
+          if (!isLab(p.lab)) errors.push(`Card ${i + 1} patch ${j + 1}: lab is out of range.`);
+        });
+      });
+    }
+    if (obj.targets) {
+      if (typeof obj.targets !== 'object') errors.push('targets must map codes to {lab}.');
+      else for (const [code, t] of Object.entries(obj.targets)) if (!t || !isLab(t.lab)) errors.push(`Target ${code}: lab is out of range.`);
+    }
+    return { ok: errors.length === 0, errors };
+  }
+
+  return { get, set, validateTeacherJson };
+})();
+if (typeof module !== 'undefined') module.exports = MF_storage;
+
+</script>
+<script>
+/* ---- demo.js ---- */
+// Synthetic demo sheet: the measured paper plus the 2.3 chart colors, with an optional lighting cast
+// applied in linear light. Lets students see what a cast does before using their own photo.
+const MF_demo = (() => {
+  const C = (typeof require !== 'undefined') ? require('./color.js') : MF_color;
+  const D = (typeof require !== 'undefined') ? require('./data.js') : MF_data;
+  const St = (typeof require !== 'undefined') ? require('./state.js') : MF_state;
+
+  const CASTS = {
+    none: { gain: [1, 1, 1] },
+    warm: { gain: [1.0, 0.94, 0.76] },
+    cool: { gain: [0.95, 1.01, 1.14] }, // pure cool: Δb* ≈ −7, ΔL* and Δa* ≈ 0 on the class paper
+    green: { gain: [0.84, 1.0, 0.96] }, // pure green: Δa* ≈ −7, Δb* ≈ 0 on the class paper
+    dark: { gain: [0.55, 0.55, 0.55] },
+    shade: { gain: [0.35, 0.56, 0.93] }, // outdoor shade, from a real class photo (paper read as RGB 155 185 229)
+    uneven: { gain: [1, 1, 1], falloff: 0.45 },
+  };
+  const CODES = ['Y', 'YM', 'M', 'CY', 'C', 'CM'];
+
+  function makeSheet({ cast = 'none', w = 1200, h = 800, seed = 7 } = {}) {
+    const spec = CASTS[cast] || CASTS.none;
+    const data = new Uint8ClampedArray(w * h * 4);
+    const layout = { paper: { x: 0.5, y: 0.08 }, swatches: [] };
+    const sw = 0.18, gapX = (1 - 3 * sw) / 4;
+    CODES.forEach((code, i) => {
+      const col = i % 3, row = Math.floor(i / 3);
+      const x0 = gapX + col * (sw + gapX), y0 = 0.22 + row * 0.38;
+      layout.swatches.push({ code, x0, y0, x1: x0 + sw, y1: y0 + 0.3, cx: x0 + sw / 2, cy: y0 + 0.15 });
+    });
+    const paperLin = C.labToLinear((D.paperCheck || D.paper).lab); // paper as a balanced camera shows it
+    const swLin = layout.swatches.map(s => C.labToLinear(D.chart[s.code].lab).map(v => Math.min(1, Math.max(0, v))));
+    let s = seed;
+    const noise = () => { s = (s * 16807) % 2147483647; return (s / 2147483647 - 0.5) * 6; };
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const u = x / w, v = y / h;
+        let lin = paperLin;
+        for (let k = 0; k < layout.swatches.length; k++) {
+          const q = layout.swatches[k];
+          if (u >= q.x0 && u < q.x1 && v >= q.y0 && v < q.y1) { lin = swLin[k]; break; }
+        }
+        const fall = spec.falloff ? 1 - spec.falloff * u * v : 1;
+        const out = lin.map((c, i) => C.linearToSrgb(Math.min(1, c * spec.gain[i] * fall)) * 255 + noise());
+        data.set([out[0], out[1], out[2], 255], (y * w + x) * 4);
+      }
+    }
+    return { data, width: w, height: h, layout, cast };
+  }
+
+  // Paper pin, corner probes and one goal pin per swatch, as a student would place them.
+  function placeDemoPins(photo, sheet) {
+    photo.paperPin = { ...sheet.layout.paper };
+    photo.corners = [{ x: 0.04, y: 0.04 }, { x: 0.96, y: 0.04 }, { x: 0.96, y: 0.96 }, { x: 0.04, y: 0.96 }];
+    photo.pins = [];
+    for (const q of sheet.layout.swatches) {
+      const pin = St.addPin(photo, { x: q.cx, y: q.cy, label: q.code });
+      St.setRole(pin, 'goal', { code: q.code });
+    }
+  }
+
+  return { CASTS, makeSheet, placeDemoPins };
+})();
+if (typeof module !== 'undefined') module.exports = MF_demo;
+
+</script>
+<script>
+/* ---- analyze.js ---- */
+// One photo through the whole pipeline: sample pins → fit correction → photo checks → per-pin feedback.
+// Pure: takes image data and the session, returns results. The UI only draws what this returns.
+const MF_analyze = (() => {
+  const req = typeof require !== 'undefined';
+  const C = req ? require('./color.js') : MF_color;
+  const Sm = req ? require('./sampler.js') : MF_sampler;
+  const K = req ? require('./calibrate.js') : MF_calibrate;
+  const Ch = req ? require('./checks.js') : MF_checks;
+  const Sc = req ? require('./scoring.js') : MF_scoring;
+  const Ph = req ? require('./phrases.js') : MF_phrases;
+
+  const brightCache = new WeakMap();
+  function brightLab(img) {
+    if (!brightCache.has(img)) { const rgb = Sm.brightRef(img); brightCache.set(img, rgb ? C.rgbToLab(rgb) : null); }
+    return brightCache.get(img);
+  }
+
+  function analyze({ photo, img, session, data, teacher = {}, focus }) {
+    const half = photo.sampleHalf || 7;
+    const at = p => Sm.samplePatch(img, p.x * img.width, p.y * img.height, half);
+    const paperS = at(photo.paperPin);
+    const truePaper = (teacher.paper && teacher.paper.lab) || data.paper.lab;
+    // Photo checks compare against the Spectro paper: a well-balanced camera shows the paper as the Spectro reads it.
+    const checkPaper = (teacher.paper && teacher.paper.lab) || (data.paperCheck && data.paperCheck.lab) || truePaper;
+    const rawPaperRgb = paperS ? paperS.rgb : [255, 255, 255];
+    const rawPaperLab = C.rgbToLab(rawPaperRgb);
+
+    const samples = photo.pins.map(pin => ({ pin, s: at(pin) }));
+    const knowns = samples.filter(x => x.pin.role === 'known' && x.s && x.pin.known && x.pin.known.lab)
+      .map(x => ({ id: x.pin.id, raw: x.s.rgb, true: x.pin.known.lab }));
+    const correction = K.fitCorrection({ paper: { raw: rawPaperRgb, true: truePaper }, knowns });
+
+    // Only U pins on paper say anything about the light; one that found no paper sits on the table.
+    const onPaper = photo.corners.map((c, i) => ({ c, i })).filter(({ i }) => !photo.cornerFound || photo.cornerFound[i] !== false);
+    const cornerHits = onPaper.map(({ c, i }) => ({ s: at(c), i })).filter(x => x.s);
+    const corners = cornerHits.map(x => C.rgbToLab(x.s.rgb));
+    const checks = Ch.runChecks({ rawPaperLab, truePaperLab: checkPaper, paperClippedFrac: paperS ? paperS.clippedFrac : 0,
+      corners, cornerIdx: cornerHits.map(x => x.i), focus: Number.isFinite(focus) ? focus : Sm.focusScore(img),
+      brightLab: brightLab(img) });
+    const headline = Ph.photoHeadline(checks);
+    // A wrong paper reference makes every corrected color wrong, so mix advice waits until it's fixed.
+    const level = id => (checks.find(c => c.id === id) || {}).level;
+    const trusted = !(level('paperPin') === 'lot' || level('preEdited') === 'lot'
+      || (checks.find(c => c.id === 'exposure') || { values: {} }).values.clipped);
+
+    const set = data.paintSets[session.paintSet] || {};
+    const chart = set.hasTargets ? data.chart : null;
+    const targets = teacher.targets || {};
+
+    const base = samples.map(({ pin, s }) => {
+      if (!s) return { pin, rawRgb: null, rawLab: null, correctedLab: null, correctedRgb: null, hex: null };
+      const correctedLab = correction.applyLab(s.rgb);
+      const correctedRgb = C.labToRgb(correctedLab);
+      return { pin, rawRgb: s.rgb, rawLab: C.rgbToLab(s.rgb), correctedLab, correctedRgb, hex: C.toHex(correctedRgb) };
+    });
+
+    // The student's own swatches, keyed by goal code, for own-neighbor gaps.
+    const own = {};
+    for (const r of base) {
+      const code = r.pin.role === 'goal' && r.pin.goal && Sc.normMix(r.pin.goal.code);
+      if (code && r.correctedLab) own[code] = r.correctedLab;
+    }
+
+    const pins = base.map(r => {
+      const out = { ...r, code: null, target: null, neighborSource: null, judged: null, abs: null, feedback: null };
+      if (r.pin.role !== 'goal' || !r.correctedLab) return out;
+      const code = r.pin.goal && Sc.normMix(r.pin.goal.code);
+      out.code = code;
+      const chartTarget = code && chart && chart[code] ? chart[code] : null;
+      out.target = (r.pin.goal && r.pin.goal.lab) || (code && targets[code] && targets[code].lab)
+        || (chartTarget && chartTarget.lab) || null;
+      let judged = null;
+      if (code) {
+        const ownOthers = { ...own };
+        delete ownOthers[code];
+        const ns = Sc.neighborSet(code, ownOthers, chart);
+        out.neighborSource = Object.keys(ns.labs).length ? ns.source : null;
+        judged = Sc.judge(code, r.correctedLab, ns.labs, data.chart);
+        if (!Sc.NB[code] && code !== 'N') judged = null; // primaries: only an absolute target applies
+      }
+      out.judged = judged;
+      out.abs = out.target ? Sc.absDiff(r.correctedLab, out.target) : null;
+      out.feedback = Ph.swatchFeedback({ mix: code, judged, abs: out.abs, error: correction.error,
+        isProvisional: !!(chartTarget && chartTarget.status === 'provisional' && out.target === chartTarget.lab), blocked: !trusted });
+      return out;
+    });
+
+    return { rawPaperRgb, rawPaperLab, truePaper, paperClippedFrac: paperS ? paperS.clippedFrac : 0,
+      correction, checks, headline, trusted, pins };
+  }
+
+  return { analyze };
+})();
+if (typeof module !== 'undefined') module.exports = MF_analyze;
+
+</script>
+<script>
+/* ---- ui_app.js ---- */
+// App core: session, loaded images, analysis cache, corrected image, step routing, iframe height.
+const MF_app = (() => {
+  const C = MF_color, St = MF_state;
+  const MAX_EDGE = 2000;
+
+  const app = {
+    session: St.createSession({ classId: '2.3', paintSet: defaultPaintSet() }),
+    step: 1,
+    images: {},      // photoId -> { canvas, img: ImageData-like, thumb, focus }
+    results: {},     // photoId -> analyze() result
+    corrected: {},   // photoId -> canvas (corrected image), invalidated on change
+    teacher: MF_storage.get('teacher', {}),
+    view: { mode: 'split', split: 0.5, zoom: 1 },
+    tool: 'move',
+    selected: null,  // pin id, 'paper', or 'U0'..'U3'
+    message: '',
+  };
+
+  function defaultPaintSet() {
+    const sets = MF_data.paintSets;
+    return Object.keys(sets).find(k => sets[k].default) || Object.keys(sets)[0];
+  }
+
+  const activePhoto = () => St.getPhoto(app.session, app.session.activePhoto);
+  const cards = () => [...MF_data.cards, ...((app.teacher && app.teacher.cards) || [])];
+
+  function storeImage(name, canvas) {
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const id = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: 'srgb' });
+    const img = { data: id.data, width: id.width, height: id.height };
+    const photo = St.addPhoto(app.session, { name, w: canvas.width, h: canvas.height });
+    // Light probes start on bare paper near each corner when the photo has some (not on the table around it).
+    const found = MF_sampler.findPaperCorners(img);
+    photo.corners = found.map(c => ({ x: c.x, y: c.y }));
+    photo.cornerFound = found.map(c => c.found);
+    const thumb = document.createElement('canvas');
+    const ts = 128 / Math.max(canvas.width, canvas.height);
+    thumb.width = Math.round(canvas.width * ts); thumb.height = Math.round(canvas.height * ts);
+    thumb.getContext('2d').drawImage(canvas, 0, 0, thumb.width, thumb.height);
+    app.images[photo.id] = { canvas, img, thumb: thumb.toDataURL('image/jpeg', 0.7), focus: MF_sampler.focusScore(img) };
+    return photo;
+  }
+
+  async function loadFile(file) {
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch (e) {
+      bitmap = await new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = () => reject(new Error('This file could not be opened as an image.'));
+        im.src = URL.createObjectURL(file);
+      });
+    }
+    const w0 = bitmap.width || bitmap.naturalWidth, h0 = bitmap.height || bitmap.naturalHeight;
+    const { w, h } = MF_sampler.downscaleSize(w0, h0, MAX_EDGE);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    if (bitmap.close) bitmap.close();
+    return storeImage(file.name || 'photo', canvas);
+  }
+
+  function loadDemo(cast) {
+    const sheet = MF_demo.makeSheet({ cast, w: 1200, h: 800 });
+    const canvas = document.createElement('canvas');
+    canvas.width = sheet.width; canvas.height = sheet.height;
+    canvas.getContext('2d').putImageData(new ImageData(sheet.data, sheet.width, sheet.height), 0, 0);
+    const photo = storeImage(`demo (${cast})`, canvas);
+    if (app.session.classId === '2.3') MF_demo.placeDemoPins(photo, sheet);
+    else photo.paperPin = { ...sheet.layout.paper };
+    return photo;
+  }
+
+  function analyzePhoto(photoId) {
+    const photo = St.getPhoto(app.session, photoId);
+    const im = app.images[photoId];
+    if (!photo || !im) return null;
+    const r = MF_analyze.analyze({ photo, img: im.img, session: app.session, data: MF_data, teacher: app.teacher || {}, focus: im.focus });
+    app.results[photoId] = r;
+    delete app.corrected[photoId];
+    return r;
+  }
+
+  const result = (photoId = app.session.activePhoto) => app.results[photoId] || analyzePhoto(photoId);
+
+  // Whole-image correction via lookup tables (sRGB→linear 256 entries, linear→sRGB 4096 entries).
+  const TO_LIN = Array.from({ length: 256 }, (_, i) => C.srgbToLinear(i / 255));
+  const FROM_LIN = Array.from({ length: 4096 }, (_, i) => Math.round(C.linearToSrgb(i / 4095) * 255));
+  function correctedCanvas(photoId = app.session.activePhoto) {
+    if (app.corrected[photoId]) return app.corrected[photoId];
+    const im = app.images[photoId], r = result(photoId);
+    if (!im || !r) return null;
+    const M = r.correction.M, src = im.img.data;
+    const out = new Uint8ClampedArray(src.length);
+    const q = v => FROM_LIN[Math.min(4095, Math.max(0, Math.round(v * 4095)))];
+    for (let i = 0; i < src.length; i += 4) {
+      const lr = TO_LIN[src[i]], lg = TO_LIN[src[i + 1]], lb = TO_LIN[src[i + 2]];
+      out[i] = q(M[0] * lr + M[1] * lg + M[2] * lb);
+      out[i + 1] = q(M[3] * lr + M[4] * lg + M[5] * lb);
+      out[i + 2] = q(M[6] * lr + M[7] * lg + M[8] * lb);
+      out[i + 3] = 255;
+    }
+    const c = document.createElement('canvas');
+    c.width = im.img.width; c.height = im.img.height;
+    c.getContext('2d').putImageData(new ImageData(out, c.width, c.height), 0, 0);
+    app.corrected[photoId] = c;
+    return c;
+  }
+
+  function changed(photoId = app.session.activePhoto) {
+    delete app.results[photoId];
+    delete app.corrected[photoId];
+  }
+
+  function go(step) {
+    if (step > 1 && !app.session.photos.length) return;
+    app.step = step;
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function header() {
+    const has = app.session.photos.length > 0;
+    const b = (n, t) => `<button data-go="${n}" class="${app.step === n ? 'on' : ''}" ${n > 1 && !has ? 'disabled' : ''}><span class="step-dot">${n}</span>${t}</button>`;
+    return `<nav class="steps">${b(1, 'Photo')}${b(2, 'Pins')}${b(3, 'Results')}</nav>`;
+  }
+
+  function render() {
+    const root = document.getElementById('app');
+    // Keep folded sections open across re-renders (matched by their title).
+    const open = new Set([...root.querySelectorAll('details.more[open] > summary')].map(s => s.textContent));
+    let body = '';
+    if (app.step === 1) body = MF_step1.html();
+    else if (app.step === 2) body = MF_canvas.html();
+    else body = MF_results.html();
+    root.innerHTML = header() + body;
+    root.querySelectorAll('details.more > summary').forEach(s => { if (open.has(s.textContent)) s.parentElement.open = true; });
+    root.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => go(Number(el.dataset.go))));
+    if (app.step === 1) MF_step1.bind(root);
+    else if (app.step === 2) MF_canvas.bind(root);
+    else MF_results.bind(root);
+    postHeight();
+  }
+
+  let lastHeight = 0;
+  // Measure the app itself, not the page: the page is never shorter than the iframe, so it could only grow.
+  function postHeight() {
+    const el = document.getElementById('app');
+    if (!el) return;
+    const h = Math.ceil(el.getBoundingClientRect().height);
+    if (h === lastHeight) return;
+    lastHeight = h;
+    try { window.parent.postMessage({ type: 'mixfeedback-height', height: h }, '*'); } catch (e) { /* not framed */ }
+  }
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(postHeight).observe(document.getElementById('app'));
+
+  // L*C*h° first, then L*a*b* and hex (spec §7).
+  function readout(lab, rgb) {
+    if (!lab) return '<span class="muted">Off the photo.</span>';
+    const [L, Cc, h] = C.labToLch(lab);
+    const hex = C.toHex(rgb || C.labToRgb(lab));
+    return `<div class="readout"><div class="main">L*${L.toFixed(1)} C*${Cc.toFixed(1)} h°${h.toFixed(0)}</div>
+      <div class="sub">L*a*b* ${lab.map(v => v.toFixed(1)).join(' ')} · ${hex} · RGB ${(rgb || C.labToRgb(lab)).map(v => Math.round(v)).join(' ')}</div></div>`;
+  }
+  const chip = (rgb, title = '') => `<span class="chip" title="${esc(title)}" style="background:${rgb ? C.toHex(rgb) : 'transparent'}"></span>`;
+
+  return { app, activePhoto, cards, loadFile, loadDemo, analyzePhoto, result, correctedCanvas, changed, go, render,
+    postHeight, readout, chip, esc };
+})();
+
+</script>
+<script>
+/* ---- ui_step1.js ---- */
+// Step 1: photos, class, paint set, name, demo, teacher settings.
+const MF_step1 = (() => {
+  const A = MF_app, D = MF_data, St = MF_state;
+
+  function html() {
+    const { app } = A, s = app.session;
+    const cls = D.classes[s.classId];
+    const thumbs = s.photos.map(p => `<button data-photo="${p.id}" class="${p.id === s.activePhoto ? 'on' : ''}" title="${A.esc(p.name)}">
+      <img alt="" src="${A.app.images[p.id].thumb}"></button>`).join('');
+    const classOpts = Object.entries(D.classes).map(([k, c]) => `<option value="${k}" ${k === s.classId ? 'selected' : ''}>${A.esc(c.title)}</option>`).join('');
+    const setOpts = Object.entries(D.paintSets).map(([k, p]) => `<option value="${k}" ${k === s.paintSet ? 'selected' : ''}>${A.esc(p.name)}</option>`).join('');
+    const codePicker = cls.picker ? `<label class="field"><span>Your swatch</span><select id="subMode">
+      <option value="">Choose…</option>${cls.codes.map(c => `<option value="${c}" ${s.subMode === c ? 'selected' : ''}>${c} · ${A.esc(D.names[c])}${D.unpainted.includes(c) ? ' (no chart value yet)' : D.chart[c] && D.chart[c].status === 'provisional' ? ' (provisional)' : ''}</option>`).join('')}</select></label>` : '';
+    const subTabs = cls.subModes ? `<div class="label">Painting</div><div class="row">${cls.subModes.map(m => `<button data-sub="${m.id}" class="${s.subMode === m.id ? 'on' : ''}">${A.esc(m.title)}</button>`).join('')}</div>` : '';
+    const noTargets = D.paintSets[s.paintSet] && !D.paintSets[s.paintSet].hasTargets
+      ? '<p class="hint">No chart targets for this paint. Feedback uses your own swatches.</p>' : '';
+    const teacher = A.app.teacher || {};
+    const tCount = [teacher.paper ? 'paper' : '', teacher.cards && teacher.cards.length ? `${teacher.cards.length} card(s)` : '',
+      teacher.targets ? `${Object.keys(teacher.targets).length} target(s)` : ''].filter(Boolean).join(', ');
+    return `
+    <section class="panel">
+      <h2>Your photo</h2>
+      <p class="hint">Shoot the whole page flat, in even daylight, with some bare paper showing. Add more photos if your work is on several pages.</p>
+      <div class="row upload">
+        <label class="btn primary">Upload photo<input id="file" type="file" accept="image/*" multiple></label>
+        ${s.photos.length ? `<button data-go-next class="primary">Next: place pins</button>` : ''}
+      </div>
+      ${A.app.message ? `<p class="error-msg">${A.esc(A.app.message)}</p>` : ''}
+      ${thumbs ? `<div class="thumbs">${thumbs}</div>` : ''}
+    </section>
+    <section class="panel">
+      <h2>Assignment</h2>
+      <label class="field"><span>Class</span><select id="classId">${classOpts}</select></label>
+      ${cls.note ? `<p class="hint">${A.esc(cls.note)}</p>` : ''}
+      ${codePicker}${subTabs}
+      <label class="field"><span>Paint</span><select id="paintSet">${setOpts}</select></label>${noTargets}
+      <label class="field"><span>Your name (for file names)</span><input id="name" type="text" value="${A.esc(s.studentName)}" placeholder="First Last" autocomplete="name"></label>
+      <p class="num" id="fname">${A.esc(St.filenameBase(s))}</p>
+    </section>
+    <details class="more"><summary>Try the demo sheet</summary><div class="body">
+      <p class="hint">A made-up page with the class paper and the six 2.3 colors. Pick a lighting problem and see what the feedback says.</p>
+      <div class="row">${Object.keys(MF_demo.CASTS).map(c => `<button data-demo="${c}">${c === 'none' ? 'True light' : c}</button>`).join('')}</div>
+    </div></details>
+    <details class="more"><summary>Teacher settings</summary><div class="body">
+      <p class="hint">Load a settings file with paper, calibration cards or targets (LS171 L*a*b*). It stays in this browser.</p>
+      <div class="row upload"><label class="btn">Load settings<input id="teacherFile" type="file" accept=".json,application/json"></label>
+      ${tCount ? `<button id="teacherClear">Clear (${A.esc(tCount)})</button>` : ''}</div>
+      <p class="num">Paper reference: L*a*b* ${(teacher.paper ? teacher.paper.lab : D.paper.lab).map(v => v.toFixed(2)).join(' ')} · ${A.esc(teacher.paper ? 'teacher file' : D.paper.source)}</p>
+      <p class="num">Chart data from ${A.esc(D.updated)}</p>
+    </div></details>`;
+  }
+
+  function bind(root) {
+    const s = A.app.session;
+    const q = id => root.querySelector('#' + id);
+    q('file').addEventListener('change', async e => {
+      A.app.message = '';
+      for (const f of e.target.files) {
+        try { await A.loadFile(f); } catch (err) { A.app.message = err.message || 'That photo could not be opened.'; }
+      }
+      A.render();
+    });
+    root.querySelectorAll('[data-photo]').forEach(b => b.addEventListener('click', () => { s.activePhoto = b.dataset.photo; A.render(); }));
+    const next = root.querySelector('[data-go-next]');
+    if (next) next.addEventListener('click', () => A.go(2));
+    q('classId').addEventListener('change', e => { s.classId = e.target.value; s.subMode = null; refreshAll(); A.render(); });
+    if (q('subMode')) q('subMode').addEventListener('change', e => { s.subMode = e.target.value || null; refreshAll(); A.render(); });
+    root.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { s.subMode = b.dataset.sub; A.render(); }));
+    q('paintSet').addEventListener('change', e => { s.paintSet = e.target.value; refreshAll(); A.render(); });
+    q('name').addEventListener('input', e => { s.studentName = e.target.value; q('fname').textContent = St.filenameBase(s); });
+    root.querySelectorAll('[data-demo]').forEach(b => b.addEventListener('click', () => { A.loadDemo(b.dataset.demo); A.go(3); }));
+    q('teacherFile').addEventListener('change', async e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      let obj;
+      try { obj = JSON.parse(await f.text()); } catch (err) { A.app.message = 'That settings file is not valid JSON.'; A.render(); return; }
+      const v = MF_storage.validateTeacherJson(obj);
+      if (!v.ok) { A.app.message = 'Settings not loaded. ' + v.errors.join(' '); A.render(); return; }
+      A.app.teacher = obj; MF_storage.set('teacher', obj); A.app.message = ''; refreshAll(); A.render();
+    });
+    if (q('teacherClear')) q('teacherClear').addEventListener('click', () => { A.app.teacher = {}; MF_storage.set('teacher', {}); refreshAll(); A.render(); });
+  }
+
+  function refreshAll() { for (const p of A.app.session.photos) A.changed(p.id); }
+
+  return { html, bind };
+})();
+
+</script>
+<script>
+/* ---- ui_canvas.js ---- */
+// Step 2: photo stage with pins, pointer dragging (mouse and touch), loupe, zoom, views, card placement.
+const MF_canvas = (() => {
+  const A = MF_app, St = MF_state;
+  const HIT = 22;          // touch-friendly hit radius in CSS px
+  const LOUPE = 120, LOUPE_ZOOM = 4, LOUPE_LIFT = 90;
+  const MAX_CANVAS_PX = 16e6;
+  let stage, canvas, loupe, drag = null, cardTaps = [];
+
+  function html() {
+    const { app } = A, v = app.view, photo = A.activePhoto();
+    const tb = (tool, label) => `<button data-tool="${tool}" class="${app.tool === tool ? 'on' : ''}">${label}</button>`;
+    const vb = (mode, label) => `<button data-view="${mode}" class="${v.mode === mode ? 'on' : ''}">${label}</button>`;
+    const hasCards = A.cards().length > 0;
+    const thumbs = app.session.photos.length > 1 ? `<div class="thumbs">${app.session.photos.map(p =>
+      `<button data-photo="${p.id}" class="${p.id === photo.id ? 'on' : ''}"><img alt="" src="${app.images[p.id].thumb}"></button>`).join('')}</div>` : '';
+    const hint = app.tool === 'add' ? 'Tap a swatch to add a pin.'
+      : app.tool === 'card' ? `Tap the card's corners in order: top left, top right, bottom right, bottom left (${cardTaps.length}/4).`
+        : 'Drag the W pin onto bare paper and each pin onto its swatch. The U pins find paper near the corners on their own; move them if they missed.';
+    return `${thumbs}
+    <div class="work">
+      <div>
+        <div class="toolbar">${tb('move', 'Move')}${tb('add', '+ Pin')}${hasCards ? tb('card', 'Place card') : ''}
+          <button data-zoom="1">+</button><button data-zoom="-1">−</button>
+          ${vb('raw', 'Raw')}${vb('split', 'Split')}${vb('corrected', 'Corrected')}</div>
+        <p class="hint" id="hint">${hint}</p>
+        <div class="stage" id="stage"><canvas class="view" id="view"></canvas><canvas class="loupe" id="loupe" width="${LOUPE}" height="${LOUPE}"></canvas></div>
+        <div class="row" style="margin-top:6px">
+          <button id="classPins">Add class pins</button><button id="tidy">Line up pins</button><button id="resetPins">Reset pins</button>
+          <button class="primary" data-go="3">See results</button>
+        </div>
+      </div>
+      <div id="panel">${MF_pins.html()}</div>
+    </div>`;
+  }
+
+  function bind(root) {
+    stage = root.querySelector('#stage'); canvas = root.querySelector('#view'); loupe = root.querySelector('#loupe');
+    root.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => { A.app.tool = b.dataset.tool; cardTaps = []; A.render(); }));
+    root.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => { A.app.view.mode = b.dataset.view; A.render(); }));
+    root.querySelectorAll('[data-zoom]').forEach(b => b.addEventListener('click', () => {
+      const v = A.app.view; v.zoom = Math.min(6, Math.max(1, v.zoom * (b.dataset.zoom === '1' ? 1.5 : 1 / 1.5))); draw();
+    }));
+    root.querySelectorAll('[data-photo]').forEach(b => b.addEventListener('click', () => { A.app.session.activePhoto = b.dataset.photo; A.app.selected = null; A.render(); }));
+    root.querySelector('#classPins').addEventListener('click', addClassPins);
+    root.querySelector('#tidy').addEventListener('click', tidy);
+    root.querySelector('#resetPins').addEventListener('click', resetPins);
+    canvas.addEventListener('pointerdown', down);
+    canvas.addEventListener('pointermove', move);
+    canvas.addEventListener('pointerup', up);
+    canvas.addEventListener('pointercancel', up);
+    MF_pins.bind(root.querySelector('#panel'));
+    draw();
+  }
+
+  // ---- geometry
+  function size() {
+    const im = A.app.images[A.app.session.activePhoto];
+    const w = Math.max(200, stage.clientWidth) * A.app.view.zoom;
+    return { w, h: w * im.img.height / im.img.width, im };
+  }
+  const toFrac = e => {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height, px: e.clientX - r.left, py: e.clientY - r.top, r };
+  };
+
+  function targets(photo) {
+    const t = [{ kind: 'paper', id: 'paper', p: photo.paperPin }];
+    photo.corners.forEach((c, i) => t.push({ kind: 'corner', id: 'U' + i, p: c }));
+    photo.pins.forEach(pin => t.push({ kind: 'pin', id: pin.id, p: pin }));
+    return t;
+  }
+  function hit(photo, f) {
+    let best = null, bestD = HIT;
+    for (const t of targets(photo)) {
+      const d = Math.hypot(t.p.x * f.r.width - f.px, t.p.y * f.r.height - f.py);
+      if (d <= bestD) { best = t; bestD = d; }
+    }
+    return best;
+  }
+
+  // ---- pointer
+  function down(e) {
+    const photo = A.activePhoto(), f = toFrac(e), tool = A.app.tool;
+    // Capture keeps the drag alive outside the canvas; some browsers refuse it, which must not stop the tap.
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* drag still works inside the canvas */ }
+    if (tool === 'card') {
+      cardTaps.push({ x: f.x, y: f.y });
+      if (cardTaps.length === 4) {
+        const card = A.cards()[0];
+        St.placeCard(photo, card, cardTaps);
+        cardTaps = []; A.app.tool = 'move'; A.changed(); A.render();
+      } else { document.getElementById('hint').textContent = `Tap the card's corners in order: top left, top right, bottom right, bottom left (${cardTaps.length}/4).`; draw(); }
+      return;
+    }
+    let t = hit(photo, f);
+    if (!t && tool === 'add') {
+      const pin = newPin(photo, f.x, f.y);
+      t = { kind: 'pin', id: pin.id, p: pin };
+      A.app.tool = 'move';
+    }
+    if (t) {
+      A.app.selected = t.id;
+      drag = { t, startX: e.clientX, startY: e.clientY };
+      showLoupe(f);
+    } else if (stage.scrollHeight > stage.clientHeight + 1 || stage.scrollWidth > stage.clientWidth + 1) {
+      // Drag on empty photo pans whenever it doesn't fit, so touch can reach every part of a tall photo.
+      drag = { pan: true, startX: e.clientX, startY: e.clientY, sl: stage.scrollLeft, st: stage.scrollTop };
+    }
+    draw();
+  }
+  function move(e) {
+    if (!drag) return;
+    if (drag.pan) {
+      stage.scrollLeft = drag.sl - (e.clientX - drag.startX);
+      stage.scrollTop = drag.st - (e.clientY - drag.startY);
+      return;
+    }
+    const f = toFrac(e);
+    const x = Math.min(1, Math.max(0, f.x)), y = Math.min(1, Math.max(0, f.y));
+    drag.t.p.x = x; drag.t.p.y = y;
+    // A U pin placed by hand counts as on paper.
+    const photo = A.activePhoto();
+    if (drag.t.kind === 'corner' && photo.cornerFound) photo.cornerFound[Number(drag.t.id.slice(1))] = true;
+    showLoupe(f);
+    draw();
+  }
+  function up() {
+    if (!drag) return;
+    const wasPin = !drag.pan;
+    drag = null;
+    loupe.style.display = 'none';
+    if (wasPin) { A.changed(); refreshPanel(); }
+    draw();
+  }
+
+  function newPin(photo, x, y) {
+    const s = A.app.session, cls = MF_data.classes[s.classId];
+    const pin = St.addPin(photo, { x, y });
+    if (cls.picker && s.subMode) St.setRole(pin, 'goal', { code: s.subMode });
+    if (cls.subModes) pin.group = s.subMode || 'value';
+    if (s.classId === '3.3') pin.group = 'value';
+    if (pin.role === 'goal') pin.label = `${pin.goal.code} ${photo.pins.filter(p => p.goal && p.goal.code === pin.goal.code).length}`;
+    A.changed();
+    return pin;
+  }
+
+  function addClassPins() {
+    const photo = A.activePhoto(), s = A.app.session, cls = MF_data.classes[s.classId];
+    const codes = cls.picker ? (s.subMode ? [s.subMode] : []) : cls.codes;
+    if (!codes.length) { document.getElementById('hint').textContent = cls.picker ? 'Choose your swatch in step 1 first.' : 'This class has no preset pins. Use + Pin.'; return; }
+    // Skip colors already pinned on this photo, so pressing the button twice doesn't double every swatch.
+    const have = new Set(photo.pins.filter(p => p.role === 'goal' && p.goal).map(p => p.goal.code));
+    const add = cls.picker ? codes : codes.filter(c => !have.has(c));
+    if (!add.length) { document.getElementById('hint').textContent = 'Every class color already has a pin. Drag them onto your swatches.'; return; }
+    add.forEach((code, i) => {
+      const pin = St.addPin(photo, { x: 0.2 + 0.6 * ((i % 3) / 2), y: 0.35 + 0.25 * Math.floor(i / 3), label: code });
+      St.setRole(pin, 'goal', { code });
+    });
+    A.changed(); A.render();
+  }
+  function tidy() {
+    const photo = A.activePhoto(), pins = photo.pins.filter(p => !p.fromCard), cols = Math.ceil(Math.sqrt(pins.length || 1));
+    pins.forEach((p, i) => { p.x = (i % cols + 0.5) / cols; p.y = 0.2 + 0.6 * (Math.floor(i / cols) + 0.5) / Math.ceil(pins.length / cols); });
+    A.changed(); A.render();
+  }
+  function resetPins() {
+    const photo = A.activePhoto();
+    photo.pins = photo.pins.filter(p => p.fromCard);
+    photo.paperPin = { x: 0.5, y: 0.06 };
+    const found = MF_sampler.findPaperCorners(A.app.images[photo.id].img);
+    photo.corners = found.map(c => ({ x: c.x, y: c.y }));
+    photo.cornerFound = found.map(c => c.found);
+    A.app.selected = null; A.changed(); A.render();
+  }
+
+  function refreshPanel() {
+    const panel = document.getElementById('panel');
+    if (!panel) return;
+    panel.innerHTML = MF_pins.html();
+    MF_pins.bind(panel);
+    A.postHeight();
+  }
+
+  // ---- drawing
+  function showLoupe(f) {
+    const im = A.app.images[A.app.session.activePhoto];
+    const ctx = loupe.getContext('2d');
+    const sx = f.x * im.img.width, sy = f.y * im.img.height, span = LOUPE / LOUPE_ZOOM / (f.r.width / im.img.width);
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, LOUPE, LOUPE);
+    ctx.drawImage(im.canvas, sx - span / 2, sy - span / 2, span, span, 0, 0, LOUPE, LOUPE);
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(LOUPE / 2, 0); ctx.lineTo(LOUPE / 2, LOUPE); ctx.moveTo(0, LOUPE / 2); ctx.lineTo(LOUPE, LOUPE / 2); ctx.stroke();
+    // The loupe lives inside the scrolling stage, so canvas-relative coordinates place it directly.
+    loupe.style.left = `${f.px - LOUPE / 2}px`;
+    loupe.style.top = `${Math.max(0, f.py - LOUPE_LIFT - LOUPE / 2)}px`;
+    loupe.style.display = 'block';
+  }
+
+  function draw() {
+    if (!canvas) return;
+    const { w, h, im } = size(), photo = A.activePhoto(), v = A.app.view;
+    // iOS Safari draws a blank canvas above ~16.7 MP, so lower the pixel density at high zoom.
+    const dpr = Math.min(window.devicePixelRatio || 1, Math.sqrt(MAX_CANVAS_PX / (w * h)));
+    const cw = Math.round(w * dpr), ch = Math.round(h * dpr);
+    canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const corr = v.mode === 'raw' || drag ? null : A.correctedCanvas();
+    if (v.mode === 'corrected' && corr) ctx.drawImage(corr, 0, 0, w, h);
+    else ctx.drawImage(im.canvas, 0, 0, w, h);
+    if (v.mode === 'split' && corr) {
+      const sx = v.split * im.img.width;
+      ctx.drawImage(corr, sx, 0, im.img.width - sx, im.img.height, v.split * w, 0, w * (1 - v.split), h);
+      ctx.fillStyle = '#fff'; ctx.fillRect(v.split * w - 1, 0, 2, h);
+      label(ctx, 'raw', 6, 16); label(ctx, 'corrected', v.split * w + 6, 16);
+    }
+    for (const c of cardTaps) dot(ctx, c.x * w, c.y * h, 6, '#2a4a82');
+    if (photo.card) {
+      ctx.strokeStyle = 'rgba(42,74,130,.8)'; ctx.lineWidth = 1.5; ctx.beginPath();
+      photo.card.corners.forEach((c, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, c.x * w, c.y * h));
+      ctx.closePath(); ctx.stroke();
+    }
+    photo.corners.forEach((c, i) => marker(ctx, c.x * w, c.y * h, 'U' + (i + 1), 'circle', A.app.selected === 'U' + i, 'rgba(255,255,255,.85)'));
+    for (const pin of photo.pins) {
+      const fill = pin.role === 'known' ? '#2a4a82' : pin.role === 'goal' ? '#222' : '#666';
+      marker(ctx, pin.x * w, pin.y * h, pin.label, 'pin', A.app.selected === pin.id, fill);
+    }
+    marker(ctx, photo.paperPin.x * w, photo.paperPin.y * h, 'W', 'square', A.app.selected === 'paper', '#fff');
+  }
+  function label(ctx, text, x, y) {
+    ctx.font = '400 11px Jost, sans-serif';
+    const tw = ctx.measureText(text).width;
+    ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(x - 3, y - 11, tw + 6, 15);
+    ctx.fillStyle = '#222'; ctx.fillText(text, x, y);
+  }
+  function dot(ctx, x, y, r, color) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+  function marker(ctx, x, y, text, shape, selected, fill) {
+    const r = selected ? 11 : 9;
+    ctx.lineWidth = selected ? 3 : 2;
+    ctx.strokeStyle = shape === 'square' || shape === 'circle' ? '#222' : '#fff';
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    if (shape === 'square') ctx.rect(x - r, y - r, 2 * r, 2 * r); else ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = shape === 'pin' ? '#fff' : '#222'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x - 3, y); ctx.lineTo(x + 3, y); ctx.moveTo(x, y - 3); ctx.lineTo(x, y + 3); ctx.stroke();
+    if (shape === 'square') { ctx.fillStyle = '#222'; ctx.font = '400 11px Jost, sans-serif'; ctx.fillText('W', x - 5, y - r - 4); return; }
+    ctx.font = '400 11px Jost, sans-serif';
+    const tw = ctx.measureText(text).width;
+    const cssW = parseFloat(canvas.style.width) || canvas.width;
+    // Near the right edge, put the label on the left so it stays on the photo.
+    label(ctx, text, x + r + 4 + tw + 6 > cssW ? x - r - 4 - tw : x + r + 4, y + 4);
+  }
+
+  return { html, bind, draw, refreshPanel };
+})();
+
+</script>
+<script>
+/* ---- ui_pins.js ---- */
+// Step 2 side panel: the selected pin's numbers, role, known value, goal and painting group.
+const MF_pins = (() => {
+  const A = MF_app, C = MF_color, St = MF_state, D = MF_data;
+  const ROLE_NAMES = { goal: 'Check my mix', known: 'Color I measured', look: 'Just show the color' };
+  const ROLE_HELP = {
+    goal: 'Compares this swatch with its goal color and tells you what to add.',
+    known: 'You have meter numbers for this swatch. The app uses it to correct the photo. No mix feedback.',
+    look: 'Shows the color under the pin. No feedback.',
+  };
+
+  function selectedPin(photo) { return photo.pins.find(p => p.id === A.app.selected) || null; }
+
+  function html() {
+    const photo = A.activePhoto(), r = A.result(), sel = A.app.selected;
+    if (!r) return '';
+    const correction = `<p class="muted">Correction: ${r.correction.method === 'matrix' ? 'paper and known colors' : 'paper only'}. Photo error about ${r.correction.error.toFixed(1)} ΔE00.</p>`;
+    if (sel === 'paper') {
+      return `<section class="panel"><div class="label">W · Paper pin</div>
+        <p>Raw paper in this photo:</p>${A.readout(r.rawPaperLab, r.rawPaperRgb)}
+        <p>Measured class paper:</p>${A.readout(r.truePaper)}${correction}</section>`;
+    }
+    if (sel && sel[0] === 'U' && sel.length === 2) {
+      const i = Number(sel[1]), s = MF_sampler.samplePatch(A.app.images[photo.id].img,
+        photo.corners[i].x * A.app.images[photo.id].img.width, photo.corners[i].y * A.app.images[photo.id].img.height, photo.sampleHalf || 7);
+      return `<section class="panel"><div class="label">U${i + 1} · Light probe</div>
+        <p class="hint">${photo.cornerFound && photo.cornerFound[i] === false
+          ? "Couldn't find bare paper near this corner. Drag this pin onto paper if there is some."
+          : 'This pin sits on bare paper near a corner. The four U pins check that the light is even.'}</p>
+        ${s ? A.readout(C.rgbToLab(s.rgb), s.rgb) : A.readout(null)}</section>`;
+    }
+    const pin = selectedPin(photo);
+    if (!pin) {
+      return `<section class="panel"><div class="label">Pins</div>
+        <p class="hint">Tap a pin to see its color. W is the paper. U1 to U4 check the light. Each of your pins can check a mix, hold a color you measured, or just show a color.</p>
+        ${correction}${sampleSize(photo)}</section>`;
+    }
+    const pr = r.pins.find(x => x.pin.id === pin.id) || {};
+    const roleOpts = Object.entries(ROLE_NAMES).map(([k, n]) => `<option value="${k}" ${pin.role === k ? 'selected' : ''}>${n}</option>`).join('');
+    return `<section class="panel">
+      <div class="label">Selected pin</div>
+      <label class="field"><span>Name</span><input id="pinLabel" type="text" value="${A.esc(pin.label)}"></label>
+      <label class="field"><span>What should this pin do?</span><select id="pinRole">${roleOpts}</select></label>
+      <p class="hint">${ROLE_HELP[pin.role]}</p>
+      <div class="chips">${A.chip(pr.rawRgb, 'raw')}<span class="muted">raw</span>${A.chip(pr.correctedRgb, 'corrected')}<span class="muted">corrected</span></div>
+      ${A.readout(pr.correctedLab, pr.correctedRgb)}
+      ${pin.role === 'known' ? knownHtml(pin) : ''}${pin.role === 'goal' ? goalHtml(pin, pr) : ''}${groupHtml(pin)}
+      <div class="row" style="margin-top:8px"><button id="pinDelete">Delete pin</button></div>
+    </section>${correction}`;
+  }
+
+  function labInputs(prefix, lab) {
+    const lch = lab ? C.labToLch(lab) : [null, null, null];
+    const v = x => (x === null || x === undefined ? '' : (+x).toFixed(1));
+    return `<div class="label">L*C*h°</div><div class="row">
+        <input type="number" step="0.1" data-k="${prefix}" data-f="lch0" value="${v(lch[0])}" aria-label="L*">
+        <input type="number" step="0.1" data-k="${prefix}" data-f="lch1" value="${v(lch[1])}" aria-label="C*">
+        <input type="number" step="1" data-k="${prefix}" data-f="lch2" value="${v(lch[2])}" aria-label="h°"></div>
+      <div class="label" style="margin-top:6px">L*a*b*</div><div class="row">
+        <input type="number" step="0.1" data-k="${prefix}" data-f="lab0" value="${v(lab && lab[0])}" aria-label="L*">
+        <input type="number" step="0.1" data-k="${prefix}" data-f="lab1" value="${v(lab && lab[1])}" aria-label="a*">
+        <input type="number" step="0.1" data-k="${prefix}" data-f="lab2" value="${v(lab && lab[2])}" aria-label="b*"></div>`;
+  }
+
+  function knownHtml(pin) {
+    const set = D.paintSets[A.app.session.paintSet];
+    const pick = set && set.hasTargets ? `<label class="field"><span>This is my…</span><select id="knownCode"><option value="">Typed in</option>
+      ${Object.keys(D.chart).map(c => `<option value="${c}">${c} · ${A.esc(D.names[c])}</option>`).join('')}</select></label>` : '';
+    const lab = pin.known && pin.known.lab;
+    const oog = lab && !MF_calibrate.inGamut(lab) ? '<p class="hint">This color is more intense than a photo can record, so it is not used to correct the photo.</p>' : '';
+    const r = A.result(), k = r && r.correction.perKnown.find(x => x.id === pin.id);
+    const off = k && k.outlier ? '<p class="error-msg">This reading doesn\'t match the photo, so it is not used. Is the pin on the right swatch, and are the numbers right?</p>' : '';
+    return `<div class="panel" style="background:var(--surface-alt)"><div class="label">Measured value</div>${off}
+      <p class="hint">Enter the meter reading for this swatch. Measured colors make the correction more exact.</p>
+      ${pick}${labInputs('known', lab)}${oog}</div>`;
+  }
+
+  function goalHtml(pin, pr) {
+    const s = A.app.session, cls = D.classes[s.classId];
+    const codes = cls.codes.length ? cls.codes : Object.keys(D.names);
+    const code = pin.goal && pin.goal.code;
+    const opts = codes.map(c => `<option value="${c}" ${c === code ? 'selected' : ''}>${c} · ${A.esc(D.names[c])}</option>`).join('');
+    const fb = pr.feedback;
+    return `<div class="panel" style="background:var(--surface-alt)"><div class="label">Goal</div>
+      <label class="field"><span>Which color were you mixing?</span><select id="goalCode"><option value="">Custom target</option>${opts}</select></label>
+      ${!code || (pin.goal && pin.goal.lab) ? labInputs('goal', pin.goal && pin.goal.lab) : ''}
+      ${pr.target ? `<p class="muted">Target</p>${A.readout(pr.target)}` : ''}
+      ${fb ? `<p class="verdict" style="font-size:1rem">${A.esc(fb.headline)}</p>${fb.detail.map(t => `<p class="muted">${A.esc(t)}</p>`).join('')}` : ''}</div>`;
+  }
+
+  function groupHtml(pin) {
+    const cls = D.classes[A.app.session.classId];
+    if (!cls.subModes) return '';
+    const groups = [{ id: 'value', title: 'Value painting' }, ...cls.subModes];
+    return `<label class="field"><span>Painting</span><select id="pinGroup">${groups.map(g => `<option value="${g.id}" ${pin.group === g.id ? 'selected' : ''}>${A.esc(g.title)}</option>`).join('')}</select></label>`;
+  }
+
+  function sampleSize(photo) {
+    const cur = photo.sampleHalf || 7;
+    return `<label class="field"><span>Sample size</span><select id="sampleHalf">${[3, 5, 7, 11, 15].map(h =>
+      `<option value="${h}" ${h === cur ? 'selected' : ''}>${2 * h + 1} × ${2 * h + 1} px</option>`).join('')}</select></label>`;
+  }
+
+  function bind(panel) {
+    const photo = A.activePhoto(), pin = selectedPin(photo);
+    const q = id => panel.querySelector('#' + id);
+    const done = () => { A.changed(); MF_canvas.refreshPanel(); MF_canvas.draw(); };
+    if (q('sampleHalf')) q('sampleHalf').addEventListener('change', e => { photo.sampleHalf = Number(e.target.value); done(); });
+    if (!pin) return;
+    q('pinLabel').addEventListener('change', e => { pin.label = e.target.value || pin.label; done(); });
+    q('pinRole').addEventListener('change', e => {
+      const role = e.target.value;
+      St.setRole(pin, role, role === 'goal' ? { code: A.app.session.subMode && D.names[A.app.session.subMode] ? A.app.session.subMode : null } : role === 'known' ? { lab: null } : undefined);
+      done();
+    });
+    q('pinDelete').addEventListener('click', () => { St.deletePin(photo, pin.id); A.app.selected = null; done(); });
+    if (q('pinGroup')) q('pinGroup').addEventListener('change', e => { pin.group = e.target.value; done(); });
+    if (q('knownCode')) q('knownCode').addEventListener('change', e => {
+      const c = e.target.value;
+      if (c) { pin.known = { lab: D.chart[c].lab.slice(), code: c }; if (/^Pin \d+$/.test(pin.label)) pin.label = c; }
+      done();
+    });
+    if (q('goalCode')) q('goalCode').addEventListener('change', e => {
+      pin.goal = { code: e.target.value || null };
+      if (e.target.value && /^Pin \d+$/.test(pin.label)) pin.label = e.target.value;
+      done();
+    });
+    panel.querySelectorAll('input[data-k]').forEach(inp => inp.addEventListener('change', () => {
+      const k = inp.dataset.k, f = inp.dataset.f;
+      const vals = key => [0, 1, 2].map(i => parseFloat(panel.querySelector(`input[data-k="${k}"][data-f="${key}${i}"]`).value));
+      let lab = f.startsWith('lch') ? vals('lch') : vals('lab');
+      if (lab.some(x => !Number.isFinite(x))) return;
+      if (f.startsWith('lch')) lab = C.lchToLab(lab);
+      if (k === 'known') pin.known = { lab };
+      else pin.goal = { ...(pin.goal || {}), lab };
+      done();
+    }));
+  }
+
+  return { html, bind };
+})();
+
+</script>
+<script>
+/* ---- ui_results.js ---- */
+// Step 3: one verdict first, then swatch feedback, then details on request (spec §5, §9).
+const MF_results = (() => {
+  const A = MF_app, C = MF_color, D = MF_data, Ph = MF_phrases;
+  const CHECK_NAMES = { paperPin: 'Paper pin', preEdited: 'Original photo', exposure: 'Exposure', warmth: 'Warmth',
+    tint: 'Tint', evenness: 'Even light', focus: 'Focus' };
+  const CORNER = ['Top left', 'Top right', 'Bottom right', 'Bottom left'];
+
+  // Goal pins on the photo being viewed, grouped by goal code so 5.3 attempts at one swatch rank together.
+  // Each photo has its own list (switch with the thumbnails); mixing photos listed every color twice.
+  function goalRows(photo = A.activePhoto()) {
+    const rows = [];
+    const r = A.result(photo.id);
+    if (r) for (const p of r.pins) if (p.pin.role === 'goal' && p.feedback) rows.push({ photo, p, miss: missOf(p) });
+    const groups = new Map();
+    for (const row of rows) {
+      const key = row.p.code || row.p.pin.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(row);
+    }
+    return [...groups.values()];
+  }
+  const missOf = p => (p.judged && Number.isFinite(p.judged.worst) && p.judged.worst > 0 ? p.judged.worst : p.abs ? p.abs.de : Infinity);
+
+  function html() {
+    const photo = A.activePhoto(), r = A.result();
+    if (!r) return '<section class="panel">Upload a photo first.</section>';
+    const multi = A.app.session.photos.length > 1;
+    const verdictClass = `level-${r.headline.level}`;
+    // Follow-on photo advice is computed from the paper reading, so it waits until the paper reading is right.
+    const fixes = r.trusted ? r.checks.filter(c => c.level !== 'ok' && c.id !== r.headline.checkId) : [];
+    const groups = goalRows();
+    const swatches = groups.length ? groups.map(rowsHtml).join('')
+      : '<p class="hint">No pins are checking a mix yet. Go back to Pins, tap a pin, and set it to "Check my mix".</p>';
+    return `
+    ${multi ? `<div class="thumbs">${A.app.session.photos.map(p => `<button data-photo="${p.id}" class="${p.id === photo.id ? 'on' : ''}"><img alt="" src="${A.app.images[p.id].thumb}"></button>`).join('')}</div>` : ''}
+    <section class="panel">
+      <div class="label">Your photo${multi ? ` · ${A.esc(photo.name)}` : ''}</div>
+      <p class="verdict ${verdictClass}">${A.esc(r.headline.text)}</p>
+      ${fixes.length ? `<p class="muted">Also: ${fixes.map(c => A.esc(Ph.PHRASES[c.id][c.level](c.values))).join(' ')}</p>` : ''}
+      <div class="preview"><canvas id="preview"></canvas></div>
+      <p class="hint">Left is your photo. Right is the corrected version. Drag across the photo to move the line.</p>
+      <div class="row">
+        <button data-dl="corrected" class="primary">Save corrected photo</button>
+        <button data-dl="record">Save record sheet</button>
+        <button data-dl="csv">Save swatch numbers</button>
+      </div>
+      <p class="hint" id="dlmsg">On a phone, saving opens the share menu: choose Save Image for Photos, or Save to Files to pick a folder.</p>
+      <p class="hint">The corrected photo shows what better looks like. Edit your own photo to match, then upload it again to check.</p>
+    </section>
+    <section class="panel"><div class="label">Your swatches${multi ? ` · ${A.esc(photo.name)}` : ''}</div>${swatches}
+      ${multi ? '<p class="hint">Each photo has its own list. Tap a thumbnail at the top to see another photo.</p>' : ''}</section>
+    ${detailsHtml(photo, r)}
+    <div class="row"><button data-go="2">Back to pins</button><button data-go="1">Add another photo</button></div>`;
+  }
+
+  function rowsHtml(rows) {
+    const ranked = rows.slice().sort((a, b) => a.miss - b.miss);
+    const many = rows.length > 1;
+    return ranked.map((row, i) => {
+      const p = row.p, fb = p.feedback;
+      const tags = [many && i === 0 && Number.isFinite(row.miss) ? '<span class="tag best">closest</span>' : '',
+        p.neighborSource ? `<span class="tag">${p.neighborSource === 'own' ? 'compared with your own swatches' : p.neighborSource === 'chart' ? 'compared with the chart' : 'compared with yours and the chart'}</span>` : ''].join('');
+      return `<div class="swatch-row">${A.chip(p.correctedRgb, p.pin.label)}
+        <div class="text"><div class="head">${A.esc(p.pin.label)}${tags}</div>
+        <div>${A.esc(fb.headline)}</div>${fb.detail.map(t => `<div class="muted">${A.esc(t)}</div>`).join('')}</div></div>`;
+    }).join('');
+  }
+
+  function detailsHtml(photo, r) {
+    const checks = r.checks.map(c => `<tr><td>${CHECK_NAMES[c.id]}</td><td class="level-${c.level}">${c.level === 'ok' ? 'ok' : c.level === 'little' ? 'a little off' : 'off'}</td>
+      <td>${A.esc(Ph.PHRASES[c.id][c.level](c.values))}</td><td class="n">${numbers(c)}</td></tr>`).join('');
+    const im = A.app.images[photo.id].img;
+    const corners = photo.corners.map((c, i) => {
+      const s = MF_sampler.samplePatch(im, c.x * im.width, c.y * im.height, photo.sampleHalf || 7);
+      const lab = s && C.rgbToLab(s.rgb);
+      return `<div>${CORNER[i]}<br>${lab ? `L*${lab[0].toFixed(1)} b*${lab[2].toFixed(1)}` : 'off photo'}</div>`;
+    });
+    const corr = r.correction;
+    const knowns = corr.perKnown.map(k => {
+      const pin = photo.pins.find(p => p.id === k.id);
+      return `<tr><td>${A.esc(pin ? pin.label : k.id)}</td><td class="n">${k.de.toFixed(1)}</td><td>${k.outOfGamut ? 'too intense for a photo, not used' : k.outlier ? "doesn't match the photo, not used. Check the pin's spot and numbers." : 'used'}</td></tr>`;
+    }).join('');
+    const pinRows = r.pins.map(p => {
+      const lch = p.correctedLab ? C.labToLch(p.correctedLab) : null;
+      return `<tr><td>${A.chip(p.correctedRgb)}</td><td>${A.esc(p.pin.label)}</td><td>${{ goal: 'check mix', known: 'measured', look: 'show color' }[p.pin.role] || p.pin.role}</td>
+        <td class="n">${lch ? `${lch[0].toFixed(1)} ${lch[1].toFixed(1)} ${lch[2].toFixed(0)}°` : 'off photo'}</td><td class="n">${p.hex || ''}</td>
+        <td class="n">${p.judged && Number.isFinite(p.judged.gap) ? p.judged.gap.toFixed(1) : ''}</td>
+        <td class="n">${p.judged && Number.isFinite(p.judged.lean) ? p.judged.lean.toFixed(1) : ''}</td></tr>`;
+    }).join('');
+    return `
+    <details class="more"><summary>Photo checks</summary><div class="body scroll-x"><table class="data">
+      <tr><th>Check</th><th>Result</th><th>What to do</th><th>Numbers</th></tr>${checks}</table>
+      <p class="hint">Numbers compare your photo's paper with the measured class paper. The thresholds are still being tuned.</p></div></details>
+    <details class="more"><summary>Light across the page</summary><div class="body"><div class="corner-map">${corners.join('')}</div>
+      <p class="hint">Even light gives similar numbers in all four corners.</p></div></details>
+    <details class="more"><summary>How the photo was corrected</summary><div class="body">
+      <p>${corr.method === 'matrix' ? 'Paper plus known colors (full color fit).' : 'Paper only (white balance).'} Photo error about <span class="num">${corr.error.toFixed(1)} ΔE00</span>.</p>
+      ${knowns ? `<div class="scroll-x"><table class="data"><tr><th>Color you measured</th><th>Left over ΔE00</th><th></th></tr>${knowns}</table></div>` : '<p class="hint">Set pins on swatches you measured to "Color I measured", or place a calibration card, to make this more exact.</p>'}
+      <p class="hint">Photo feedback never gives a star. Only the meter can do that.</p></div></details>
+    <details class="more"><summary>All pins</summary><div class="body scroll-x"><table class="data">
+      <tr><th></th><th>Pin</th><th>Role</th><th>L*C*h°</th><th>Hex</th><th>Gap</th><th>Lean</th></tr>${pinRows}</table></div></details>
+    <details class="more"><summary>Class summary</summary><div class="body">${classSummary()}</div></details>`;
+  }
+
+  function numbers(c) {
+    const v = c.values || {}, f = x => (x > 0 ? '+' : '') + x.toFixed(1);
+    if (c.id === 'exposure') return `ΔL* ${f(v.dL)}`;
+    if (c.id === 'warmth') return `Δb* ${f(v.db)}`;
+    if (c.id === 'tint') return `Δa* ${f(v.da)}`;
+    if (c.id === 'evenness' && Number.isFinite(v.rangeL)) return `L* range ${v.rangeL.toFixed(1)}, b* range ${v.rangeB.toFixed(1)}`;
+    if (c.id === 'focus') return `${Math.round(v.focus)}`;
+    if (c.id === 'paperPin' || c.id === 'preEdited') return Number.isFinite(v.L) ? `L* ${v.L.toFixed(1)} C* ${v.C.toFixed(1)}` : '';
+    return '';
+  }
+
+  function allPins() {
+    const out = [];
+    for (const photo of A.app.session.photos) { const r = A.result(photo.id); if (r) out.push(...r.pins.filter(p => p.correctedLab)); }
+    return out;
+  }
+
+  function classSummary() {
+    const id = A.app.session.classId, pins = allPins(), lch = p => C.labToLch(p.correctedLab);
+    if (id === '2.3' || id === '4.3' || id === '5.3') {
+      const rows = pins.filter(p => p.judged && (Number.isFinite(p.judged.gap) || Number.isFinite(p.judged.chromaN)));
+      if (!rows.length) return '<p class="hint">Add goal pins with colors from this class to see the summary.</p>';
+      return `<div class="scroll-x"><table class="data"><tr><th>Pin</th><th>Gap</th><th>Lean</th><th>Chroma</th></tr>${rows.map(p => `<tr><td>${A.esc(p.pin.label)}</td>
+        <td class="n">${Number.isFinite(p.judged.gap) ? p.judged.gap.toFixed(1) : ''}</td><td class="n">${Number.isFinite(p.judged.lean) ? p.judged.lean.toFixed(1) : ''}</td>
+        <td class="n">${Number.isFinite(p.judged.chromaN) ? p.judged.chromaN.toFixed(1) : ''}</td></tr>`).join('')}</table></div>
+        <p class="hint">Gap near 0 means the mix sits halfway between its neighbors. From a photo these are directions, not grades.</p>`;
+    }
+    if (id === '3.3') {
+      const steps = pins.slice().sort((a, b) => lch(b)[0] - lch(a)[0]);
+      if (!steps.length) return '<p class="hint">Put a pin on each of your five value steps.</p>';
+      return `<p class="hint">${A.esc(D.classes['3.3'].note)} For now: your steps from light to dark, with the jump between each.</p>
+        <table class="data"><tr><th>Step</th><th>L*</th><th>Jump</th></tr>${steps.map((p, i) => `<tr><td>${A.esc(p.pin.label)}</td>
+        <td class="n">${lch(p)[0].toFixed(1)}</td><td class="n">${i ? (lch(steps[i - 1])[0] - lch(p)[0]).toFixed(1) : ''}</td></tr>`).join('')}</table>`;
+    }
+    if (id === '6.3') {
+      const groups = [{ id: 'value', title: 'Value painting', prop: 0, name: 'L* range' }, { id: 'saturation', title: 'Saturation', prop: 1, name: 'C* range' },
+        { id: 'comp-neutral', title: 'Complements through neutral', prop: 1, name: 'C* range' }, { id: 'comp-hue', title: 'Complements around the hue circle', prop: 2, name: 'hue span' }];
+      const rows = groups.map(g => {
+        const v = pins.filter(p => (p.pin.group || 'value') === g.id).map(p => lch(p)[g.prop]);
+        return `<tr><td>${g.title}</td><td>${g.name}</td><td class="n">${v.length > 1 ? (Math.max(...v) - Math.min(...v)).toFixed(1) : '·'}</td><td class="n">${v.length}</td></tr>`;
+      }).join('');
+      return `<p class="hint">Each painting should carry about as much contrast as your value painting, in its own property. Pins can come from any photo. Set each pin's painting in the Pins step.</p>
+        <table class="data"><tr><th>Painting</th><th>Measure</th><th>Spread</th><th>Pins</th></tr>${rows}</table>`;
+    }
+    return '';
+  }
+
+  function drawPreview(root) {
+    const canvas = root.querySelector('#preview'), im = A.app.images[A.app.session.activePhoto], corr = A.correctedCanvas();
+    if (!canvas || !im || !corr) return;
+    const w = Math.min(root.querySelector('.preview').clientWidth || 600, 900), h = w * im.img.height / im.img.width, dpr = window.devicePixelRatio || 1;
+    canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const s = A.app.view.split;
+    ctx.drawImage(im.canvas, 0, 0, w, h);
+    ctx.drawImage(corr, s * im.img.width, 0, (1 - s) * im.img.width, im.img.height, s * w, 0, (1 - s) * w, h);
+    ctx.fillStyle = '#fff'; ctx.fillRect(s * w - 1, 0, 2, h);
+  }
+
+  function bind(root) {
+    root.querySelectorAll('[data-photo]').forEach(b => b.addEventListener('click', () => { A.app.session.activePhoto = b.dataset.photo; A.render(); }));
+    root.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => A.go(Number(b.dataset.go))));
+    root.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => MF_export.download(b.dataset.dl)));
+    const canvas = root.querySelector('#preview');
+    if (canvas) {
+      let dragging = false;
+      const set = e => { const r = canvas.getBoundingClientRect(); A.app.view.split = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); drawPreview(root); };
+      canvas.addEventListener('pointerdown', e => { dragging = true; set(e); });
+      canvas.addEventListener('pointermove', e => { if (dragging) set(e); });
+      window.addEventListener('pointerup', () => { dragging = false; });
+    }
+    drawPreview(root);
+    // Build the images now so the share menu can open the moment a save button is tapped.
+    setTimeout(() => MF_export.prepare(), 50);
+    root.querySelectorAll('details.more').forEach(d => d.addEventListener('toggle', A.postHeight));
+  }
+
+  return { html, bind, goalRows, missOf };
+})();
+
+</script>
+<script>
+/* ---- ui_export.js ---- */
+// Downloads (spec §11): corrected photo, record sheet (photo + pins + feedback), swatch CSV.
+const MF_export = (() => {
+  const A = MF_app, C = MF_color, St = MF_state;
+
+  const toBlob = canvas => new Promise(res => canvas.toBlob(res, 'image/png'));
+
+  async function correctedBlob(photoId = A.app.session.activePhoto) {
+    const c = A.correctedCanvas(photoId);
+    return c ? toBlob(c) : null;
+  }
+
+  function wrap(ctx, text, x, y, maxW, lh) {
+    const words = String(text).split(' ');
+    let line = '';
+    for (const w of words) {
+      const t = line ? line + ' ' + w : w;
+      if (ctx.measureText(t).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = t;
+    }
+    if (line) { ctx.fillText(line, x, y); y += lh; }
+    return y;
+  }
+
+  async function recordSheetBlob(photoId = A.app.session.activePhoto) {
+    const photo = St.getPhoto(A.app.session, photoId), im = A.app.images[photoId], r = A.result(photoId);
+    if (!photo || !im || !r) return null;
+    const W = 1600, scale = Math.min(1, 1000 / im.img.width), pw = im.img.width * scale, ph = im.img.height * scale;
+    const panelX = pw + 40, panelW = W - panelX - 30;
+    const rows = r.pins.filter(p => p.pin.role === 'goal' && p.feedback);
+    const H = Math.max(ph + 60, 260 + rows.length * 90);
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#f4f6f9'; ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(im.canvas, 20, 30, pw, ph);
+    const mark = (p, t, sq) => {
+      const x = 20 + p.x * pw, y = 30 + p.y * ph;
+      ctx.lineWidth = 2; ctx.strokeStyle = '#222'; ctx.fillStyle = sq ? '#fff' : '#222';
+      ctx.beginPath(); if (sq) ctx.rect(x - 8, y - 8, 16, 16); else ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.font = '400 16px Jost, sans-serif';
+      const tw = ctx.measureText(t).width;
+      ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillRect(x + 11, y - 12, tw + 8, 22);
+      ctx.fillStyle = '#222'; ctx.fillText(t, x + 15, y + 5);
+    };
+    for (const p of photo.pins) mark(p, p.label, false);
+    mark(photo.paperPin, 'W', true);
+    ctx.fillStyle = '#222';
+    ctx.font = '400 24px Jost, sans-serif';
+    let y = 60;
+    y = wrap(ctx, St.filenameBase(A.app.session), panelX, y, panelW, 30);
+    ctx.font = '300 16px Jost, sans-serif'; ctx.fillStyle = '#666';
+    y = wrap(ctx, `${photo.name} · ${new Date().toLocaleDateString()}`, panelX, y, panelW, 22) + 10;
+    ctx.fillStyle = '#222'; ctx.font = '400 20px Jost, sans-serif';
+    y = wrap(ctx, r.headline.text, panelX, y, panelW, 26) + 16;
+    for (const p of rows) {
+      ctx.fillStyle = p.hex || '#fff'; ctx.fillRect(panelX, y - 18, 28, 28); ctx.strokeStyle = '#e0e3e8'; ctx.strokeRect(panelX, y - 18, 28, 28);
+      ctx.fillStyle = '#222'; ctx.font = '400 17px Jost, sans-serif';
+      y = wrap(ctx, p.pin.label, panelX + 40, y, panelW - 40, 22);
+      ctx.font = '300 16px Jost, sans-serif';
+      y = wrap(ctx, [p.feedback.headline, ...p.feedback.detail].join(' '), panelX + 40, y, panelW - 40, 21) + 12;
+    }
+    ctx.fillStyle = '#666'; ctx.font = '300 14px Jost, sans-serif';
+    wrap(ctx, `Photo error about ${r.correction.error.toFixed(1)} ΔE00. Photo feedback gives directions, not grades.`, panelX, H - 30, panelW, 18);
+    return toBlob(c);
+  }
+
+  const csvCell = v => {
+    const s = v === null || v === undefined ? '' : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lchStr = lab => (lab ? C.labToLch(lab).map((v, i) => v.toFixed(i === 2 ? 0 : 1)).join(' ') : '');
+
+  function csv(session = A.app.session) {
+    const head = ['photo', 'pin', 'role', 'raw L*C*h', 'corrected L*C*h', 'corrected L*a*b*', 'hex', 'target code',
+      'target L*C*h', 'gap', 'lean', 'feedback'];
+    const lines = [head.join(',')];
+    for (const photo of session.photos) {
+      const r = A.result(photo.id);
+      if (!r) continue;
+      for (const p of r.pins) {
+        lines.push([photo.name, p.pin.label, p.pin.role, lchStr(p.rawLab), lchStr(p.correctedLab),
+          p.correctedLab ? p.correctedLab.map(v => v.toFixed(2)).join(' ') : '', p.hex, p.code, lchStr(p.target),
+          p.judged && Number.isFinite(p.judged.gap) ? p.judged.gap.toFixed(2) : '',
+          p.judged && Number.isFinite(p.judged.lean) ? p.judged.lean.toFixed(2) : '',
+          p.feedback ? [p.feedback.headline, ...p.feedback.detail].join(' ') : ''].map(csvCell).join(','));
+      }
+    }
+    return lines.join('\n') + '\n';
+  }
+
+  function save(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  // Images are built ahead of time: iOS only opens the share sheet right after a tap, and building a
+  // 2000 px PNG can take longer than that allows. Keyed by the analysis result, so any pin change rebuilds.
+  const ready = new Map(); // photoId -> { result, corrected: Promise<Blob>, record: Promise<Blob> }
+  function prepare(photoId = A.app.session.activePhoto) {
+    const r = A.result(photoId), c = ready.get(photoId);
+    if (c && c.result === r) return c;
+    const entry = { result: r, corrected: correctedBlob(photoId), record: recordSheetBlob(photoId) };
+    ready.set(photoId, entry);
+    return entry;
+  }
+
+  // Phone: share sheet (Save Image, Save to Files, AirDrop…). Chrome/Edge desktop: a Save As dialog.
+  // Otherwise (or if either is blocked, e.g. inside an iframe without permission): a normal download.
+  async function deliver(blob, name) {
+    const file = new File([blob], name, { type: blob.type });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return 'shared'; }
+    } catch (e) { if (e.name === 'AbortError') return 'cancelled'; }
+    try {
+      if (window.showSaveFilePicker) {
+        const ext = name.split('.').pop();
+        const handle = await window.showSaveFilePicker({ suggestedName: name,
+          types: [{ description: ext.toUpperCase(), accept: { [blob.type]: ['.' + ext] } }] });
+        const w = await handle.createWritable(); await w.write(blob); await w.close();
+        return 'saved';
+      }
+    } catch (e) { if (e.name === 'AbortError') return 'cancelled'; }
+    save(blob, name);
+    return 'downloaded';
+  }
+
+  async function download(kind) {
+    const base = St.filenameBase(A.app.session);
+    let blob, name;
+    if (kind === 'csv') { blob = new Blob([csv()], { type: 'text/csv' }); name = `${base}_swatches.csv`; }
+    else { blob = await prepare()[kind]; name = `${base}_${kind}.png`; }
+    if (!blob) return null;
+    const how = await deliver(blob, name);
+    const msg = document.getElementById('dlmsg');
+    if (msg) msg.textContent = how === 'downloaded'
+      ? `Saved ${name}. On iPhone it is in the Files app, in Downloads. On a computer, check your Downloads folder.`
+      : '';
+    return how;
+  }
+
+  return { correctedBlob, recordSheetBlob, csv, download, prepare };
+})();
+
+</script>
+<script>
+/* ---- ui_main.js ---- */
+// Start the app once the page is ready.
+(function start() {
+  const go = () => MF_app.render();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+  // Only a width change needs new layout. Height changes happen all the time inside the iframe (the parent
+  // resizes it to fit) and on phones (the address bar hides), and re-rendering on those closed every section.
+  let t, lastW = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === lastW) return;
+    lastW = window.innerWidth;
+    clearTimeout(t);
+    t = setTimeout(() => { if (MF_app.app.step === 2) MF_canvas.draw(); else MF_app.render(); }, 150);
+  });
+})();
+
+</script>
+</body>
+</html>
