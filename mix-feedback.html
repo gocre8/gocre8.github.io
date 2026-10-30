@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mix Feedback</title>
+<!-- Home-screen app (iPhone: Share → Add to Home Screen; Android: manifest). Icon files sit next to this page on the site. -->
+<link rel="apple-touch-icon" href="mix-feedback-icon-180.png">
+<link rel="manifest" href="mix-feedback.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Mix Feedback">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f4f6f9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;1,300&family=Courier+Prime:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <style>
@@ -27,6 +35,8 @@
   --num: 'Courier Prime', ui-monospace, monospace;
 }
 * { box-sizing: border-box; }
+/* Full-screen home-screen app: keep content out from under the notch and home bar (0 everywhere else). */
+body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--ui); font-weight: 300; font-size: 15px; line-height: 1.45; }
 #app { max-width: 1100px; margin: 0 auto; padding: 12px; }
 h2 { font-size: 1.05rem; font-weight: 400; margin: 0 0 6px; }

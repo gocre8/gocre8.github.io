@@ -1,0 +1,22 @@
+{
+  "name": "Mix Feedback",
+  "short_name": "Mix Feedback",
+  "start_url": "mix-feedback.html",
+  "scope": "./mix-feedback.html",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#f4f6f9",
+  "icons": [
+    {
+      "src": "mix-feedback-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "mix-feedback-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
