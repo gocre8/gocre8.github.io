@@ -110,8 +110,8 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
         <div class="space-name">Munsell Color Tree</div>
         <div class="space-desc">
           A 3D map of perceptual color space. <strong>Hue</strong> sets the angle (20 pages), <strong>Value</strong> sets lightness on the vertical axis (0 black → 10 white), <strong>Chroma</strong> sets saturation as the radius from center.<br><br>
-          The shape is <em>deliberately irregular</em> — branches extend only as far as real pigments allow. Colors come from the official OSA renotation data (Munsell → CIE XYZ → sRGB).<br><br>
-          <strong style="color:#FFD700">Gold outline</strong> marks each hue's peak chroma — the pigment at full concentration. <strong>White outline</strong> means the color exceeds the Display P3 gamut. Click any chip to see its Munsell notation, hex, Lab LCH, and OKLCh values.
+          The shape is <em>deliberately irregular</em> — branches extend only as far as real surface colors can go. Colors come from the official OSA renotation data (Munsell → CIE XYZ → sRGB).<br><br>
+          <strong style="color:#FFD700">Gold outline</strong> marks each hue's peak chroma, the most saturated chip in that hue. <strong>White outline</strong> means the color exceeds the Display P3 gamut. Click any chip to see its Munsell notation, hex, Lab LCH, and OKLCh values.
         </div>
       </div>
     </div>
@@ -188,9 +188,9 @@ footer { padding:6px 20px; border-top:1px solid var(--border); background:var(--
     <div class="panel-section">
       <h3>Markers</h3>
       <div class="legend-list">
-        <div class="legend-item"><div style="width:12px;height:12px;border:1.5px solid #FFD700;border-radius:2px;flex-shrink:0"></div><span><strong>Gold outline</strong> — peak chroma · pure pigment</span></div>
+        <div class="legend-item"><div style="width:12px;height:12px;border:1.5px solid #FFD700;border-radius:2px;flex-shrink:0"></div><span><strong>Gold outline</strong> — peak chroma · most saturated chip</span></div>
         <div class="legend-item"><div style="width:12px;height:12px;border:1.5px solid #fff;border-radius:2px;flex-shrink:0;opacity:0.6"></div><span>White outline — outside Display P3 gamut</span></div>
-        <div class="legend-item"><div style="width:12px;height:12px;background:#666;border-radius:2px;flex-shrink:0"></div><span>No outline — within P3, pigment diluted</span></div>
+        <div class="legend-item"><div style="width:12px;height:12px;background:#666;border-radius:2px;flex-shrink:0"></div><span>No outline — within P3</span></div>
       </div>
     </div>
 
@@ -273,8 +273,8 @@ const HUE_SWATCHES = [
   '#7040b0','#8e44ad','#a03898','#c0186e','#c02050'
 ];
 // Principal pigment historically used for each Munsell hue family.
-// These are the pigments Munsell & OSA used to mix the actual paint chips.
-// Maximum-chroma chips on each branch = that pigment used at full concentration.
+// A traditional pigment for each hue page (a teaching mapping added by this tool,
+// not part of the renotation data). Peak chips are not that pigment at full strength.
 const HUE_PIGMENTS = [
   { name: 'Cadmium Red',          note: 'cadmium sulfoselenide — vivid warm red' },       // 5R
   { name: 'Vermilion',            note: 'mercury sulfide HgS — bright orange-red' },      // 10R
@@ -324,7 +324,7 @@ const MAX_CHROMA = [
   [0,  4,  6,  8, 10, 12, 12, 12, 10,  8,  0], // 10RP
 ];
 
-// For each hue, the (v, c) of its highest-chroma chip = "pure pigment" position.
+// For each hue, the (v, c) of its highest-chroma chip = peak chroma position.
 // This is precomputed from MAX_CHROMA so buildPoints() can flag peak instances.
 const HUE_PEAKS = Array.from({length: 20}, (_, hi) => {
   let bestC = 0, bestV = 5;
@@ -415,7 +415,7 @@ function buildPoints() {
 
   // Hue pages — each chip is a cube aligned to its hue page plane.
   // Colors are sRGB-clamped for correct rendering; outOfP3 flag drives wireframe outline.
-  // isPeak flags the highest-chroma chip for this hue (pure pigment position).
+  // isPeak flags the highest-chroma chip for this hue (peak chroma).
   activeHues.forEach(hi => {
     if (hSliceOn && hi !== hSliceIdx) return;
     const a  = (hi / 20) * Math.PI * 2;
@@ -492,7 +492,7 @@ function buildPoints() {
     wireMesh.instanceMatrix.needsUpdate = true;
   }
 
-  // ── Gold peak mesh — marks the max-chroma chip per hue (pure pigment) ──
+  // ── Gold peak mesh — marks the max-chroma chip per hue (peak chroma) ──
   // Slightly larger than the P3 outline (1.12× vs 1.08×) so both are visible.
   const peakChips = chips.filter(c => c.isPeak);
   let peakMesh = null;
@@ -777,7 +777,7 @@ renderer.domElement.addEventListener('click', e => {
       (d.isPeak ? '◆ ' : '◇ ') + `</span>` +
       `<strong style="color:var(--ink)">${pigment.name}</strong><br>` +
       `<span style="color:var(--ink-ghost)">${pigment.note}</span>` +
-      (d.isPeak ? `<br><span style="color:#FFD700;font-size:7.5px">peak chroma — pigment at full concentration</span>` : '') +
+      (d.isPeak ? `<br><span style="color:#FFD700;font-size:7.5px">peak chroma, most saturated chip in this hue</span>` : '') +
       `</div>`
     : '';
 
