@@ -1426,6 +1426,15 @@ const MF_state = (() => {
     return [(H[0] * x + H[1] * y + H[2]) / w, (H[3] * x + H[4] * y + H[5]) / w];
   }
 
+  // The chip at each card corner, in tap order, so a card turned any way round can still be placed:
+  // the corners are named by chip color, not by top/bottom on the photo.
+  function cardCornerNames(cardType) {
+    return [[0, 0], [1, 0], [1, 1], [0, 1]].map(([u, v]) => {
+      const p = cardType.patches.reduce((best, q) => (Math.hypot(q.u - u, q.v - v) < Math.hypot(best.u - u, best.v - v) ? q : best));
+      return (p.label || p.name).replace(/^Card /, '');
+    });
+  }
+
   // corners: the card's top-left, top-right, bottom-right, bottom-left as tapped on the photo.
   function placeCard(photo, cardType, corners) {
     const H = homography([[0, 0], [1, 0], [1, 1], [0, 1]], corners.map(c => [c.x, c.y]));
@@ -1456,7 +1465,7 @@ const MF_state = (() => {
     return session.classId === 'none' ? `${yy}${sem}_Color_${name}` : `${yy}${sem}_Color_${session.classId}_${name}`;
   }
 
-  return { createSession, addPhoto, getPhoto, addPin, movePin, deletePin, setRole, homography, applyH,
+  return { cardCornerNames, createSession, addPhoto, getPhoto, addPin, movePin, deletePin, setRole, homography, applyH,
     placeCard, allGoalPins, filenameBase };
 })();
 if (typeof module !== 'undefined') module.exports = MF_state;
@@ -1606,7 +1615,7 @@ const MF_analyze = (() => {
     return brightCache.get(img);
   }
 
-  // With no paper in the photo, the lightest grey known (the card's white chip) stands in for it.
+  // A measured near-white: the card's white chip, or any light gray a student measured.
   const isWhiteKnown = k => k.true[0] >= 80 && Math.hypot(k.true[1], k.true[2]) < 5;
 
   function analyze({ photo, img, session, data, teacher = {}, focus }) {
@@ -1618,25 +1627,27 @@ const MF_analyze = (() => {
       .map(x => ({ id: x.pin.id, raw: x.s.rgb, true: x.pin.known.lab }));
     const fcs = Number.isFinite(focus) ? focus : Sm.focusScore(img);
 
-    let paperS = null, truePaper, rawPaperRgb, checks, correction, standIn = null;
-    if (noPaper) {
-      standIn = knowns.filter(isWhiteKnown).sort((a, b) => b.true[0] - a.true[0])[0] || null;
-      if (standIn) {
-        truePaper = standIn.true; rawPaperRgb = standIn.raw;
-        knowns = knowns.filter(k => k !== standIn);
-        correction = K.fitCorrection({ paper: { raw: rawPaperRgb, true: truePaper }, knowns });
-      } else {
-        truePaper = null; rawPaperRgb = null;
-        correction = K.noCorrection();
-      }
-      // Paper checks need paper. Only sharpness can still be judged.
-      const focusCheck = Ch.runChecks({ rawPaperLab: [90, 0, 0], truePaperLab: [90, 0, 0], focus: fcs }).find(c => c.id === 'focus');
-      checks = [{ id: 'noPaper', level: standIn ? 'ok' : 'little', values: { standIn: standIn && standIn.id, severity: standIn ? 0 : 1 } }, focusCheck];
-    } else {
+    // A measured white chip (the card's) is the white reference whenever there is one: it sits in the same light
+    // as the other chips. Bare paper elsewhere on the page can be 10 L* brighter or darker (test photo 2026-11-06:
+    // L* 80.6–91.0), which swung every corrected color with the W pin. The W pin then only drives the photo checks.
+    const standIn = knowns.filter(isWhiteKnown).sort((a, b) => b.true[0] - a.true[0])[0] || null;
+    let paperS = null, truePaper = null, rawPaperRgb = null, checks, correction;
+    if (!noPaper) {
       paperS = at(photo.paperPin);
       truePaper = (teacher.paper && teacher.paper.lab) || data.paper.lab;
       rawPaperRgb = paperS ? paperS.rgb : [255, 255, 255];
+    }
+    if (standIn) {
+      correction = K.fitCorrection({ paper: { raw: standIn.raw, true: standIn.true }, knowns: knowns.filter(k => k !== standIn) });
+    } else if (!noPaper) {
       correction = K.fitCorrection({ paper: { raw: rawPaperRgb, true: truePaper }, knowns });
+    } else {
+      correction = K.noCorrection();
+    }
+    if (noPaper) {
+      // Paper checks need paper. Only sharpness can still be judged.
+      const focusCheck = Ch.runChecks({ rawPaperLab: [90, 0, 0], truePaperLab: [90, 0, 0], focus: fcs }).find(c => c.id === 'focus');
+      checks = [{ id: 'noPaper', level: standIn ? 'ok' : 'little', values: { standIn: standIn && standIn.id, severity: standIn ? 0 : 1 } }, focusCheck];
     }
     const rawPaperLab = rawPaperRgb ? C.rgbToLab(rawPaperRgb) : null;
 
@@ -1653,7 +1664,7 @@ const MF_analyze = (() => {
     const headline = Ph.photoHeadline(checks);
     // A wrong paper reference makes every corrected color wrong, so mix advice waits until it's fixed.
     const level = id => (checks.find(c => c.id === id) || {}).level;
-    const trusted = !(level('paperPin') === 'lot' || level('preEdited') === 'lot'
+    const trusted = !((level('paperPin') === 'lot' && !standIn) || level('preEdited') === 'lot'
       || (checks.find(c => c.id === 'exposure') || { values: {} }).values.clipped);
 
     const set = data.paintSets[session.paintSet] || {};
@@ -1886,7 +1897,7 @@ const MF_app = (() => {
 
   // How the photo was corrected, in words. With no paper the card's white chip is the white reference.
   function correctionWords(r) {
-    const c = r.correction, white = r.noPaper ? "the card's white chip" : 'paper';
+    const c = r.correction, white = r.standIn ? "the card's white chip" : 'paper';
     if (c.method === 'none') return 'None. There is no white in the photo to correct from, so colors are as your phone took them.';
     if (c.method.includes('matrix')) return `${white[0].toUpperCase() + white.slice(1)} plus known colors (full color fit).`;
     if (c.method === 'curve') return `${white[0].toUpperCase() + white.slice(1)} plus the card's grays.`;
@@ -2096,6 +2107,15 @@ const MF_canvas = (() => {
   const MAX_CANVAS_PX = 16e6;
   let stage, canvas, loupe, drag = null, cardTaps = [];
 
+  // Corners named by the chip beside them, so it works whichever way the card is turned in the photo.
+  function cardHint() {
+    const card = A.chosenCard();
+    if (!card) return '';
+    const names = St.cardCornerNames(card);
+    const order = names.map((n, i) => `${i + 1} ${n}`).join(', ');
+    return `Tap the card's 4 outer corners, by the chip in each corner, in this order: ${order}. Next: the corner by the ${names[cardTaps.length]} chip.`;
+  }
+
   function html() {
     const { app } = A, v = app.view, photo = A.activePhoto();
     const tb = (tool, label) => `<button data-tool="${tool}" class="${app.tool === tool ? 'on' : ''}">${label}</button>`;
@@ -2104,7 +2124,7 @@ const MF_canvas = (() => {
     const thumbs = app.session.photos.length > 1 ? `<div class="thumbs">${app.session.photos.map(p =>
       `<button data-photo="${p.id}" class="${p.id === photo.id ? 'on' : ''}"><img alt="" src="${app.images[p.id].thumb}"></button>`).join('')}</div>` : '';
     const hint = app.tool === 'add' ? 'Tap a swatch to add a pin.'
-      : app.tool === 'card' ? `Tap the card's corners in order: top left (the white chip), top right, bottom right, bottom left (${cardTaps.length}/4).`
+      : app.tool === 'card' ? cardHint()
         : photo.noPaper ? (photo.card ? "No paper: the card's white chip is the white reference. Drag each pin onto its swatch."
           : 'No white in this photo, so colors stay as your phone took them. Drag each pin onto its swatch.')
           : 'Drag the W pin onto bare paper and each pin onto its swatch. The U pins find paper near the corners on their own; move them if they missed.';
@@ -2196,7 +2216,7 @@ const MF_canvas = (() => {
         const near = MF_sampler.findPaperNearCard(A.app.images[photo.id].img, cardTaps);
         if (near) photo.paperPin = near;
         cardTaps = []; A.app.tool = 'move'; A.changed(); A.render();
-      } else { document.getElementById('hint').textContent = `Tap the card's corners in order: top left (the white chip), top right, bottom right, bottom left (${cardTaps.length}/4).`; draw(); }
+      } else { document.getElementById('hint').textContent = cardHint(); draw(); }
       return;
     }
     let t = hit(photo, f);
