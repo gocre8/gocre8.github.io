@@ -1238,7 +1238,8 @@ const MF_phrases = (() => {
     },
     paperPin: {
       ok: () => 'The paper pin is on bare paper.',
-      lot: () => "Your paper pin isn't on bare paper. Move the W pin to a clean white spot. No white paper in the photo? Tick \"No white paper\" under the photo.",
+      lot: (v = {}) => v.card ? "Your W pin isn't on bare paper, so these photo tips may be wrong. Your card still corrected the colors."
+        : "Your paper pin isn't on bare paper. Move the W pin to a clean white spot. No white paper in the photo? Tick \"No white paper\" under the photo.",
     },
     preEdited: {
       ok: () => 'The paper still looks like paper. Good.',
@@ -1246,21 +1247,27 @@ const MF_phrases = (() => {
     },
     exposure: {
       ok: () => 'Brightness looks right.',
-      little: v => (v.dL < 0 ? 'A little dark. Raise Exposure a little.' : 'A little bright. Lower Exposure a little.'),
+      little: v => (v.card ? `The photo was a little ${v.dL < 0 ? 'dark' : 'bright'}. Your card corrected it.`
+        : v.dL < 0 ? 'A little dark. Raise Exposure a little.' : 'A little bright. Lower Exposure a little.'),
       lot: v => (v.clipped ? 'The paper is blown out. Lower Exposure, or reshoot with less light.'
+        : v.card ? `The photo was too ${v.dL < 0 ? 'dark' : 'bright'}. Your card corrected it. Brighter, even light is still better next time.`
         : v.dL < 0 ? 'Too dark. Raise Exposure a lot, or reshoot in brighter light.'
           : 'Too bright. Lower Exposure a lot, or reshoot with less light.'),
     },
     warmth: {
       ok: () => 'Warm and cool balance looks right.',
-      little: v => (v.db > 0 ? 'A little warm. Lower Warmth a little.' : 'A little cool. Raise Warmth a little.'),
-      lot: v => (v.db > 0 ? 'Too warm. Lower Warmth a lot.' : 'Too cool. Raise Warmth a lot.'),
+      little: v => (v.card ? `The light was a little ${v.db > 0 ? 'warm' : 'cool'}. Your card corrected it.`
+        : v.db > 0 ? 'A little warm. Lower Warmth a little.' : 'A little cool. Raise Warmth a little.'),
+      lot: v => (v.card ? `The light was very ${v.db > 0 ? 'warm' : 'cool'}. Your card corrected it. Daylight is still better next time.`
+        : v.db > 0 ? 'Too warm. Lower Warmth a lot.' : 'Too cool. Raise Warmth a lot.'),
     },
     tint: {
       ok: () => 'Green and magenta balance looks right.',
-      little: v => (v.da < 0 ? 'Tint leans green. Move Tint toward magenta a little.'
+      little: v => (v.card ? `The light leaned a little ${v.da < 0 ? 'green' : 'magenta'}. Your card corrected it.`
+        : v.da < 0 ? 'Tint leans green. Move Tint toward magenta a little.'
         : 'Tint leans magenta. Move Tint toward green a little.'),
-      lot: v => (v.da < 0 ? 'Tint leans green. Move Tint toward magenta a lot.'
+      lot: v => (v.card ? `The light leaned ${v.da < 0 ? 'green' : 'magenta'}. Your card corrected it.`
+        : v.da < 0 ? 'Tint leans green. Move Tint toward magenta a lot.'
         : 'Tint leans magenta. Move Tint toward green a lot.'),
     },
     evenness: {
@@ -1277,6 +1284,7 @@ const MF_phrases = (() => {
 
   // Problems that make every other reading wrong come first. After that, the check furthest past its limit
   // (values.severity) leads, so a strong cast isn't hidden behind a slightly dark photo. Ties go by PRIORITY.
+  // A W pin off paper leads even with a card: every light tip comes from that reading.
   const blocking = c => c.level === 'lot' && (c.id === 'paperPin' || c.id === 'preEdited' || (c.values && c.values.clipped));
   const weight = c => (blocking(c) ? Infinity : c.values && Number.isFinite(c.values.severity) ? c.values.severity : RANK[c.level]);
   function photoHeadline(checks) {
@@ -1663,6 +1671,8 @@ const MF_analyze = (() => {
       checks = Ch.runChecks({ rawPaperLab, truePaperLab: checkPaper, paperClippedFrac: paperS ? paperS.clippedFrac : 0,
         corners, cornerIdx: cornerHits.map(x => x.i), focus: fcs, brightLab: brightLab(img) });
     }
+    // The card corrected the colors: the light tips say so instead of asking for edits.
+    if (standIn && !noPaper) for (const c of checks) if (c.values && c.id !== 'focus') c.values.card = true;
     const headline = Ph.photoHeadline(checks);
     // A wrong paper reference makes every corrected color wrong, so mix advice waits until it's fixed.
     const level = id => (checks.find(c => c.id === id) || {}).level;
@@ -2594,7 +2604,8 @@ const MF_results = (() => {
     const multi = A.app.session.photos.length > 1;
     const verdictClass = `level-${r.headline.level}`;
     // Follow-on photo advice is computed from the paper reading, so it waits until the paper reading is right.
-    const fixes = r.trusted ? r.checks.filter(c => c.level !== 'ok' && c.id !== r.headline.checkId) : [];
+    const wOff = (r.checks.find(c => c.id === 'paperPin') || {}).level === 'lot';
+    const fixes = r.trusted && !wOff ? r.checks.filter(c => c.level !== 'ok' && c.id !== r.headline.checkId) : [];
     const groups = goalRows();
     const swatches = groups.length ? groups.map(rowsHtml).join('')
       : '<p class="hint">No pins are checking a mix yet. Go back to Pins, tap a pin, and set it to "Check my mix".</p>';
