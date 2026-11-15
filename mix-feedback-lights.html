@@ -127,6 +127,11 @@ table.data td.n { font-family: var(--num); }
 .lx-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
 .lx-photo { margin: 0; font-size: 0.85rem; line-height: 1.35; min-width: 0; }
 .lx-photo img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; border-radius: var(--radius); margin-bottom: 6px; }
+.lx-nopic { width: 100%; aspect-ratio: 1 / 1; display: grid; place-content: center; justify-items: center; gap: 4px; border-radius: var(--radius); margin-bottom: 6px; border: 1.5px dashed var(--line, rgba(0,0,0,.2)); color: var(--ink-soft); font-size: 0.8rem; }
+.lx-nopic span { font-size: 2rem; line-height: 1; }
+.lx-rank { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--paper, #fff); font-size: 0.7rem; font-weight: 600; margin-right: 6px; vertical-align: 1px; }
+.lx-why { margin: 4px 0 0; }
+.lx-nums { display: block; font-size: 0.78rem; line-height: 1.4; }
 .lx-tag { display: inline-block; font-size: 0.72rem; padding: 1px 7px; border: 1px solid currentColor; border-radius: 999px; margin: 4px 0; }
 .lx-tag.ok, .lx-d.ok { color: var(--ok); } .lx-tag.warn, .lx-d.warn { color: var(--warn); } .lx-tag.err, .lx-d.err { color: var(--err); }
 .lx-gb { list-style: none; margin: 4px 0 0; padding: 0; }
@@ -140,6 +145,7 @@ table.data td.n { font-family: var(--num); }
 @media (max-width: 560px) { .lx-chart { grid-template-columns: 1fr; } }
 label.check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 0.9rem; cursor: pointer; }
 label.check input { width: 20px; height: 20px; margin: 0; }
+.card-cmp td { white-space: nowrap; }
 
 </style>
 </head>
@@ -160,26 +166,42 @@ if (typeof module !== 'undefined') module.exports = MF_lightsData;
 // Step 1 example: one painted chart photographed under six lights, compared with LS171 readings.
 // The app shows a link; the example itself lives on its own page so its photos don't load with the app.
 const MF_lights = (() => {
+  // Ranked best to worst (spec §10d). Entries without k have no photo: untested or ruled out.
   const LIGHTS = [
-    { k: 'shade', name: 'Outdoor shade', sub: 'daylight', fix: 'yes',
-      good: ['Soft light, no glare', 'Full daylight, so blues come through'],
-      bad: ['Photo comes out dark', 'Shade light is bluish, but the phone balanced most of it out'] },
     { k: 'day', name: 'Window light', sub: 'daylight, no direct sun', fix: 'yes',
+      why: 'Full daylight and soft light. The best result after the fix.',
       good: ['Closest of the reliable photos before any fix', 'Best result after the fix'],
       bad: ['A little dark', 'Sun can move into the window, so check before you shoot'] },
-    { k: 'sun', name: 'Direct sun', sub: 'sun on the paper', fix: 'no',
-      good: ['Bright, and looks close at a glance'],
-      bad: ['Glare turns darks pale', 'Strong colors look too strong', 'Correcting it makes it worse'] },
+    { k: 'shade', name: 'Outdoor shade', sub: 'daylight', fix: 'yes',
+      why: 'Daylight with no glare. The card fixes the dark, bluish look.',
+      good: ['Soft light, no glare', 'Full daylight, so blues come through'],
+      bad: ['Photo comes out dark', 'Shade light is bluish, but the phone balanced most of it out'] },
+    { name: 'One daylight bulb', sub: 'at night, not tested yet', fix: 'untested', icon: '💡',
+      why: 'A daylight bulb puts back the blue that warm bulbs leave out. Use it as the only light.',
+      good: ['Works at night', 'Try Philips Ultra Definition, Daylight 5000K (CRI 95)', 'About $9 for a 4-pack at Target or Walmart', 'Other brands: look for 5000K and CRI 90 or more on the box'],
+      bad: ['Not tested with our chart yet', 'No bulb? Wait and shoot by a window in daylight'] },
     { k: 'roomA', name: 'Ceiling + desk lamp', sub: 'at night', fix: 'mostly',
+      why: 'The cool desk lamp adds back some of the blue the ceiling light is missing.',
       good: ['Cool desk lamp adds back some blue', 'Corrects fairly well'],
       bad: ['Photo comes out dark', 'Some parts of the page brighter than others'] },
     { k: 'roomB', name: 'Ceiling light', sub: 'at night', fix: 'partly',
+      why: 'Warm light has little blue. Greens and teals stay off after the fix.',
       good: ['Easy, no setup'],
       bad: ['Orange cast', 'One side of the page much darker', 'Blues and violets go dark'] },
     { k: 'lamp', name: 'Warm lamp', sub: 'at night', fix: 'partly',
+      why: 'The least blue of all. Its worst colors are the furthest off of any light we can fix.',
       good: ['Easy, no setup'],
-      bad: ['Most orange of all', 'Darkest photo', 'Blues and violets lost, worst swatch still way off after the fix'] }];
-  const FIX = { yes: ['Fixable', 'ok'], mostly: ['Mostly fixable', 'warn'], partly: ['Partly fixable', 'warn'], no: ['Not fixable', 'err'] };
+      bad: ['Most orange of all', 'Darkest photo', 'Blues and violets lost, worst swatch still way off after the fix'] },
+    { k: 'sun', name: 'Direct sun', sub: 'sun on the paper', fix: 'no',
+      why: 'Glare adds white to every color. The fix cannot take it back out.',
+      good: ['Bright, and looks close at a glance'],
+      bad: ['Glare turns darks pale', 'Strong colors look too strong', 'Correcting it makes it worse'] },
+    { name: 'Phone flash', sub: 'tested, not usable', fix: 'no', icon: '⚡',
+      why: 'The flash makes a bright hotspot. The middle of the page gets far more light than the edges.',
+      good: ['Always with you'],
+      bad: ['Bright center, dark edges', 'Shine on the paint right in the middle'] }];
+  const PHOTOS = LIGHTS.filter(L => L.k);
+  const FIX = { yes: ['Fixable', 'ok'], mostly: ['Mostly fixable', 'warn'], partly: ['Partly fixable', 'warn'], no: ['Not fixable', 'err'], untested: ['Not tested yet', 'warn'] };
   const SW = [['paper', 'Paper', 'P'], ['yellow tip', 'Yellow', '1'], ['light green', 'Light green', '2'], ['teal band', 'Dark teal', '3'],
     ['blue corner', 'Blue', '4'], ['violet band', 'Violet', '5'], ['magenta', 'Magenta', '6'], ['red corner', 'Red', '7'], ['orange band', 'Orange', '8']];
   const dot = d => (d < 5 ? 'ok' : d < 10 ? 'warn' : 'err');
@@ -194,17 +216,26 @@ const MF_lights = (() => {
   function body() {
     const { T, crops, labeled } = MF_lightsData;
     const key = SW.map(([k, n, num]) => `<li><span class="lx-num">${num}</span><span class="lx-chip sm" style="background:${T.true[k].hex}"></span>${n}</li>`).join('');
-    const photos = LIGHTS.map(L => {
-      const st = T[L.k].stats, f = FIX[L.fix];
-      return `<figure class="lx-photo"><img src="${crops[L.k]}" alt="The test chart photographed in ${L.name.toLowerCase()}" loading="lazy">
-        <figcaption><b>${L.name}</b> <span class="muted">${L.sub}</span><br>
-        <span class="lx-tag ${f[1]}">${f[0]}</span> <span class="num">${st.raw[0].toFixed(0)} off as shot, ${st.card[0].toFixed(0)} after the fix</span>
+    const photos = LIGHTS.map((L, i) => {
+      const f = FIX[L.fix];
+      const pic = L.k
+        ? `<img src="${crops[L.k]}" alt="The test chart photographed in ${L.name.toLowerCase()}" loading="lazy">`
+        : `<div class="lx-nopic" aria-hidden="true"><span>${L.icon}</span>No photo</div>`;
+      const nums = L.k
+        ? (st => `<span class="num lx-nums">As shot: ${st.raw[0].toFixed(0)} off<br>After the fix: ${st.card[0].toFixed(0)}, worst ${st.card[1].toFixed(0)}</span>`)(T[L.k].stats)
+        : '';
+      return `<figure class="lx-photo">${pic}
+        <figcaption><span class="lx-rank">${i + 1}</span><b>${L.name}</b> <span class="muted">${L.sub}</span><br>
+        <span class="lx-tag ${f[1]}">${f[0]}</span> ${nums}
+        <p class="lx-why">${L.why}</p>
         <ul class="lx-gb">${L.good.map(g => `<li class="g">${g}</li>`).join('')}${L.bad.map(g => `<li class="b">${g}</li>`).join('')}</ul></figcaption></figure>`;
     }).join('');
     return `${intro()}
       <div class="lx-chart"><img src="${labeled}" alt="The test chart with nine numbered spots: P is the paper, 1 to 8 are painted swatches"><ul class="lx-key">${key}</ul></div>
-      <div class="label">The six photos</div>
+      <div class="label">Lights from best to worst</div>
+      <p class="hint">Six real photos, plus two lights without a photo. The numbers are the middle swatch, then the worst one, after the app corrects the photo.</p>
       <div class="lx-photos">${photos}</div>
+      <p class="hint"><b>Every photo:</b> put the card in the same light as your work. Keep the page flat, hold the phone straight above it, and light from the side so no shine shows on the paint.</p>
       <div class="label">How far off?</div>
       <p class="hint">0 to 3: hard to see a difference. 5: looks like a different mix. 10: looks like a different color. 20: not even close.</p>
       <div class="label">Real paint vs. the photo</div>
@@ -212,15 +243,15 @@ const MF_lights = (() => {
       <div class="scroll-x"><table class="lx-grid" id="lxGrid">${grid()}</table></div>
       <div class="label">So which light is best?</div>
       <p><b>Best for color:</b> window light or outdoor shade, out of direct sun. Both came out a little dark, but after the app corrects them they were the closest to the real paint, about 4 off.</p>
-      <p><b>Can be fixed:</b> daylight photos fix well. A cool desk lamp at night also fixed fairly well.</p>
-      <p><b>Can't be fixed:</b> glare from direct sun, and light that is very uneven across the page. Warm lamps only partly fix, because the blue was never recorded.</p>`;
+      <p><b>At night:</b> one daylight bulb should be next best. A cool desk lamp with the ceiling light also fixed fairly well.</p>
+      <p><b>Can't be fixed:</b> glare from direct sun or a phone flash. Warm lamps only partly fix, because the blue was never recorded.</p>`;
   }
 
   function grid() {
     const { T } = MF_lightsData;
-    const head = `<tr><th></th><th>Real paint</th>${LIGHTS.map(L => `<th>${L.name}</th>`).join('')}</tr>`;
+    const head = `<tr><th></th><th>Real paint</th>${PHOTOS.map(L => `<th>${L.name}</th>`).join('')}</tr>`;
     return head + SW.map(([k, n, num]) => `<tr><th class="lx-row"><span class="lx-num">${num}</span>${n}</th><td><span class="lx-chip truth" style="background:${T.true[k].hex}"></span></td>` +
-      LIGHTS.map(L => {
+      PHOTOS.map(L => {
         const s = T[L.k].sw[k], d = mode === 'raw' ? s.deRaw : s.deFix;
         return `<td><span class="lx-chip" style="background:${mode === 'raw' ? s.raw : s.fix}"></span><span class="num lx-d ${dot(d)}">${d.toFixed(0)}</span></td>`;
       }).join('') + '</tr>').join('');
