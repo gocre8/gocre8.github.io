@@ -2005,7 +2005,7 @@ const MF_lights = (() => {
       bad: ['Not tested with our chart yet', 'No bulb? Wait and shoot by a window in daylight'] },
     { k: 'roomA', name: 'Ceiling + desk lamp', sub: 'at night', fix: 'mostly',
       why: 'The cool desk lamp adds back some of the blue the ceiling light is missing.',
-      good: ['Cool desk lamp adds back some blue', 'Corrects fairly well'],
+      good: ['Cool desk lamp adds back some blue', 'Corrects about as well as window light'],
       bad: ['Photo comes out dark', 'Some parts of the page brighter than others'] },
     { k: 'roomB', name: 'Ceiling light', sub: 'at night', fix: 'partly',
       why: 'Warm light has little blue. Greens and teals stay off after the fix.',
@@ -2065,8 +2065,8 @@ const MF_lights = (() => {
       <div class="row"><button data-lx="raw" class="${mode === 'raw' ? 'on' : ''}">As photographed</button><button data-lx="fix" class="${mode === 'fix' ? 'on' : ''}">After the app corrects it</button></div>
       <div class="scroll-x"><table class="lx-grid" id="lxGrid">${grid()}</table></div>
       <div class="label">So which light is best?</div>
-      <p><b>Best for color:</b> window light or outdoor shade, out of direct sun. Both came out a little dark, but after the app corrects them they were the closest to the real paint, about 4 off.</p>
-      <p><b>At night:</b> one daylight bulb should be next best. A cool desk lamp with the ceiling light also fixed fairly well.</p>
+      <p><b>Best for color:</b> window light or outdoor shade, out of direct sun. Both came out a little dark, but after the app corrects them they were among the closest to the real paint, about 3 to 4 off.</p>
+      <p><b>At night:</b> one daylight bulb should be next best. A cool desk lamp with the ceiling light fixed about as well as window light, about 3 off.</p>
       <p><b>Can't be fixed:</b> glare from direct sun or a phone flash. Warm lamps only partly fix, because the blue was never recorded.</p>`;
   }
 
