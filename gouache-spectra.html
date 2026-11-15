@@ -379,7 +379,7 @@ function drawTri(){
     el("circle",{cx:G[0],cy:G[1],r:4.5,fill:GRAY?grayHex(g.L):g.hex,stroke:"var(--ink)","stroke-width":1},gg)}}
   document.getElementById("lay-s").setAttribute("aria-pressed",layout==="s");document.getElementById("lay-m").setAttribute("aria-pressed",layout==="m");
   document.getElementById("layNote").textContent=layout==="m"
-    ?`Each swatch is placed so that distances on the page follow the measured colour difference between swatches (CIEDE2000). A flat page can't hold every difference exactly; here the distances are right to within about ${measured().err} % on average. Dashed circles are working mixes, not final values. Small ringed dots are the goals, the ideal perceptual middles worked out from the three primaries (draft, 11-12); a dark line joins each swatch to its goal, so a long line means the swatch is off its middle.`
+    ?`Each swatch is placed so that distances on the page follow the measured colour difference between swatches (CIEDE2000). A flat page can't hold every difference exactly; here the distances are right to within about ${measured().err} % on average. Dashed circles are working mixes, not final values. Small ringed dots are the goals: equal steps, as the eye sees them, along each side between two primaries (draft, 11-14); a dark line joins each swatch to its goal, so a long line means the swatch is off its middle.`
     :"Arranged by recipe: secondaries halfway along each edge, tertiaries between, gray in the centre, and the neutral mixes halfway between gray and their colour.";
 }
 document.getElementById("lay-s").addEventListener("click",()=>{layout="s";drawTri()});
