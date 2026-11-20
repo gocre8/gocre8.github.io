@@ -146,7 +146,7 @@ details.arch>summary .btn{pointer-events:none}
     <h2 id="h-chart">The chart</h2>
     <div class="chartgrid">
       <div class="panel tripanel">
-        <div class="bar" role="group" aria-label="Layout"><button class="btn" id="lay-m" aria-pressed="true">Measured spacing</button><button class="btn" id="lay-s" aria-pressed="false">As painted</button></div>
+        <div class="bar" role="group" aria-label="Layout"><button class="btn" id="lay-m" aria-pressed="true">Hue angle</button><button class="btn" id="lay-s" aria-pressed="false">As painted</button></div>
         <svg id="tri" viewBox="0 0 440 400" role="group" aria-label="Chart swatches arranged by mixture"></svg>
         <p class="more" id="layNote"></p>
       </div>
@@ -358,10 +358,22 @@ function measured(){
       const ws=w.reduce((a,b)=>a+b);x=[x[0]-.3*gx/ws,x[1]-.3*gy/ws]}
     gpos[g]=x}
   MEAS={pos,gpos,err:Math.round(100*sum/cnt)};return MEAS}
-let layout="m";   // 11-19 Geoffrey: measured spacing is the default view
+let layout="m";   // 11-19 Geoffrey: the top chart's second layout is HUE ANGLE (like the class charts), and it is the default view
+// hue angle layout (11-19, replaces 'measured spacing'): seen from above, angle = hue h°, distance from the centre = chroma C*, gray at the centre
+let HUE=null;
+function hueAngle(){
+  if(HUE)return HUE;
+  const items=Object.keys(P).map(k=>slotItem(k)).filter(Boolean),GG=DATA.goals||{};
+  const maxC=Math.max(...items.map(i=>i.C),...Object.values(GG).map(g=>g.C),20),K=170/maxC;
+  const XY=o=>[220+o.C*K*Math.cos(o.h*Math.PI/180),200-o.C*K*Math.sin(o.h*Math.PI/180)];
+  const pos={};for(const k of Object.keys(P)){const it=slotItem(k);if(it)pos[k]=XY(it)}
+  const gpos={};for(const g of Object.keys(GG))gpos[g]=XY(GG[g]);
+  HUE={pos,gpos,K};return HUE}
 function drawTri(){
   const svg=document.getElementById("tri");svg.innerHTML="";
-  const Q=layout==="m"?{...P,...measured().pos}:P,r=layout==="m"?15:21;
+  const Q=layout==="m"?{...P,...hueAngle().pos}:P,r=layout==="m"?11:21;
+  if(layout==="m"){const K=hueAngle().K;[20,40,60,80,100].forEach(c=>{if(c*K>200)return;el("circle",{cx:220,cy:200,r:c*K,fill:"none",stroke:"var(--line)","stroke-width":.7},svg);const x=el("text",{x:223,y:200-c*K-2,style:"font-size:8px;fill:var(--ink-ghost)"},svg);x.textContent=c});
+    el("line",{x1:30,y1:200,x2:410,y2:200,stroke:"var(--line)","stroke-width":.5},svg);el("line",{x1:220,y1:15,x2:220,y2:385,stroke:"var(--line)","stroke-width":.5},svg)}
   for(const [a,b] of [["Y","CYY"],["CYY","CY"],["CY","CCY"],["CCY","C"],["C","CCM"],["CCM","CM"],["CM","CMM"],["CMM","M"],["M","YMM"],["YMM","YM"],["YM","YYM"],["YYM","Y"]])el("line",{x1:Q[a][0],y1:Q[a][1],x2:Q[b][0],y2:Q[b][1]},svg);
   for(const k of ["Y","C","M","CY","YM","CM"]){const nk="N"+(k==="CM"?"MC":k);for(const [a,b] of [["N",nk],[nk,k]])el("line",{x1:Q[a][0],y1:Q[a][1],x2:Q[b][0],y2:Q[b][1]},svg)}
   for(const k of Object.keys(P)){
@@ -374,13 +386,13 @@ function drawTri(){
     g.addEventListener("click",()=>{sel=k;drawTri();drawDetail()});
     g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();sel=k;drawTri();drawDetail()}});
   }
-  if(layout==="m"&&DATA.goals){const gp=measured().gpos;for(const k of Object.keys(gp)){if(!Q[k])continue;const g=DATA.goals[k],G=gp[k];
+  if(layout==="m"&&DATA.goals){const gp=hueAngle().gpos;for(const k of Object.keys(gp)){if(!Q[k])continue;const g=DATA.goals[k],G=gp[k];
     el("line",{x1:Q[k][0],y1:Q[k][1],x2:G[0],y2:G[1],stroke:"var(--ink)","stroke-width":1.2,"stroke-opacity":.6},svg);
     const gg=el("g",{"aria-label":`Goal ${k}`},svg);el("circle",{cx:G[0],cy:G[1],r:8,fill:"none",stroke:"var(--ink)","stroke-width":1},gg);
     el("circle",{cx:G[0],cy:G[1],r:4.5,fill:GRAY?grayHex(g.L):g.hex,stroke:"var(--ink)","stroke-width":1},gg)}}
   document.getElementById("lay-s").setAttribute("aria-pressed",layout==="s");document.getElementById("lay-m").setAttribute("aria-pressed",layout==="m");
   document.getElementById("layNote").textContent=layout==="m"
-    ?`Each swatch is placed so that distances on the page follow the measured colour difference between swatches (CIEDE2000). A flat page can't hold every difference exactly; here the distances are right to within about ${measured().err} % on average. Dashed circles are working mixes, not final values. Small ringed dots are the goals: equal steps, as the eye sees them, along each side between two primaries (adopted 11-18); a dark line joins each swatch to its goal, so a long line means the swatch is off its middle.`
+    ?`Seen from above, like the class charts below: the angle is the hue (h°) and the distance from the centre is chroma (C*, rings every 20); gray sits at the centre, so each neutral mix should lie on the line from its colour toward the centre. Value (light/dark) is not shown here; tap a swatch for it. Dashed circles are working mixes, not final values. Small ringed dots are the goals (adopted 11-18); a dark line joins each swatch to its goal, so a long line means the swatch is off its goal.`
     :"Arranged by recipe: secondaries halfway along each edge, tertiaries between, gray in the centre, and the neutral mixes halfway between gray and their colour.";
 }
 document.getElementById("lay-s").addEventListener("click",()=>{layout="s";drawTri()});
