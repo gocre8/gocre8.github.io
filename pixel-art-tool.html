@@ -27,6 +27,7 @@
 
 
 const CANVAS_SIZE = 512;
+const NARROW_W = 900;   // below this width: single-column layout (phones, portrait iPads)
 const MAX_VERSIONS = 10;
 const MAX_HISTORY = 20;
 const LS_KEY = 'pixelart-versions';
@@ -360,14 +361,14 @@ function ColourAnalysis({pixels,gridSize}) {
   const SWATCH=44; // px — height matches button
 
   return (
-    <div style={{background:'#f5f5f4',borderTop:'1px solid #e7e5e4',padding:'10px 20px 16px',flexShrink:0}}>
+    <div style={{background:'#f5f5f4',borderTop:'1px solid #e7e5e4',padding:'10px 12px 16px',flexShrink:0}}>
 
       {/* ── Row 1: button + 5 swatches always visible ── */}
-      <div style={{display:'flex',alignItems:'stretch',gap:6,marginBottom:12}}>
+      <div style={{display:'flex',alignItems:'stretch',gap:6,marginBottom:12,flexWrap:'wrap'}}>
 
         {/* Palette button — ~2.5× swatch width */}
         <button onClick={refresh} style={{
-          width: SWATCH*2.5, height: SWATCH, flexShrink:0,
+          width: window.innerWidth<NARROW_W ? SWATCH*1.8 : SWATCH*2.5, height: SWATCH, flexShrink:0,
           fontSize:11, fontWeight:700, letterSpacing:1,
           border:'2px solid #d1d5db', background:'white', cursor:'pointer',
         }}>↻ PALETTE</button>
@@ -391,7 +392,7 @@ function ColourAnalysis({pixels,gridSize}) {
       </div>
 
       {/* ── Row 2: hue wheel + value scale ── */}
-      <div style={{display:'flex',alignItems:'flex-start',gap:20}}>
+      <div style={{display:'flex',alignItems:'flex-start',gap:20,flexWrap:'wrap'}}>
         <HueWheel palette={palette}/>
         <ValueScale palette={palette}/>
       </div>
@@ -453,6 +454,7 @@ function PixelArtTool() {
   const pixelsRef                          = useRef(initialPx.current);
   const [gridSize,setGridSize]             = useState(INIT_GRID);
   const [displaySize,setDisplaySize]       = useState(512);
+  const [isNarrow,setIsNarrow]             = useState(()=>window.innerWidth<NARROW_W);
   const [availW,setAvailW]                 = useState(2000);  // centre column width minus padding
   const [selectedLch,setSelectedLch]       = useState(()=>{const{r,g,b}=hexToRgbObj('#FF6B35');return rgbToOklch(r,g,b);});
   const [previousLch,setPreviousLch]       = useState(null);
@@ -544,11 +546,13 @@ function PixelArtTool() {
       if(Math.abs(h-last)<2) return; last=h;
       window.parent.postMessage({type:'phgrid-height',height:h},'*');
     };
-    const ro=new ResizeObserver(()=>{report(); const el=centreRef.current; if(el) setAvailW(Math.max(100,Math.floor(el.clientWidth-52)));});
+    const ro=new ResizeObserver(()=>{report(); const el=centreRef.current; if(el) setAvailW(Math.max(100,Math.floor(el.clientWidth-(window.innerWidth<NARROW_W?28:52))));});
     if(centreRef.current) ro.observe(centreRef.current);
     report();
     return ()=>ro.disconnect();
-  },[]);
+  },[isNarrow]);
+
+  useEffect(()=>{const on=()=>setIsNarrow(window.innerWidth<NARROW_W);window.addEventListener('resize',on);return()=>window.removeEventListener('resize',on);},[]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useEffect(()=>{
@@ -727,21 +731,15 @@ function PixelArtTool() {
   };
 
   const toolList=[
-    {id:'draw',       label:'Draw',       cursor:'crosshair', key:'D'},
-    {id:'erase',      label:'Erase',      cursor:'cell',      key:'E'},
-    {id:'fill',       label:'Fill',       cursor:'copy',      key:'F'},
-    {id:'eyedropper', label:'Eyedropper', cursor:'crosshair', key:'C'},
-    {id:'dither',     label:'Dither',     cursor:'crosshair', key:'X'},
+    {id:'draw',       label:'Draw',short:'Draw',       cursor:'crosshair', key:'D'},
+    {id:'erase',      label:'Erase',short:'Erase',      cursor:'cell',      key:'E'},
+    {id:'fill',       label:'Fill',short:'Fill',       cursor:'copy',      key:'F'},
+    {id:'eyedropper', label:'Eyedropper',short:'Pick', cursor:'crosshair', key:'C'},
+    {id:'dither',     label:'Dither',short:'Dither',     cursor:'crosshair', key:'X'},
   ];
 
-  return (
-    <div className="flex min-h-screen bg-white text-black select-none items-start">
-
-      {/* ── Left Sidebar ── */}
-      <div className="w-56 bg-stone-50 border-r border-stone-200 p-4 overflow-y-auto flex flex-col gap-4 flex-shrink-0 sticky top-0 h-screen">
-        <h1 className="text-base font-bold tracking-widest">PIXEL</h1>
-
-        {/* Tools */}
+  // ── Layout blocks (shared by the desktop and phone layouts) ─────────────
+  const toolsBlock=(<>
         <div className="space-y-1">
           {toolList.map(t=>(
             <button key={t.id} onClick={()=>setTool(t.id)}
@@ -752,8 +750,8 @@ function PixelArtTool() {
             </button>
           ))}
         </div>
-
-        {/* Undo / Redo */}
+  </>);
+  const undoBlock=(<>
         <div className="flex gap-1">
           <button onClick={undo} disabled={!canUndo}
             title="Undo (Ctrl+Z)"
@@ -766,7 +764,8 @@ function PixelArtTool() {
             ↪ Redo
           </button>
         </div>
-
+  </>);
+  const optionsBlock=(<>
         {/* Fill options */}
         {tool==='fill'&&(
           <div className="bg-stone-100 border border-stone-200 p-3 space-y-3">
@@ -855,9 +854,8 @@ function PixelArtTool() {
             </p>
           </div>
         )}
-
-        {/* Actions */}
-        <div className="space-y-2">
+  </>);
+  const actionButtons=(<>
           <button onClick={saveVersion} disabled={versions.length>=MAX_VERSIONS}
             className="w-full py-2 px-3 text-xs font-medium bg-stone-700 text-white border-2 border-stone-700 hover:bg-stone-600 disabled:opacity-40">
             Save Version{versions.length>=MAX_VERSIONS?' (max)':''}
@@ -881,13 +879,9 @@ function PixelArtTool() {
             className="w-full py-2 px-3 text-xs font-medium bg-stone-900 text-white border-2 border-stone-900 hover:bg-stone-700">
             Export PNG
           </button>
-        </div>
-      </div>
-
-      {/* ── Centre: canvas top, colour analysis below ── */}
-      <div ref={centreRef} className="flex-1 flex flex-col bg-stone-100 min-w-0">
-        {/* Canvas */}
-        <div className="flex justify-center items-start p-6 pb-3 flex-shrink-0">
+  </>);
+  const canvasBlock=(<>
+        <div className={`flex justify-center items-start flex-shrink-0 ${isNarrow?'p-3 pb-2':'p-6 pb-3'}`}>
           <div className="flex flex-col items-center">
             <div className="border-2 border-stone-400 shadow-xl" style={{width:viewSize,height:viewSize}}>
               <canvas
@@ -911,11 +905,8 @@ function PixelArtTool() {
             </p>
           </div>
         </div>
-
-        {/* Colour analysis strip */}
-        <ColourAnalysis pixels={pixels} gridSize={gridSize}/>
-
-        {/* ── Versions strip ── */}
+  </>);
+  const versionsBlock=(<>
         <div className="border-t border-stone-200 bg-stone-50 flex-shrink-0">
           <div className="flex items-center justify-between px-3 py-2 border-b border-stone-200">
             <p className="text-xs font-bold tracking-wide">VERSIONS</p>
@@ -958,11 +949,8 @@ function PixelArtTool() {
           </div>
           {pdfStatus==='error'&&<p className="text-xs text-red-500 px-3 pb-2">{versions.length===0?'Save a version first.':'PDF failed.'}</p>}
         </div>
-      </div>
-
-      {/* ── Right: Color / OKLCH ── */}
-      <div className="w-56 bg-stone-50 border-l border-stone-200 p-4 overflow-y-auto flex flex-col gap-4 flex-shrink-0 sticky top-0 h-screen">
-        {/* Grid toggle */}
+  </>);
+  const gridToggle=(<>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <span className="text-xs font-bold">Grid</span>
           <button onClick={()=>setShowGrid(g=>!g)}
@@ -972,6 +960,8 @@ function PixelArtTool() {
               background:'white',transition:'left 0.18s',boxShadow:'0 1px 3px rgba(0,0,0,.35)'}}/>
           </button>
         </div>
+  </>);
+  const colourBlock=(<>
         <label className="block text-xs font-bold">Color · OKLCH</label>
         <div>
           <div style={{display:'flex',height:44,border:'2px solid #d1d5db',flexShrink:0}}>
@@ -984,14 +974,8 @@ function PixelArtTool() {
           </div>
         </div>
         <OklchSliders lch={selectedLch} onChange={setSelectedLch}/>
-        <div style={{display:'flex',flexDirection:'column',gap:0,overflowY:'auto',overflowX:'hidden',flex:1}}>
-          {colorHistory.map(({lch,hex},i)=>(
-            <button key={`${hex}-${i}`} onClick={()=>setSelectedLch(lch)} title={hex}
-              style={{backgroundColor:hex,height:32,width:'100%',border:'none',padding:0,margin:0,display:'block',cursor:'pointer',flexShrink:0}}/>
-          ))}
-        </div>
-      </div>
-
+  </>);
+  const modalsBlock=(<>
       {/* ── Resample Modal ── */}
       {showResample&&(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50" style={modalPad(520)} onClick={()=>setShowResample(false)}>
@@ -1112,6 +1096,81 @@ function PixelArtTool() {
           </div>
         </div>
       )}
+  </>);
+
+  // ── Single-column layout (phones + portrait tablets, < NARROW_W): one column, canvas near the top ─────────
+  if(isNarrow) return (
+    <div className="min-h-screen bg-stone-100 text-black select-none">
+      <div ref={centreRef} className="flex flex-col w-full">
+        <div className="flex items-center justify-between px-3 pt-3 gap-4">
+          <h1 className="text-base font-bold tracking-widest">PIXEL</h1>
+          <div style={{width:110}}>{gridToggle}</div>
+        </div>
+        <div className="px-3 pt-3 space-y-2">
+          <div className="grid grid-cols-5 gap-1">
+            {toolList.map(t=>(
+              <button key={t.id} onClick={()=>setTool(t.id)}
+                className={`py-2 text-xs font-medium border-2 ${tool===t.id?'border-stone-900 bg-white':'border-stone-200 bg-white'}`}>
+                {t.short}
+              </button>
+            ))}
+          </div>
+          {undoBlock}
+        </div>
+        {canvasBlock}
+        <div className="bg-stone-50 border-t border-stone-200 p-3 space-y-3">
+          {colourBlock}
+          <div style={{display:'flex',flexWrap:'wrap'}}>
+            {colorHistory.map(({lch,hex},i)=>(
+              <button key={`${hex}-${i}`} onClick={()=>setSelectedLch(lch)} title={hex}
+                style={{backgroundColor:hex,height:32,width:'10%',border:'none',padding:0,margin:0,cursor:'pointer'}}/>
+            ))}
+          </div>
+        </div>
+        <div className="bg-stone-50 border-t border-stone-200 p-3 flex flex-col gap-4">
+          {optionsBlock}
+          <div className="grid grid-cols-2 gap-2">{actionButtons}</div>
+        </div>
+        <ColourAnalysis pixels={pixels} gridSize={gridSize}/>
+        {versionsBlock}
+      </div>
+      {modalsBlock}
+    </div>
+  );
+
+  // ── Desktop / tablet layout: three columns ───────────────────────────────
+  return (
+    <div className="flex min-h-screen bg-white text-black select-none items-start">
+
+      {/* ── Left Sidebar ── */}
+      <div className="w-56 bg-stone-50 border-r border-stone-200 p-4 overflow-y-auto flex flex-col gap-4 flex-shrink-0 sticky top-0 h-screen">
+        <h1 className="text-base font-bold tracking-widest">PIXEL</h1>
+        {toolsBlock}
+        {undoBlock}
+        {optionsBlock}
+        <div className="space-y-2">{actionButtons}</div>
+      </div>
+
+      {/* ── Centre: canvas top, colour analysis below ── */}
+      <div ref={centreRef} className="flex-1 flex flex-col bg-stone-100 min-w-0">
+        {canvasBlock}
+        <ColourAnalysis pixels={pixels} gridSize={gridSize}/>
+        {versionsBlock}
+      </div>
+
+      {/* ── Right: Color / OKLCH ── */}
+      <div className="w-56 bg-stone-50 border-l border-stone-200 p-4 overflow-y-auto flex flex-col gap-4 flex-shrink-0 sticky top-0 h-screen">
+        {gridToggle}
+        {colourBlock}
+        <div style={{display:'flex',flexDirection:'column',gap:0,overflowY:'auto',overflowX:'hidden',flex:1}}>
+          {colorHistory.map(({lch,hex},i)=>(
+            <button key={`${hex}-${i}`} onClick={()=>setSelectedLch(lch)} title={hex}
+              style={{backgroundColor:hex,height:32,width:'100%',border:'none',padding:0,margin:0,display:'block',cursor:'pointer',flexShrink:0}}/>
+          ))}
+        </div>
+      </div>
+
+      {modalsBlock}
     </div>
   );
 }
