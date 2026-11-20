@@ -570,7 +570,9 @@ function PixelArtTool() {
   },[undo,redo]);
 
   // ── Render canvas ──────────────────────────────────────────────────────────
-  const viewSize=Math.min(displaySize,availW);
+  // Phone/portrait layout: canvas always fills the column width (no View slider there)
+  const viewSize=isNarrow?availW:Math.min(displaySize,availW);
+  const openResample=()=>{setTargetSize(gridSize>16?16:32);setShowResample(true);};
 
   const render=useCallback((pd,gs,sg)=>{
     const canvas=canvasRef.current;if(!canvas)return;
@@ -818,12 +820,14 @@ function PixelArtTool() {
           </div>
         )}
 
-        {/* View */}
+        {/* View — desktop/landscape only; in the single column the canvas fills the width */}
+        {!isNarrow&&(
         <div>
           <label className="block text-xs font-bold mb-1">View: {viewSize}px</label>
           <input type="range" min="100" max={availW} step="10" value={viewSize}
             onChange={e=>setDisplaySize(parseInt(e.target.value))} className="w-full"/>
         </div>
+        )}
 
         {/* Brush — hidden for fill and dither */}
         {(tool==='draw'||tool==='erase')&&(
@@ -871,7 +875,7 @@ function PixelArtTool() {
             className="w-full py-2 px-3 text-xs font-medium bg-stone-100 border-2 border-stone-300 hover:bg-stone-200">
             Random Fill
           </button>
-          <button onClick={()=>{setTargetSize(gridSize>16?16:32);setShowResample(true);}}
+          <button onClick={openResample}
             className="w-full py-2 px-3 text-xs font-medium bg-white border-2 border-stone-400 hover:bg-stone-100">
             Resample…
           </button>
@@ -896,13 +900,19 @@ function PixelArtTool() {
                   cursor:toolList.find(t=>t.id===tool)?.cursor||'crosshair'}}
               />
             </div>
-            <p className="mt-2 text-xs text-stone-400 font-mono">
+            <div className="mt-2 flex items-center gap-3">
+            <button onClick={openResample} title="Change grid size (resample)"
+              className="py-1 px-2 text-xs font-medium border-2 border-stone-300 bg-white hover:border-stone-600">
+              Grid {gridSize}×{gridSize} ▾
+            </button>
+            <p className="text-xs text-stone-400 font-mono">
               {gridSize}×{gridSize} · {tool}
               {(tool==='draw'||tool==='erase')?` · ${brushSize}px`:''}
               {tool==='draw'&&blendStrength<100?` · ${blendStrength}%`:''}
               {tool==='dither'?` · ${DITHER_MODES[ditherMode].label}`:''}
               {tool==='fill'?` · ${fillMode} tol ${tolerance}%`:''}
             </p>
+            </div>
           </div>
         </div>
   </>);
@@ -979,7 +989,7 @@ function PixelArtTool() {
       {/* ── Resample Modal ── */}
       {showResample&&(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50" style={modalPad(520)} onClick={()=>setShowResample(false)}>
-          <div className="bg-white p-6 shadow-2xl w-96" onClick={e=>e.stopPropagation()}>
+          <div className="bg-white p-5 shadow-2xl w-full max-w-sm mx-3" onClick={e=>e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-sm">Resample Canvas</h2>
               <button onClick={()=>setShowResample(false)} className="text-stone-400 hover:text-stone-900 font-bold text-lg">✕</button>
@@ -1002,12 +1012,12 @@ function PixelArtTool() {
             <div className="flex gap-4 items-start mb-5">
               <div className="flex-1 text-center">
                 <p className="text-xs text-stone-400 mb-1">Current ({gridSize}×{gridSize})</p>
-                <div className="border-2 border-stone-200 inline-block"><ResamplePreview pixels={pixels} fromSize={gridSize} toSize={gridSize}/></div>
+                <div className="border-2 border-stone-200 inline-block"><ResamplePreview pixels={pixels} fromSize={gridSize} toSize={gridSize} previewPx={isNarrow?110:140}/></div>
               </div>
               <div className="flex items-center pt-8 text-stone-400 font-bold text-lg">→</div>
               <div className="flex-1 text-center">
                 <p className="text-xs text-stone-400 mb-1">Preview ({targetSize}×{targetSize})</p>
-                <div className="border-2 border-stone-600 inline-block"><ResamplePreview pixels={pixels} fromSize={gridSize} toSize={targetSize}/></div>
+                <div className="border-2 border-stone-600 inline-block"><ResamplePreview pixels={pixels} fromSize={gridSize} toSize={targetSize} previewPx={isNarrow?110:140}/></div>
               </div>
             </div>
             <div className="flex gap-2">
