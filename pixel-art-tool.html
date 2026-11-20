@@ -446,6 +446,7 @@ const initPixels=()=>Array.from({length:INIT_GRID},()=>Array(INIT_GRID).fill(nul
 
 function PixelArtTool() {
   const canvasRef=useRef(null);
+  const centreRef=useRef(null);
   const initialPx=useRef(initPixels());
 
   const [pixels,setPixels]                 = useState(initialPx.current);
@@ -531,9 +532,17 @@ function PixelArtTool() {
 
   // ── Auto-height for iframe embed ───────────────────────────────────────────
   useEffect(()=>{
-    const report=()=>window.parent.postMessage({type:'phgrid-height',height:document.body.scrollHeight},'*');
+    // Measure the centre column (sized by its content), NOT document.body: body/min-h-screen/h-screen
+    // follow the iframe's own height, so reporting body made the embed grow +40px forever.
+    let last=0;
+    const report=()=>{
+      const el=centreRef.current; if(!el) return;
+      const h=Math.ceil(el.getBoundingClientRect().height);
+      if(Math.abs(h-last)<2) return; last=h;
+      window.parent.postMessage({type:'phgrid-height',height:h},'*');
+    };
     const ro=new ResizeObserver(report);
-    ro.observe(document.body);
+    if(centreRef.current) ro.observe(centreRef.current);
     report();
     return ()=>ro.disconnect();
   },[]);
@@ -863,7 +872,7 @@ function PixelArtTool() {
       </div>
 
       {/* ── Centre: canvas top, colour analysis below ── */}
-      <div className="flex-1 flex flex-col bg-stone-100 min-w-0">
+      <div ref={centreRef} className="flex-1 flex flex-col bg-stone-100 min-w-0">
         {/* Canvas */}
         <div className="flex justify-center items-start p-6 pb-3 flex-shrink-0">
           <div className="flex flex-col items-center">
