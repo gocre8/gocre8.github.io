@@ -130,7 +130,7 @@ function lchDistance(a,b){
   let dH=a.H-b.H; if(dH>180)dH-=360; if(dH<-180)dH+=360;
   return Math.sqrt(dL*dL+dC*dC+(dH/360)**2);
 }
-function lchMatch(a,b,tol){return lchDistance(a,b)<=(tol/100)*1.5;}
+function lchMatch(a,b,tol){if(!a||!b)return !a&&!b; return lchDistance(a,b)<=(tol/100)*1.5;}  // empty only matches empty
 function migratePixels(rows){
   return rows.map(row=>row.map(cell=>{
     if(!cell)return null;
@@ -453,6 +453,7 @@ function PixelArtTool() {
   const pixelsRef                          = useRef(initialPx.current);
   const [gridSize,setGridSize]             = useState(INIT_GRID);
   const [displaySize,setDisplaySize]       = useState(512);
+  const [availW,setAvailW]                 = useState(2000);  // centre column width minus padding
   const [selectedLch,setSelectedLch]       = useState(()=>{const{r,g,b}=hexToRgbObj('#FF6B35');return rgbToOklch(r,g,b);});
   const [previousLch,setPreviousLch]       = useState(null);
   const [colorHistory,setColorHistory]     = useState([]);
@@ -460,7 +461,8 @@ function PixelArtTool() {
   const [brushSize,setBrushSize]           = useState(1);
   const [fillMode,setFillMode]             = useState('contiguous');
   const [tolerance,setTolerance]           = useState(0);
-  const [isDrawing,setIsDrawing]           = useState(false);
+  const drawingRef = useRef(false);   // ref, not state: fast events must see it immediately
+  const lastCellRef = useRef(null);
 
   // History
   const historyRef    = useRef([initialPx.current]);
@@ -489,6 +491,7 @@ function PixelArtTool() {
 
   // ── Internal pixel setter (keeps ref in sync) ──────────────────────────────
   const setPixelsWithRef = useCallback((updater) => {
+    if(typeof updater!=='function'){ pixelsRef.current=updater; setPixels(updater); return; }
     setPixels(prev=>{
       const next=typeof updater==='function'?updater(prev):updater;
       pixelsRef.current=next;
@@ -541,7 +544,7 @@ function PixelArtTool() {
       if(Math.abs(h-last)<2) return; last=h;
       window.parent.postMessage({type:'phgrid-height',height:h},'*');
     };
-    const ro=new ResizeObserver(report);
+    const ro=new ResizeObserver(()=>{report(); const el=centreRef.current; if(el) setAvailW(Math.max(100,Math.floor(el.clientWidth-52)));});
     if(centreRef.current) ro.observe(centreRef.current);
     report();
     return ()=>ro.disconnect();
@@ -563,6 +566,8 @@ function PixelArtTool() {
   },[undo,redo]);
 
   // ── Render canvas ──────────────────────────────────────────────────────────
+  const viewSize=Math.min(displaySize,availW);
+
   const render=useCallback((pd,gs,sg)=>{
     const canvas=canvasRef.current;if(!canvas)return;
     const ctx=canvas.getContext('2d');
@@ -616,48 +621,56 @@ function PixelArtTool() {
   const addToHistory2=(lch)=>{const hex=lchToHex(lch);setColorHistory(prev=>[{lch,hex},...prev.filter(c=>c.hex!==hex)].slice(0,10));};
 
   // ── Pointer events ─────────────────────────────────────────────────────────
+  // Cells on the straight line between two cells (Bresenham), excluding the start cell.
+  const cellsBetween=(x0,y0,x1,y1)=>{
+    const out=[]; let dx=Math.abs(x1-x0), dy=-Math.abs(y1-y0), sx=x0<x1?1:-1, sy=y0<y1?1:-1, err=dx+dy;
+    while(x0!==x1||y0!==y1){ const e2=2*err; if(e2>=dy){err+=dy;x0+=sx;} if(e2<=dx){err+=dx;y0+=sy;} out.push([x0,y0]); }
+    return out;
+  };
+  const strokeAt=(cells,prev)=>{
+    let next=prev;
+    for(const [x,y] of cells){
+      next = tool==='dither' ? ditherPaint(x,y,selectedLch,next,ditherMode,gridSize)
+                             : paintCells(x,y,tool==='draw'?selectedLch:null,next);
+    }
+    return next;
+  };
+
   const handleMouseDown=(e)=>{
-    setIsDrawing(true);
     const{cx,cy}=getCellCoords(e);
-    if(tool==='draw'){
-      setPreviousLch(selectedLch);
+    if(tool==='draw'||tool==='erase'||tool==='dither'){
+      drawingRef.current=true; lastCellRef.current=[cx,cy];
+      if(tool!=='erase'){ setPreviousLch(selectedLch); addToHistory2(selectedLch); }
       strokeStartRef.current=pixelsRef.current;
-      setPixelsWithRef(prev=>paintCells(cx,cy,selectedLch,prev));
-      addToHistory2(selectedLch);
-    } else if(tool==='erase'){
-      strokeStartRef.current=pixelsRef.current;
-      setPixelsWithRef(prev=>paintCells(cx,cy,null,prev));
+      setPixelsWithRef(strokeAt([[cx,cy]],pixelsRef.current));
     } else if(tool==='eyedropper'){
-      const lch=pixels[cy]?.[cx];
+      const lch=pixelsRef.current[cy]?.[cx];
       if(lch){setPreviousLch(selectedLch);setSelectedLch(lch);addToHistory2(lch);}
       setTool('draw');
     } else if(tool==='fill'){
       setPreviousLch(selectedLch);
-      const target=pixels[cy]?.[cx]??null;
       const prev=pixelsRef.current;
+      const target=prev[cy]?.[cx]??null;
       const next=fillMode==='contiguous'
         ?floodFill(prev,cx,cy,target,selectedLch,tolerance,gridSize)
         :globalFill(prev,target,selectedLch,tolerance);
       setPixelsWithRef(next);
       pushHistory(next);
       addToHistory2(selectedLch);
-    } else if(tool==='dither'){
-      setPreviousLch(selectedLch);
-      strokeStartRef.current=pixelsRef.current;
-      setPixelsWithRef(prev=>ditherPaint(cx,cy,selectedLch,prev,ditherMode,gridSize));
-      addToHistory2(selectedLch);
     }
   };
 
   const handleMouseMove=(e)=>{
-    if(!isDrawing||(tool!=='draw'&&tool!=='erase'&&tool!=='dither')) return;
+    if(!drawingRef.current||(tool!=='draw'&&tool!=='erase'&&tool!=='dither')) return;
     const{cx,cy}=getCellCoords(e);
-    if(tool==='dither') setPixelsWithRef(prev=>ditherPaint(cx,cy,selectedLch,prev,ditherMode,gridSize));
-    else setPixelsWithRef(prev=>paintCells(cx,cy,tool==='draw'?selectedLch:null,prev));
+    const [lx,ly]=lastCellRef.current||[cx,cy];
+    if(lx===cx&&ly===cy) return;        // same cell: don't re-apply (keeps glazes even)
+    lastCellRef.current=[cx,cy];
+    setPixelsWithRef(strokeAt(cellsBetween(lx,ly,cx,cy),pixelsRef.current));
   };
 
   const handleMouseUp=useCallback(()=>{
-    setIsDrawing(false);
+    drawingRef.current=false; lastCellRef.current=null;
     if(strokeStartRef.current!==null){
       pushHistory(pixelsRef.current);
       strokeStartRef.current=null;
@@ -808,8 +821,8 @@ function PixelArtTool() {
 
         {/* View */}
         <div>
-          <label className="block text-xs font-bold mb-1">View: {displaySize}px</label>
-          <input type="range" min="100" max="2000" step="10" value={displaySize}
+          <label className="block text-xs font-bold mb-1">View: {viewSize}px</label>
+          <input type="range" min="100" max={availW} step="10" value={viewSize}
             onChange={e=>setDisplaySize(parseInt(e.target.value))} className="w-full"/>
         </div>
 
@@ -876,7 +889,7 @@ function PixelArtTool() {
         {/* Canvas */}
         <div className="flex justify-center items-start p-6 pb-3 flex-shrink-0">
           <div className="flex flex-col items-center">
-            <div className="border-2 border-stone-400 shadow-xl" style={{width:displaySize,height:displaySize}}>
+            <div className="border-2 border-stone-400 shadow-xl" style={{width:viewSize,height:viewSize}}>
               <canvas
                 ref={canvasRef}
                 width={CANVAS_SIZE} height={CANVAS_SIZE}
