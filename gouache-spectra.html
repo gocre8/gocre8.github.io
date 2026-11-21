@@ -113,8 +113,8 @@ details.arch>summary .btn{pointer-events:none}
 .work ul{columns:1}.work .upd{font-size:12px;color:var(--ink-soft)}.cal .no::before{content:"○ ";color:var(--ink-ghost)}.cal .no{color:var(--ink-soft)}
 .count{font:400 12px var(--f-num);color:var(--ink-soft)}
 /* value: eye-sensitivity hump behind the curves, gray value scale under each graph */
-.plot .hump{fill:var(--hump);opacity:.25}
-.plot .humpl{font:500 10.5px var(--f-ui);fill:var(--hump)}
+.plot .hump{fill:var(--hump);opacity:.42}
+.plot .humpl{font:600 11px var(--f-ui);fill:#fff}
 .dhead{min-height:76px}
 .vscale{display:block;width:100%;height:auto;margin-top:6px}
 .vscale text{font:400 10.5px var(--f-num);fill:var(--ink-soft)}
@@ -284,7 +284,7 @@ function plot(host,series,{h=230,weighted=false}={}){
   // the eye's brightness sensitivity, drawn as a faint hump behind the curves
   const hy=v=>y(lo+v*(hi-lo));
   el("path",{class:"hump",d:"M"+x(W[0])+" "+hy(0)+" "+YWN.map((v,i)=>"L"+x(W[i]).toFixed(1)+" "+hy(v).toFixed(1)).join(" ")+" L"+x(W[W.length-1])+" "+hy(0)+"Z"},svg);
-  const pk=YWN.indexOf(1);el("rect",{class:"hump",x:x(W[pk])+8,y:hy(.93)-8,width:10,height:10,rx:2},svg);const hl=el("text",{class:"humpl",x:x(W[pk])+22,y:hy(.93),"text-anchor":"start"},svg);hl.textContent="how bright each wavelength looks";
+  const pk=YWN.indexOf(1),hl=el("text",{class:"humpl",x:x(W[pk]),y:hy(.5),"text-anchor":"middle"},svg);hl.textContent="how bright each wavelength looks";
   // value view: each curve × the eye's sensitivity, shaded — the size of the shaded area is the colour's lightness
   if(weighted&&!ZOOM[host.id])for(const s of series){if(!s.it||s.dash)continue;
     el("path",{d:"M"+x(W[0])+" "+y(0)+" "+s.it.refl.map((r,i)=>"L"+x(W[i]).toFixed(1)+" "+y(r*YWN[i]).toFixed(1)).join(" ")+" L"+x(W[W.length-1])+" "+y(0)+"Z",fill:s.it.L>92?"var(--ink-ghost)":s.it.hex,opacity:.3},svg)}
@@ -433,15 +433,17 @@ function leanText(k,it){
 function drawBetween(k,it,par){
   const [A,B]=PARENTS[k],da=dE00(labOf(it),labOf(par[0])),db=dE00(labOf(it),labOf(par[1])),t=da/(da+db),gap=Math.abs(da-db);
   const verdict=gap<=1.5?`evenly between ${A} and ${B}`:gap<=3?`nearly evenly between ${A} and ${B}`:`closer to ${da<db?A:B} than to ${da<db?B:A}`;
-  const host=document.getElementById("between"),w=600,h=64,x0=40,x1=w-40,xm=x0+t*(x1-x0);
+  const host=document.getElementById("between"),w=600,h=80,x0=40,x1=w-40,xm=x0+t*(x1-x0);
   host.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${k} is ${da.toFixed(1)} from ${A} and ${db.toFixed(1)} from ${B}" style="display:block;width:100%;height:auto">
     <line x1="${x0}" y1="30" x2="${x1}" y2="30" stroke="var(--border)" stroke-width="3"/>
     <line x1="${(x0+x1)/2}" y1="18" x2="${(x0+x1)/2}" y2="42" stroke="var(--ink-ghost)" stroke-width="1.5" stroke-dasharray="3 3"/>
     <circle cx="${x0}" cy="30" r="13" fill="${sw(par[0])}" stroke="rgba(0,0,0,.15)"/><circle cx="${x1}" cy="30" r="13" fill="${sw(par[1])}" stroke="rgba(0,0,0,.15)"/>
     <circle cx="${xm}" cy="30" r="11" fill="${sw(it)}" stroke="var(--ink)" stroke-width="2"/>
     <text x="${x0}" y="60" text-anchor="middle" style="font:400 12px var(--f-num);fill:var(--ink-soft)">${A}</text><text x="${x1}" y="60" text-anchor="middle" style="font:400 12px var(--f-num);fill:var(--ink-soft)">${B}</text>
+    <text x="${x0}" y="76" text-anchor="middle" style="font:400 11px var(--f-num);fill:var(--ink-ghost)">C ${par[0].C.toFixed(1)}</text><text x="${x1}" y="76" text-anchor="middle" style="font:400 11px var(--f-num);fill:var(--ink-ghost)">C ${par[1].C.toFixed(1)}</text>
+    <text x="${xm}" y="60" text-anchor="middle" style="font:400 12px var(--f-num);fill:var(--ink)">${k}</text><text x="${xm}" y="76" text-anchor="middle" style="font:400 11px var(--f-num);fill:var(--ink-soft)">C ${it.C.toFixed(1)}</text>
     <text x="${(x0+xm)/2}" y="14" text-anchor="middle" style="font:400 12px var(--f-num);fill:var(--ink)">${da.toFixed(1)}</text><text x="${(xm+x1)/2}" y="14" text-anchor="middle" style="font:400 12px var(--f-num);fill:var(--ink)">${db.toFixed(1)}</text>
-  </svg><p class="more"><strong>${k} is ${verdict}</strong>: it looks ${da.toFixed(1)} different from ${A} and ${db.toFixed(1)} from ${B} (colour difference ΔE00: about 1 is barely visible side by side, 3 is clear. The dashed tick marks exactly halfway).</p>`;
+  </svg><p class="more"><strong>${k} is ${verdict}</strong>: it looks ${da.toFixed(1)} different from ${A} and ${db.toFixed(1)} from ${B} (colour difference ΔE00: about 1 is barely visible side by side, 3 is clear. The dashed tick marks exactly halfway. C under each swatch is its chroma: 0 is gray, higher is more saturated).</p>`;
 }
 
 // ---------- ideas ----------
