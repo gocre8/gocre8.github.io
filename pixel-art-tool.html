@@ -424,6 +424,94 @@ function renderToDataURL(pixels,gs,size,withGrid=false){
   }
   return ec.toDataURL('image/png');
 }
+// ── Save / open files ───────────────────────────────────────────────────────────
+// A saved PNG is a normal image AND carries the exact drawing (grid + OKLCH per cell)
+// in a PNG tEXt chunk, so Open File restores it exactly at any saved size.
+const PNG_KEY='pixelart';
+const _crcT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=_crcT[(c^b[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function encodeDrawing(pixels,gs){
+  return JSON.stringify({app:'pixel-art-tool',v:1,gs,cells:pixels.flat().map(p=>p?`${p.L.toFixed(5)},${p.C.toFixed(5)},${p.H.toFixed(3)}`:'').join(';')});
+}
+function decodeDrawing(txt){
+  try{
+    const o=JSON.parse(txt); if(o.app!=='pixel-art-tool') return null;
+    const gs=o.gs|0; if(gs<1||gs>64) return null;
+    const cells=String(o.cells).split(';'); if(cells.length!==gs*gs) return null;
+    const rows=[];
+    for(let y=0;y<gs;y++) rows.push(cells.slice(y*gs,(y+1)*gs).map(c=>{
+      if(!c) return null; const [L,C,H]=c.split(',').map(Number);
+      return (isFinite(L)&&isFinite(C)&&isFinite(H))?{L,C,H}:null;
+    }));
+    return {gs,pixels:rows};
+  }catch{return null;}
+}
+function dataURLtoBytes(u){const b=atob(u.split(',')[1]);const a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;}
+function bytesToDataURL(a){let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return 'data:image/png;base64,'+btoa(s);}
+function addTextChunk(png,key,text){          // insert a tEXt chunk just before IEND
+  const data=new TextEncoder().encode(key+'\0'+text);
+  const chunk=new Uint8Array(12+data.length), dv=new DataView(chunk.buffer);
+  dv.setUint32(0,data.length); chunk.set(new TextEncoder().encode('tEXt'),4); chunk.set(data,8);
+  dv.setUint32(8+data.length,crc32(chunk.subarray(4,8+data.length)));
+  const iend=png.length-12, out=new Uint8Array(png.length+chunk.length);
+  out.set(png.subarray(0,iend)); out.set(chunk,iend); out.set(png.subarray(iend),iend+chunk.length);
+  return out;
+}
+function readTextChunk(buf,key){
+  const a=new Uint8Array(buf); if(a.length<16||a[0]!==0x89||a[1]!==0x50||a[2]!==0x4E||a[3]!==0x47) return null;
+  const dv=new DataView(a.buffer,a.byteOffset,a.byteLength); let p=8;
+  while(p+12<=a.length){
+    const len=dv.getUint32(p), type=String.fromCharCode(a[p+4],a[p+5],a[p+6],a[p+7]);
+    if(type==='tEXt'){const d=a.subarray(p+8,p+8+len), z=d.indexOf(0);
+      if(z>0&&new TextDecoder().decode(d.subarray(0,z))===key) return new TextDecoder().decode(d.subarray(z+1));}
+    if(type==='IEND') break; p+=12+len;
+  }
+  return null;
+}
+function makeSavePNG(pixels,gs,size){
+  return bytesToDataURL(addTextChunk(dataURLtoBytes(renderToDataURL(pixels,gs,size,false)),PNG_KEY,encodeDrawing(pixels,gs)));
+}
+// Any image file → ImageData (large photos scaled to fit 1024px; small files untouched)
+async function fileToImageData(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+    let w=img.naturalWidth,h=img.naturalHeight; const k=Math.min(1,1024/Math.max(w,h)); w=Math.max(1,Math.round(w*k)); h=Math.max(1,Math.round(h*k));
+    const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
+    x.imageSmoothingEnabled=k<1; x.drawImage(img,0,0,w,h); return x.getImageData(0,0,w,h);
+  }finally{URL.revokeObjectURL(url);}
+}
+function rgbaToCell(d,i){ if(d[i+3]<128||(d[i]===255&&d[i+1]===255&&d[i+2]===255)) return null; return rgbToOklch(d[i],d[i+1],d[i+2]); }
+// Square image made of flat colour blocks (a saved file whose hidden data was stripped)? → grid
+function detectPixelGrid(id){
+  const {width:w,height:h,data:d}=id; if(w!==h) return null;
+  const at=(x,y)=>(Math.min(h-1,Math.floor(y))*w+Math.min(w-1,Math.floor(x)))*4;
+  if(w>=4&&w<=64) return {gs:w,pixels:Array.from({length:w},(_,y)=>Array.from({length:w},(_,x)=>rgbaToCell(d,at(x,y))))};
+  for(let n=4;n<=64;n++){
+    const cs=w/n; if(cs<3) break; let ok=true;
+    for(let y=0;y<n&&ok;y++) for(let x=0;x<n&&ok;x++){
+      const c=at((x+.5)*cs,(y+.5)*cs);
+      for(const [fx,fy] of [[.25,.25],[.75,.25],[.25,.75],[.75,.75]]){
+        const q=at((x+fx)*cs,(y+fy)*cs);
+        if(Math.abs(d[c]-d[q])>3||Math.abs(d[c+1]-d[q+1])>3||Math.abs(d[c+2]-d[q+2])>3||Math.abs(d[c+3]-d[q+3])>3){ok=false;break;}
+      }
+    }
+    if(ok) return {gs:n,pixels:Array.from({length:n},(_,y)=>Array.from({length:n},(_,x)=>rgbaToCell(d,at((x+.5)*cs,(y+.5)*cs))))};
+  }
+  return null;
+}
+// Photo / drawing → square crop (centre) → each cell = average colour (linear light)
+function averageToGrid(id,n){
+  const {width:w,height:h,data:d}=id, side=Math.min(w,h), ox=Math.floor((w-side)/2), oy=Math.floor((h-side)/2), cs=side/n;
+  return Array.from({length:n},(_,y)=>Array.from({length:n},(_,x)=>{
+    let r=0,g=0,b=0,a=0,cnt=0;
+    const x0=Math.floor(ox+x*cs), x1=Math.max(x0+1,Math.floor(ox+(x+1)*cs)), y0=Math.floor(oy+y*cs), y1=Math.max(y0+1,Math.floor(oy+(y+1)*cs));
+    for(let yy=y0;yy<y1;yy++) for(let xx=x0;xx<x1;xx++){const i=(yy*w+xx)*4, al=d[i+3]/255; r+=srgbToLinear(d[i]/255)*al; g+=srgbToLinear(d[i+1]/255)*al; b+=srgbToLinear(d[i+2]/255)*al; a+=al; cnt++;}
+    if(a/cnt<0.5) return null;
+    const enc=v=>Math.round(linearToSrgb(v/a)*255);
+    return rgbToOklch(enc(r),enc(g),enc(b));
+  }));
+}
 function resampleNearest(pixels,oldGs,newGs){
   return Array.from({length:newGs},(_,y)=>Array.from({length:newGs},(_,x)=>pixels[Math.floor((y/newGs)*oldGs)]?.[Math.floor((x/newGs)*oldGs)]??null));
 }
@@ -478,7 +566,12 @@ function PixelArtTool() {
   const [versions,setVersions]     = useState(()=>{try{const vs=JSON.parse(localStorage.getItem(LS_KEY))||[];return vs.map(v=>({...v,pixels:migratePixels(v.pixels)}));}catch{return [];}});
   const [editingId,setEditingId]   = useState(null);
   const [tempName,setTempName]     = useState('');
-  const [exportURL,setExportURL]   = useState('');
+  const [exportSrc,setExportSrc]   = useState(null);   // {pixels,gs,name} being saved
+  const [exportNative,setExportNative] = useState(false);
+  const [importSrc,setImportSrc]   = useState(null);   // ImageData of an outside image to convert
+  const [importSize,setImportSize] = useState(16);
+  const [openMsg,setOpenMsg]       = useState('');
+  const fileInputRef = useRef(null);
   const [showExport,setShowExport] = useState(false);
   const [confirmLoad,setConfirmLoad]     = useState(null);
   const [confirmDelete,setConfirmDelete] = useState(null);
@@ -694,7 +787,24 @@ function PixelArtTool() {
   };
   const loadVersion=(v)=>{commitPixels(v.pixels);setConfirmLoad(null);};
   const deleteVersion=(id)=>setVersions(prev=>prev.filter(v=>v.id!==id));
-  const handleExport=(pd=pixels,gs=gridSize)=>{setExportURL(renderToDataURL(pd,gs,CANVAS_SIZE,false));setShowExport(true);};
+  const handleExport=(pd=pixels,gs=gridSize,name='pixel-art')=>{setExportSrc({pixels:pd,gs,name});setShowExport(true);};
+  const exportURL = showExport&&exportSrc ? makeSavePNG(exportSrc.pixels,exportSrc.gs,exportNative?exportSrc.gs:CANVAS_SIZE) : '';
+  const exportName = exportSrc ? `${(exportSrc.name||'pixel-art').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'pixel-art'}-${exportSrc.gs}x${exportSrc.gs}${exportNative?'':'-512'}.png` : 'pixel-art.png';
+
+  // ── Open File: exact restore from a saved PNG, else pixel read, else photo import ──
+  const pickFile=()=>{ if(fileInputRef.current){fileInputRef.current.value='';fileInputRef.current.click();} };
+  const openFile=async(file)=>{
+    if(!file) return;
+    try{
+      const d=decodeDrawing(readTextChunk(await file.arrayBuffer(),PNG_KEY)||'');
+      if(d){ commitPixels(d.pixels); setShowResample(false); setOpenMsg(`Opened ${file.name} (${d.gs}×${d.gs}). Undo goes back.`); return; }
+      const id=await fileToImageData(file);
+      const g=detectPixelGrid(id);
+      if(g){ commitPixels(g.pixels); setShowResample(false); setOpenMsg(`Opened ${file.name} (${g.gs}×${g.gs}, read from the pixels). Undo goes back.`); return; }
+      setShowResample(false); setImportSize(gridSize); setImportSrc(id); setOpenMsg('');
+    }catch(err){ console.error(err); setOpenMsg(`Could not open ${file.name}. Try a PNG or JPG.`); }
+  };
+  const importPreview = importSrc ? averageToGrid(importSrc,importSize) : null;
   const commitRename=()=>{if(editingId===null)return;setVersions(prev=>prev.map(v=>v.id===editingId?{...v,name:tempName||v.name}:v));setEditingId(null);};
 
   // ── Export all PDF ─────────────────────────────────────────────────────────
@@ -881,7 +991,11 @@ function PixelArtTool() {
           </button>
           <button onClick={()=>handleExport()}
             className="w-full py-2 px-3 text-xs font-medium bg-stone-900 text-white border-2 border-stone-900 hover:bg-stone-700">
-            Export PNG
+            Save File (PNG)
+          </button>
+          <button onClick={pickFile}
+            className="w-full py-2 px-3 text-xs font-medium bg-white border-2 border-stone-900 hover:bg-stone-100">
+            Open File…
           </button>
   </>);
   const canvasBlock=(<>
@@ -913,7 +1027,18 @@ function PixelArtTool() {
               {tool==='fill'?` · ${fillMode} tol ${tolerance}%`:''}
             </p>
             </div>
+            {openMsg&&<p className="mt-1 text-xs text-stone-500" onClick={()=>setOpenMsg('')}>{openMsg}</p>}
           </div>
+        </div>
+  </>);
+  const infoBlock=(<>
+        <div className="border-t border-stone-200 bg-white px-4 py-4 text-xs text-stone-600 leading-relaxed space-y-2">
+          <p className="font-bold tracking-wide text-stone-900">SAVING YOUR WORK</p>
+          <p><strong>Save File</strong> downloads a PNG of your drawing. Keep it in Files, Google Drive or on your computer. It works as a normal image and it also holds your exact colors and grid size.</p>
+          <p><strong>Open File</strong> loads that PNG back so you can keep working. Nothing is uploaded. Everything stays on your device.</p>
+          <p><strong>Versions</strong> are quick checkpoints saved in this browser only. They disappear if browser data is cleared and they don't follow you to another device. Use Save File for anything you want to keep.</p>
+          <p>Saving to the Photos app or sending the file in a message can strip the hidden data. The drawing still opens, but colors may shift slightly. Save to Files instead.</p>
+          <p>Open File also takes any other image, like a photo or a scan. It turns it into pixels at the grid size you pick.</p>
         </div>
   </>);
   const versionsBlock=(<>
@@ -949,7 +1074,7 @@ function PixelArtTool() {
                     }
                     <p className="text-xs text-stone-400">{v.gridSize}×{v.gridSize}</p>
                     <div className="flex gap-1 mt-1">
-                      <button onClick={()=>handleExport(v.pixels,v.gridSize)} className="flex-1 text-xs py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-300">PNG</button>
+                      <button onClick={()=>handleExport(v.pixels,v.gridSize,v.name)} className="flex-1 text-xs py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-300">PNG</button>
                       <button onClick={()=>setConfirmDelete(v)} className="flex-1 text-xs py-0.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600">Del</button>
                     </div>
                   </div>
@@ -994,7 +1119,8 @@ function PixelArtTool() {
               <h2 className="font-bold text-sm">Resample Canvas</h2>
               <button onClick={()=>setShowResample(false)} className="text-stone-400 hover:text-stone-900 font-bold text-lg">✕</button>
             </div>
-            <p className="text-xs text-stone-500 mb-4">Nearest-neighbor resampling — colours are never blended, palette stays exact.</p>
+            <p className="text-xs text-stone-500 mb-3">Nearest-neighbor resampling. Colors are never blended, so the palette stays exact.</p>
+            <button onClick={pickFile} className="w-full mb-4 py-2 text-xs font-medium border-2 border-stone-900 bg-white hover:bg-stone-100">Import an image or saved file…</button>
             <div className="mb-4">
               <label className="block text-xs font-bold mb-2">Target size</label>
               <div className="flex flex-wrap gap-1 mb-3">
@@ -1095,17 +1221,51 @@ function PixelArtTool() {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start justify-center z-50" style={modalPad(520)} onClick={()=>setShowExport(false)}>
           <div className="bg-white p-6 shadow-2xl max-w-sm w-full mx-4" onClick={e=>e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
-              <h2 className="font-bold text-sm">Export PNG</h2>
+              <h2 className="font-bold text-sm">Save File (PNG)</h2>
               <button onClick={()=>setShowExport(false)} className="text-stone-400 hover:text-stone-900 font-bold text-lg">✕</button>
             </div>
-            <p className="text-xs text-stone-500 mb-3">Right-click the image → <strong>Save Image As…</strong></p>
-            <div className="border-2 border-stone-200 bg-stone-50 p-2 flex justify-center">
-              <img src={exportURL} alt="export" style={{width:256,height:256,imageRendering:'pixelated',display:'block'}}/>
+            <div className="flex gap-1 mb-3">
+              {[[false,'512×512'],[true,`Native ${exportSrc?.gs}×${exportSrc?.gs}`]].map(([nat,label])=>(
+                <button key={label} onClick={()=>setExportNative(nat)}
+                  className={`flex-1 py-1.5 text-xs font-medium border-2 ${exportNative===nat?'bg-stone-900 text-white border-stone-900':'border-stone-300 bg-white'}`}>{label}</button>
+              ))}
             </div>
-            <p className="text-xs text-stone-400 mt-2 text-center">512×512px · no grid lines</p>
+            <div className="border-2 border-stone-200 bg-stone-50 p-2 flex justify-center">
+              <img src={exportURL} alt="export" style={{width:200,height:200,imageRendering:'pixelated',display:'block'}}/>
+            </div>
+            <a href={exportURL} download={exportName}
+              className="block w-full mt-3 py-2 text-center text-xs font-medium bg-stone-900 text-white hover:bg-stone-700">Download {exportName}</a>
+            <p className="text-xs text-stone-400 mt-2">{exportNative?'One image pixel per cell. Tiny, but exact.':'512×512 px, no grid lines.'} Either size opens again with Open File.</p>
           </div>
         </div>
       )}
+      {/* ── Import outside image ── */}
+      {importSrc&&(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50" style={modalPad(520)} onClick={()=>setImportSrc(null)}>
+          <div className="bg-white p-5 shadow-2xl w-full max-w-sm mx-3" onClick={e=>e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="font-bold text-sm">Turn image into pixels</h2>
+              <button onClick={()=>setImportSrc(null)} className="text-stone-400 hover:text-stone-900 font-bold text-lg">✕</button>
+            </div>
+            <p className="text-xs text-stone-500 mb-3">The centre square of the image is used. Each cell becomes the average color of its area.</p>
+            <div className="flex flex-wrap gap-1 mb-3">
+              {PRESET_SIZES.map(n=>(
+                <button key={n} onClick={()=>setImportSize(n)}
+                  className={`px-3 py-1.5 text-xs font-medium border-2 ${importSize===n?'bg-stone-900 text-white border-stone-900':'border-stone-300 hover:border-stone-600'}`}>{n}×{n}</button>
+              ))}
+            </div>
+            <div className="flex justify-center mb-4">
+              <img src={importPreview?renderToDataURL(importPreview,importSize,240,false):''} alt="preview" style={{width:200,height:200,imageRendering:'pixelated',border:'2px solid #57534e'}}/>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={()=>setImportSrc(null)} className="flex-1 py-2 text-xs font-medium border-2 border-stone-300 hover:bg-stone-100">Cancel</button>
+              <button onClick={()=>{commitPixels(importPreview);setImportSrc(null);setOpenMsg(`Image turned into ${importSize}×${importSize} pixels. Undo goes back.`);}}
+                className="flex-1 py-2 text-xs font-medium bg-stone-900 text-white hover:bg-stone-700">Use {importSize}×{importSize}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <input ref={fileInputRef} type="file" accept="image/*,.png" style={{display:'none'}} onChange={e=>openFile(e.target.files?.[0])}/>
   </>);
 
   // ── Single-column layout (phones + portrait tablets, < NARROW_W): one column, canvas near the top ─────────
@@ -1143,6 +1303,7 @@ function PixelArtTool() {
         </div>
         <ColourAnalysis pixels={pixels} gridSize={gridSize}/>
         {versionsBlock}
+        {infoBlock}
       </div>
       {modalsBlock}
     </div>
@@ -1166,6 +1327,7 @@ function PixelArtTool() {
         {canvasBlock}
         <ColourAnalysis pixels={pixels} gridSize={gridSize}/>
         {versionsBlock}
+        {infoBlock}
       </div>
 
       {/* ── Right: Color / OKLCH ── */}
