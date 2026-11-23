@@ -157,41 +157,73 @@ function ditherPaint(cx, cy, color, prev, mode, gridSz) {
 function OklchSliders({lch:lchProp, onChange}) {
   const [lch,setLch]=useState(lchProp);
   const skipRef=useRef(false);
+  // C slider mode. 'relative' (default): 0–100% of the most chroma the screen can show at this L and H,
+  // so moving L or H keeps the percentage. 'actual': true OKLCH chroma; L/H moves show as much of the
+  // chosen chroma as the screen allows and give it back when they can.
+  const [cMode,setCMode]=useState(()=>{try{return localStorage.getItem('pixelart-cmode')||'relative';}catch{return 'relative';}});
+  const setMode=(m)=>{setCMode(m);try{localStorage.setItem('pixelart-cmode',m);}catch{}};
+  // Slider top = screen limit rounded DOWN to the 0.5 step, so the thumb's right end is a reachable value
+  const cTop=(L,H)=>Math.max(0.01,Math.floor(maxInGamutC(L,H)*200)/200);
+  const relOf=(c)=>Math.min(1,c.C/Math.max(1e-6,maxInGamutC(c.L,c.H)));
+  const wantCRef=useRef(lchProp.C);         // chosen chroma (actual mode)
+  const wantRelRef=useRef(relOf(lchProp));  // chosen share of the screen limit (relative mode)
   useEffect(()=>{
     if(skipRef.current){skipRef.current=false;return;}
+    wantCRef.current=lchProp.C; wantRelRef.current=relOf(lchProp);
     setLch(lchProp);
   },[lchProp.L,lchProp.C,lchProp.H]);
-  const update=(newLch)=>{
-    const maxC=maxInGamutC(newLch.L,newLch.H);
-    const clamped={...newLch,C:Math.min(newLch.C,maxC)};
+  const update=(newLch,key)=>{
+    let C;
+    if(cMode==='relative'){
+      if(key==='C') wantRelRef.current=newLch.C;   // slider gives 0..1 here
+      C=wantRelRef.current*maxInGamutC(newLch.L,newLch.H);
+      wantCRef.current=C;
+    } else {
+      if(key==='C') wantCRef.current=newLch.C;
+      C=Math.min(wantCRef.current,cTop(newLch.L,newLch.H));
+      wantRelRef.current=relOf({...newLch,C});
+    }
+    const next={...newLch,C};
     skipRef.current=true;
-    setLch(clamped);
-    onChange(clamped);
+    setLch(next);
+    onChange(next);
   };
   const{L,C,H}=lch;
   const maxCVal=maxInGamutC(L,H);
-  const maxCPct=Math.max(1,Math.round(maxCVal*100));
+  const maxCPct=Math.round(cTop(L,H)*1000)/10;
+  const relPct=Math.round(relOf(lch)*100);
   const minC=Math.max(0.08,C);
   const lGrad=`linear-gradient(to right,oklch(0 ${C.toFixed(3)} ${H.toFixed(1)}deg),oklch(1 ${C.toFixed(3)} ${H.toFixed(1)}deg))`;
   const cGrad=`linear-gradient(to right,oklch(${L.toFixed(3)} 0 ${H.toFixed(1)}deg),oklch(${L.toFixed(3)} ${maxCVal.toFixed(3)} ${H.toFixed(1)}deg))`;
-  const hGrad=`linear-gradient(to right,${[0,60,120,180,240,300,360].map(d=>`oklch(${Math.max(0.55,L).toFixed(2)} ${minC.toFixed(3)} ${d}deg)`).join(',')})`;
+  // Hue track: each hue at the strongest chroma the screen can show at this lightness (kept 0.55–0.85 so the track stays readable)
+  const hL=Math.max(0.55,Math.min(0.85,L));
+  const hGrad=`linear-gradient(to right,${Array.from({length:13},(_,i)=>i*30).map(d=>`oklch(${hL.toFixed(2)} ${(maxInGamutC(hL,d%360)*0.95).toFixed(3)} ${d}deg)`).join(',')})`;
   const trackStyle=(grad)=>({WebkitAppearance:'none',appearance:'none',width:'100%',height:12,borderRadius:6,background:grad,outline:'none',cursor:'pointer',border:'1px solid #d1d5db',display:'block'});
+  const cRow = cMode==='relative'
+    ? {label:'C',unit:'%',val:relPct,min:0,max:100,step:1,grad:cGrad,key:'C',toInt:v=>v/100,note:`share of screen max · actual C ${(C*100).toFixed(1)}`}
+    : {label:'C',unit:'',val:Math.min(+(C*100).toFixed(1),maxCPct),min:0,max:maxCPct,step:0.5,grad:cGrad,key:'C',toInt:v=>v/100,note:`screen max here ${maxCPct}`};
+  const modeBtn=(m,label)=>(
+    <button key={m} onClick={()=>setMode(m)} aria-pressed={cMode===m}
+      title={m==='relative'?'C as a share of the most chroma the screen can show at this L and H':'True OKLCH chroma (×100)'}
+      style={{fontSize:9,padding:'1px 6px',border:'1px solid #44403c',background:cMode===m?'#1c1917':'white',color:cMode===m?'white':'#44403c',cursor:'pointer'}}>{label}</button>);
   return (
     <div>
       <style>{`.lch-s::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:white;border:2px solid #44403c;box-shadow:0 1px 3px rgba(0,0,0,.4);cursor:pointer}.lch-s::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:white;border:2px solid #44403c;cursor:pointer}`}</style>
       {[
         {label:'L',unit:'%',val:+(L*100).toFixed(1),min:0,max:100,step:1,grad:lGrad,key:'L',toInt:v=>v/100},
-        {label:'C',unit:'%',val:+(C*100).toFixed(1),min:0,max:maxCPct,step:0.5,grad:cGrad,key:'C',toInt:v=>v/100},
+        cRow,
         {label:'H',unit:'°',val:+H.toFixed(1),min:0,max:360,step:1,grad:hGrad,key:'H',toInt:v=>v},
-      ].map(({label,unit,val,min,max,step,grad,key,toInt})=>(
+      ].map(({label,unit,val,min,max,step,grad,key,toInt,note})=>(
         <div key={key} style={{marginBottom:8}}>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:3,gap:4}}>
             <span style={{fontSize:10,fontWeight:700}}>{label}</span>
-            <span style={{fontSize:10,color:'#78716c'}}>{Math.round(val)}{unit}</span>
+            {key==='C'&&<span style={{display:'flex'}}>{modeBtn('relative','Relative')}{modeBtn('actual','Actual')}</span>}
+            <span style={{fontSize:10,color:'#78716c'}}>{key==='C'&&cMode==='actual'?val.toFixed(1):Math.round(val)}{unit}</span>
           </div>
           <input type="range" className="lch-s" min={min} max={max} step={step} value={val}
-            onChange={e=>update({...lch,[key]:toInt(parseFloat(e.target.value))})}
+            onChange={e=>update({...lch,[key]:toInt(parseFloat(e.target.value))},key)}
             style={trackStyle(grad)}/>
+          {note&&<div style={{fontSize:9,color:'#a8a29e',marginTop:2}}>{note}</div>}
         </div>
       ))}
       <div style={{fontFamily:'monospace',fontSize:10,color:'#78716c',textAlign:'center',marginTop:2}}>{lchToHex(lch).toUpperCase()}</div>
